@@ -1,6 +1,6 @@
 # euler
 
-This is my header-only library for mathematical utilities. Very useful for Project Euler but much of the code is also useful more broadly.
+This is my header-only library for mathematical utilities. It is nicknamed `euler` because I wrote this code to help with Project Euler problems. However much of the code is also useful more broadly.
 
 ## Dependencies
 
