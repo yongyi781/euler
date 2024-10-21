@@ -1,0 +1,15 @@
+#pragma once
+
+#include "euler/FactorialMod.hpp"
+#include "euler/FenwickTree.hpp"
+#include "euler/ZMod.hpp"
+#include "euler/ZModpp.hpp"
+#include "euler/algorithm.hpp"
+#include "euler/cfrac.hpp"
+#include "euler/decls.hpp"
+#include "euler/hash.hpp"
+#include "euler/io.hpp"
+#include "euler/it.hpp"
+#include "euler/math.hpp"
+#include "euler/matrix.hpp"
+#include "euler/memoize.hpp"
