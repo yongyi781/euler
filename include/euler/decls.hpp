@@ -675,7 +675,7 @@ template <typename T> class triangular_vector
     {
         for (size_t i = 0; i < v.height(); ++i)
         {
-            for (size_t j = 0; j < v.width(); ++j)
+            for (size_t j = 0; j < i; ++j)
             {
                 if (j != 0)
                     o << ", ";
@@ -720,7 +720,7 @@ template <typename T, size_t N> class triangular_array
     {
         for (size_t i = 0; i < v.height(); ++i)
         {
-            for (size_t j = 0; j < v.width(); ++j)
+            for (size_t j = 0; j < i; ++j)
             {
                 if (j != 0)
                     o << ", ";
