@@ -1640,19 +1640,14 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        T hu = isqrt(_limit);
-        for (T u = 1; u <= hu; ++u)
+        T hv = isqrt(_limit / 2);
+        for (T v = 1; v <= hv; ++v)
         {
-            for (T v = (u % 2) + 1; v <= u - 1; v += 2)
+            for (T u = v + 1; u * u + v * v <= _limit; u += 2)
             {
-                if (std::gcd(u, v) != 1)
+                if (gcd(u, v) != 1)
                     continue;
-                T a = u * u - v * v;
-                T b = 2 * u * v;
-                T c = u * u + v * v;
-                if (c > _limit)
-                    break;
-                if (!callbackResult(f, value_type{a, b, c}))
+                if (!callbackResult(f, value_type{u * u - v * v, 2 * u * v, u * u + v * v}))
                     return result_break;
             }
         }

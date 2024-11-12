@@ -76,7 +76,7 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 }
 
 template <typename CharT, typename Traits, typename... Args>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::tuple<Args...> const &t)
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::tuple<Args...> &t)
 {
     std::basic_ostringstream<CharT, Traits> ss;
     ss.flags(o.flags());
@@ -239,9 +239,7 @@ inline std::string getFileContents(std::string_view fileName)
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
 template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...> &&
-             (std::is_void_v<std::invoke_result_t<Callable, Args...>> ||
-              requires(std::invoke_result_t<Callable, Args...> x) { std::cout << x; })
+    requires std::invocable<Callable, Args...>
 void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocable_v<Callable, Args...>)
 {
     setConsoleToUtf8();
@@ -252,14 +250,14 @@ void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocab
         std::forward<Callable>(fn)(std::forward<Args>(args)...);
         auto elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
-        std::cout << std::move(ss).str() << '\n';
+        std::cerr << std::move(ss).str() << '\n';
     }
     else
     {
         auto result = std::forward<Callable>(fn)(std::forward<Args>(args)...);
         auto elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
-        std::cout << std::move(ss).str() << " | " << result << '\n';
+        std::cerr << std::move(ss).str() << " | " << result << '\n';
     }
 }
 
@@ -268,9 +266,7 @@ void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocab
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
 template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...> &&
-             (std::is_void_v<std::invoke_result_t<Callable, Args...>> ||
-              requires(std::invoke_result_t<Callable, Args...> x) { std::cout << x; })
+    requires std::invocable<Callable, Args...>
 void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_nothrow_invocable_v<Callable, Args...>)
 {
     setConsoleToUtf8();
@@ -282,7 +278,7 @@ void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_noth
             fn(args...);
         auto elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
-        std::cout << std::move(ss).str() << '\n';
+        std::cerr << std::move(ss).str() << '\n';
     }
     else
     {
@@ -291,7 +287,7 @@ void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_noth
             result = fn(args...);
         auto elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
-        std::cout << std::move(ss).str() << " | " << result << '\n';
+        std::cerr << std::move(ss).str() << " | " << result << '\n';
     }
 }
 

@@ -425,7 +425,7 @@ constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, Ran
         return 0;
     it::factor(totient, std::forward<Range>(spfs))([&](auto &&pe) {
         auto [q, _] = pe;
-        while (totient % q == 0 && powm(a, totient / q, modulus) == 1)
+        while (totient % q == 0 && powmSafe(a, totient / q, modulus) == 1)
             totient /= q;
     });
     return totient;
