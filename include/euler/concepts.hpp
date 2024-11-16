@@ -2,6 +2,7 @@
 
 #include <boost/multiprecision/detail/number_base.hpp>
 #include <execution>
+#include <optional>
 
 inline namespace euler
 {
