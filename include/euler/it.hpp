@@ -4,7 +4,6 @@
 #include <boost/unordered/unordered_flat_set_fwd.hpp>
 #include <execution>
 #include <fstream>
-#include <primesieve/iterator.hpp>
 #include <ranges>
 #include <utility>
 
@@ -963,7 +962,7 @@ combinations_with_replacement(Range &&, size_t) -> combinations_with_replacement
 template <std::ranges::view V> class permutations : public it_base
 {
   public:
-    using value_type = std::vector<std::ranges::range_value_t<V>>;
+    using value_type = combinations<V>::value_type;
 
     permutations() = default;
     constexpr permutations(V base, size_t k) : _combs(std::move(base), k) {}
@@ -972,12 +971,12 @@ template <std::ranges::view V> class permutations : public it_base
     {
         // Pass by value is intentional here.
         return _combs([&](auto &&comb) {
-            value_type v(comb.begin(), comb.end());
-            do
-            {
+            auto v = comb;
+            if (!callbackResult(f, v))
+                return result_break;
+            while (std::next_permutation(v.begin(), v.end()))
                 if (!callbackResult(f, v))
                     return result_break;
-            } while (std::next_permutation(v.begin(), v.end()));
             return result_continue;
         });
     }
@@ -992,7 +991,7 @@ template <std::ranges::range Range> permutations(Range &&, size_t) -> permutatio
 template <std::ranges::view V> class permutations_with_replacement : public it_base
 {
   public:
-    using value_type = std::vector<std::ranges::range_value_t<V>>;
+    using value_type = combinations_with_replacement<V>::value_type;
 
     permutations_with_replacement() = default;
     constexpr permutations_with_replacement(V base, size_t k) : _combs(std::move(base), k) {}
@@ -1000,12 +999,12 @@ template <std::ranges::view V> class permutations_with_replacement : public it_b
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
         return _combs([&](auto &&comb) {
-            value_type v(comb.begin(), comb.end());
-            do
-            {
+            auto v = comb;
+            if (!callbackResult(f, v))
+                return result_break;
+            while (std::next_permutation(v.begin(), v.end()))
                 if (!callbackResult(f, v))
                     return result_break;
-            } while (std::next_permutation(v.begin(), v.end()));
             return result_continue;
         });
     }
@@ -1685,33 +1684,6 @@ class pythagorean_triples : public it_base
 
   private:
     P base;
-};
-
-/// Enumerates primes, using the primesieve library.
-class primes : public it_base
-{
-  public:
-    using value_type = int64_t;
-
-    constexpr primes(int64_t start = 2, int64_t stop = std::numeric_limits<int64_t>::max()) : _start(start), _stop(stop)
-    {
-    }
-
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
-    {
-        if (_start > _stop)
-            return result_continue;
-        primesieve::iterator it(
-            _start, _stop == std::numeric_limits<int64_t>::max() ? std::numeric_limits<uint64_t>::max() : _stop);
-        for (int64_t p = it.next_prime(); p <= _stop; p = it.next_prime())
-            if (!callbackResult(f, p))
-                return result_break;
-        return result_continue;
-    }
-
-  private:
-    int64_t _start;
-    int64_t _stop;
 };
 
 /// Enumerates the digits of a number in a specified base, which must be ≥ 2.
