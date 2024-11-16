@@ -971,7 +971,7 @@ template <std::ranges::view V> class permutations : public it_base
     {
         // Pass by value is intentional here.
         return _combs([&](auto &&comb) {
-            auto v = comb;
+            std::vector v(std::ranges::begin(comb), std::ranges::end(comb));
             if (!callbackResult(f, v))
                 return result_break;
             while (std::next_permutation(v.begin(), v.end()))
@@ -999,7 +999,7 @@ template <std::ranges::view V> class permutations_with_replacement : public it_b
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
         return _combs([&](auto &&comb) {
-            auto v = comb;
+            std::vector v(std::ranges::begin(comb), std::ranges::end(comb));
             if (!callbackResult(f, v))
                 return result_break;
             while (std::next_permutation(v.begin(), v.end()))
@@ -1125,7 +1125,7 @@ class product : public it_base
     }
 
   private:
-    using It = std::ranges::const_iterator_t<const V>;
+    using It = std::ranges::iterator_t<const V>;
     using CIt = value_type::iterator;
 
     V _items;
@@ -1448,7 +1448,7 @@ template <std::ranges::view V, integral2 T> class smooth_numbers : public it_bas
     }
 
   private:
-    using It = std::ranges::const_iterator_t<const V>;
+    using It = std::ranges::iterator_t<const V>;
 
     V _primes;
     T _limit;
@@ -1497,7 +1497,7 @@ template <std::ranges::view V, integral2 T> class smooth_numbers_factored : publ
     }
 
   private:
-    using It = std::ranges::const_iterator_t<const V>;
+    using It = std::ranges::iterator_t<const V>;
 
     V _primes;
     T _limit;
@@ -1534,7 +1534,7 @@ template <std::ranges::view V, integral2 T> class squarefree_smooth_numbers : pu
     }
 
   private:
-    using It = std::ranges::const_iterator_t<const V>;
+    using It = std::ranges::iterator_t<const V>;
 
     V _primes;
     T _limit;
@@ -1844,8 +1844,8 @@ class nums_with_ordered_factorization_shape : public it_base
     }
 
   private:
-    using Itp = std::ranges::const_iterator_t<Vp>;
-    using Its = std::ranges::const_iterator_t<Vs>;
+    using Itp = std::ranges::iterator_t<const Vp>;
+    using Its = std::ranges::iterator_t<const Vs>;
     using Tp = std::ranges::range_value_t<Vp>;
     using Ts = std::ranges::range_value_t<Vs>;
 
