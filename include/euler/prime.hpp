@@ -328,7 +328,7 @@ template <std::ranges::view V> class divisors_t : public it_base
     }
 
   private:
-    using It = std::ranges::const_iterator_t<const V>;
+    using It = std::ranges::iterator_t<const V>;
     V _factorization;
 
     template <std::invocable<value_type> Fun>
