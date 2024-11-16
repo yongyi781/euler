@@ -242,6 +242,15 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
     }
 }
 
+/// GCD for int128.
+inline int128_t gcd(int128_t m, int128_t n) noexcept { return boost::integer::gcd(m, n); }
+/// LCM for int128.
+inline int128_t lcm(int128_t m, int128_t n) noexcept { return boost::integer::lcm(m, n); }
+/// GCD for uint128.
+inline uint128_t gcd(uint128_t m, uint128_t n) noexcept { return boost::integer::gcd(m, n); }
+/// LCM for uint128.
+inline uint128_t lcm(uint128_t m, uint128_t n) noexcept { return boost::integer::lcm(m, n); }
+
 /// Greatest common divisor of a range.
 template <std::ranges::range Range> std::ranges::range_value_t<Range> gcd(Range &&r)
 {
@@ -471,9 +480,8 @@ template <integral2 TMod> class mod_multiplies_safe
 struct minimum
 {
     template <typename T, typename U>
-    constexpr auto operator()(T &&a, U &&b) const
-        noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b))) -> decltype(std::min(std::forward<T>(a),
-                                                                                         std::forward<U>(b)))
+    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b)))
+        -> decltype(std::min(std::forward<T>(a), std::forward<U>(b)))
     {
         return std::min(std::forward<T>(a), std::forward<U>(b));
     }
@@ -482,9 +490,8 @@ struct minimum
 struct maximum
 {
     template <typename T, typename U>
-    constexpr auto operator()(T &&a, U &&b) const
-        noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b))) -> decltype(std::max(std::forward<T>(a),
-                                                                                         std::forward<U>(b)))
+    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b)))
+        -> decltype(std::max(std::forward<T>(a), std::forward<U>(b)))
     {
         return std::max(std::forward<T>(a), std::forward<U>(b));
     }
@@ -762,11 +769,3 @@ std::string to_string_cpp_int(const cpp_int &x) { return x.backend().size() == 0
 std::string to_string_mpz_int(const mpz_int &x) { return x.str(); }
 #endif
 } // namespace euler
-
-namespace std
-{
-template <> inline int128_t gcd(int128_t __m, int128_t __n) noexcept { return boost::integer::gcd(__m, __n); }
-template <> inline int128_t lcm(int128_t __m, int128_t __n) noexcept { return boost::integer::lcm(__m, __n); }
-template <> inline uint128_t gcd(uint128_t __m, uint128_t __n) noexcept { return boost::integer::gcd(__m, __n); }
-template <> inline uint128_t lcm(uint128_t __m, uint128_t __n) noexcept { return boost::integer::lcm(__m, __n); }
-} // namespace std

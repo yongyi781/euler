@@ -421,7 +421,9 @@ template <integral2 T> constexpr T totient(T n) // Pass by value intentional
 template <integral2 Ta, integral2 Tp, integral2 Tt, std::ranges::range Range = std::vector<int>>
 constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, Range &&spfs = {})
 {
-    if (std::gcd(a, modulus) != 1)
+    using euler::gcd;
+    using std::gcd;
+    if (gcd(a, modulus) != 1)
         return 0;
     it::factor(totient, std::forward<Range>(spfs))([&](auto &&pe) {
         auto [q, _] = pe;
@@ -440,7 +442,9 @@ constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, Ran
  */
 template <integral2 Ta, integral2 Tp> constexpr Tp multiplicativeOrder(const Ta &a, const Tp &modulus)
 {
-    if (std::gcd(a, modulus) != 1)
+    using euler::gcd;
+    using std::gcd;
+    if (gcd(a, modulus) != 1)
         return 0;
     return multiplicativeOrder(a, modulus, totient(modulus));
 }
