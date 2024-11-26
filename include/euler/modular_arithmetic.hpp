@@ -11,7 +11,7 @@ template <typename T> struct euclidean_result_t
     T y;
 };
 
-/// Runs the extended Euclidean algorithm.
+/// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
 template <typename T> constexpr euclidean_result_t<T> extendedEuclidean(T m, T n)
 {
     if (m < 1 || n < 1)

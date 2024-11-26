@@ -335,7 +335,7 @@ constexpr size_t displayWidth(std::string_view str)
 {
     size_t width = 0;
     bool in_escape = false;
-    const auto *it = str.begin();
+    auto it = str.begin();
 
     while (it != str.end())
     {
@@ -402,7 +402,7 @@ std::string toStringWithFlags(const T &x, const std::basic_ostream<CharT, Traits
 
 // Forward declarations of printing operators.
 
-#ifdef __SIZEOF_INT128__
+#ifdef BOOST_HAS_INT128
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const int128_t &x);
 template <typename CharT, typename Traits>
@@ -762,10 +762,4 @@ inline void setConsoleToUtf8()
     SetConsoleOutputCP(65001);
 #endif
 }
-
-#ifdef DEBUG
-// String routines for natvis
-std::string to_string_cpp_int(const cpp_int &x) { return x.backend().size() == 0 ? "uninitialized" : x.str(); }
-std::string to_string_mpz_int(const mpz_int &x) { return x.str(); }
-#endif
 } // namespace euler

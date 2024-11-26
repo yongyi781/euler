@@ -32,7 +32,7 @@ inline namespace euler
 
 constexpr auto now = std::chrono::high_resolution_clock::now;
 
-#ifdef __SIZEOF_INT128__
+#ifdef BOOST_HAS_INT128
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const int128_t &x)
 {
@@ -250,14 +250,14 @@ void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocab
         std::forward<Callable>(fn)(std::forward<Args>(args)...);
         auto elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
-        std::cerr << std::move(ss).str() << '\n';
+        std::cout << std::move(ss).str() << '\n';
     }
     else
     {
         auto result = std::forward<Callable>(fn)(std::forward<Args>(args)...);
         auto elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
-        std::cerr << std::move(ss).str() << " | " << result << '\n';
+        std::cout << std::move(ss).str() << " | " << result << '\n';
     }
 }
 
@@ -278,7 +278,7 @@ void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_noth
             fn(args...);
         auto elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
-        std::cerr << std::move(ss).str() << '\n';
+        std::cout << std::move(ss).str() << '\n';
     }
     else
     {
@@ -287,7 +287,7 @@ void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_noth
             result = fn(args...);
         auto elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
-        std::cerr << std::move(ss).str() << " | " << result << '\n';
+        std::cout << std::move(ss).str() << " | " << result << '\n';
     }
 }
 

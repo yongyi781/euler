@@ -303,7 +303,8 @@ template <std::ranges::view V> class divisors_t : public it_base
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        return _enumerate(std::ranges::cbegin(_factorization), std::ranges::cend(_factorization), value_type(1), f);
+        return _enumerate(std::ranges::begin(_factorization), std::ranges::end(_factorization), value_type(1),
+                          std::move(f));
     }
 
     /// Returns the number of divisors, using a faster algorithm. Make sure to use a larger type `T`

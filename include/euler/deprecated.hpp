@@ -1,8 +1,5 @@
 #pragma once
 
-#include "decls.hpp"
-#include "it.hpp"
-#include "math.hpp"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <ranges>
 
@@ -260,11 +257,11 @@ constexpr T reduceDigits(const integral2 auto &num, TBase base, T identity, B bi
 
 /** Folds each tuple in the Cartesian product of a pair of lists using a binary operation. */
 template <std::ranges::range Range1, std::ranges::range Range2,
-          std::invocable<std::ranges::range_value_t<Range1>, std::ranges::range_value_t<Range2>> F>
-constexpr auto cartesianFold(Range1 &&r1, Range2 &&r2, F op)
+          std::invocable<std::ranges::range_value_t<Range1>, std::ranges::range_value_t<Range2>> BinaryOp>
+constexpr auto cartesianFold(Range1 &&r1, Range2 &&r2, BinaryOp op)
 {
     using T = std::remove_cvref_t<
-        std::invoke_result_t<F, std::ranges::range_value_t<Range1>, std::ranges::range_value_t<Range2>>>;
+        std::invoke_result_t<BinaryOp, std::ranges::range_value_t<Range1>, std::ranges::range_value_t<Range2>>>;
     size_t size = r1.size() * r2.size();
     std::vector<T> result(size);
     auto it = result.begin();
@@ -275,10 +272,10 @@ constexpr auto cartesianFold(Range1 &&r1, Range2 &&r2, F op)
 }
 
 /** Folds each tuple in the Cartesian product of a list of lists using a binary operation. */
-template <std::ranges::range Range>
-constexpr auto cartesianFold(Range &&ranges,
-                             std::invocable<std::ranges::range_value_t<std::ranges::range_value_t<Range>>,
-                                            std::ranges::range_value_t<std::ranges::range_value_t<Range>>> auto op)
+template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<std::ranges::range_value_t<Range>>,
+                                                   std::ranges::range_value_t<std::ranges::range_value_t<Range>>>
+                                        BinaryOp>
+constexpr auto cartesianFold(Range &&ranges, BinaryOp op)
 {
     assert(!ranges.empty());
     auto it = ranges.begin();

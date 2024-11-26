@@ -110,10 +110,11 @@ struct it_base
         return result;
     }
 
-    /// Gets the first term of this enumerable.
-    template <typename Self> [[nodiscard]] constexpr Self::value_type first(this const Self &self)
+    /// Gets the first term of this enumerable, or none if the enumerable is empty.
+    template <typename Self>
+    [[nodiscard]] constexpr std::optional<typename Self::value_type> first(this const Self &self)
     {
-        typename Self::value_type result;
+        std::optional<typename Self::value_type> result{};
         self([&](auto &&x) -> result_t {
             result = std::forward<decltype(x)>(x);
             return result_break;
@@ -121,10 +122,11 @@ struct it_base
         return result;
     }
 
-    /// Gets the last term of this enumerable. The enumerable must be finite.
-    template <typename Self> [[nodiscard]] constexpr Self::value_type last(this const Self &self)
+    /// Gets the last term of this enumerable, or none if the enumerable is empty. The enumerable must be finite.
+    template <typename Self>
+    [[nodiscard]] constexpr std::optional<typename Self::value_type> last(this const Self &self)
     {
-        typename Self::value_type result;
+        std::optional<typename Self::value_type> result{};
         self([&](auto &&x) -> void { result = std::forward<decltype(x)>(x); });
         return result;
     }
@@ -1639,6 +1641,9 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
+        using std::gcd;
+        using euler::gcd;
+
         T hv = isqrt(_limit / 2);
         for (T v = 1; v <= hv; ++v)
         {
@@ -1858,7 +1863,7 @@ class nums_with_ordered_factorization_shape : public it_base
         if (its == _shape.end())
             return callbackResult(f, current);
         Ts e = *its;
-        Ts eTotal = std::accumulate(its, _shape.cend(), Ts(0));
+        Ts eTotal = std::accumulate(its, _shape.end(), Ts(0));
         T bound = (T)std::pow(_limit / current, 1.0 / eTotal);
         for (; itp != std::ranges::end(_primes); ++itp)
         {

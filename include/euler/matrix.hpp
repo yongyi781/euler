@@ -159,7 +159,7 @@ template <std::size_t I, typename T, std::size_t N>
     requires(I < N)
 [[nodiscard]] constexpr T &&get(Vector<T, N> &&v) noexcept
 {
-    return std::move(std::get<I>(v));
+    return std::move(get<I>(v));
 }
 
 template <std::size_t I, typename T, std::size_t N>
@@ -173,7 +173,7 @@ template <std::size_t I, typename T, std::size_t N>
     requires(I < N)
 [[nodiscard]] constexpr const T &&get(const Vector<T, N> &&v) noexcept
 {
-    return std::move(std::get<I>(v));
+    return std::move(get<I>(v));
 }
 
 /// A stack-allocated matrix with compile-time constant size.

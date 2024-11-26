@@ -356,7 +356,7 @@ constexpr auto crtlcm(Range1 &&remainders, Range2 &&moduli)
 {
     using T = std::ranges::range_value_t<Range2>;
 
-    return it::range(1UZ, std::min(remainders.size(), moduli.size()) - 1)
+    return it::range(0UZ, std::min(remainders.size(), moduli.size()) - 1)
         .map([&](size_t i) { return std::pair<T, T>{remainders[i], moduli[i]}; })
         .reduce(std::execution::unseq, std::pair<T, T>{0, 1},
                 [&](auto &&a, auto &&b) { return crtlcm(a.first, b.first, a.second, b.second); });
@@ -510,38 +510,6 @@ auto sumConvolution(T n, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
 {
     return n < 40'000'000 ? sumConvolution(std::execution::seq, n, g, G, h, H)
                           : sumConvolution(std::execution::par, n, g, G, h, H);
-}
-
-/// Computes `∑ (ab ≤ n), g(a) * h(b)` mod `modulus`.
-/// Also known as `∑ (k ≤ n), (g * h)(k)` mod `modulus`.
-/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)` mod `modulus`.
-/// Requirements:
-/// * `G` and `H` are the summatory functions of `g` and `h`.
-/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
-template <execution_policy Exec, std::integral T, integral2 U, std::invocable<T> Fun1, std::invocable<T> SummatoryFun1,
-          std::invocable<T> Fun2, std::invocable<T> SummatoryFun2>
-auto modsumConvolution(Exec &&exec, T n, U modulus, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
-{
-    T sqrtn = isqrt(n);
-    return mod(
-        modsum(std::forward<Exec>(exec), T(1), sqrtn, modulus, [&](auto i) { return g(i) * H(n / i) % modulus; }) +
-            modsum(std::forward<Exec>(exec), T(1), sqrtn, modulus, [&](auto i) { return h(i) * G(n / i) % modulus; }) -
-            G(sqrtn) * H(sqrtn) % modulus,
-        modulus);
-}
-
-/// Computes `∑ (ab ≤ n), g(a) * h(b)` mod `modulus`.
-/// Also known as `∑ (k ≤ n), (g * h)(k)` mod `modulus`.
-/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)` mod `modulus`.
-/// Requirements:
-/// * `G` and `H` are the summatory functions of `g` and `h`.
-/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
-template <std::integral T, integral2 U, std::invocable<T> Fun1, std::invocable<T> SummatoryFun1, std::invocable<T> Fun2,
-          std::invocable<T> SummatoryFun2>
-auto modsumConvolution(T n, U modulus, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
-{
-    return n < 40'000'000 ? modsumConvolution(std::execution::seq, n, modulus, g, G, h, H)
-                          : modsumConvolution(std::execution::par, n, modulus, g, G, h, H);
 }
 
 /// Calculates `Σ k ֫≥ 0, f(⌊n / (a * k + b)⌋)`.
