@@ -1,3 +1,5 @@
+.cache/
 .vscode/
+build/
+debug/
 release/
-compile_flags.txt
