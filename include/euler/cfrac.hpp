@@ -8,7 +8,7 @@ inline namespace euler
 {
 namespace cfrac
 {
-template <typename T, enumerable CFrac> class convergents_t;
+template <typename T, it::enumerable CFrac> class convergents_t;
 
 /// The base class for continued fractions. Don't use this class directly.
 class cfrac_base : public it::it_base
@@ -210,7 +210,7 @@ template <integral2 Z = int64_t, typename T = double> class floating_point : pub
 };
 
 /// Enumerates the convergents of the given continued fraction.
-template <typename T, enumerable CFrac> class convergents_t : public it::it_base
+template <typename T, it::enumerable CFrac> class convergents_t : public it::it_base
 {
   public:
     using value_type = std::pair<T, T>;

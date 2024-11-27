@@ -7,6 +7,7 @@
 #include "euler/algorithm.hpp"
 #include "euler/cfrac.hpp"
 #include "euler/decls.hpp"
+#include "euler/find_recurrence.hpp"
 #include "euler/hash.hpp"
 #include "euler/io.hpp"
 #include "euler/it.hpp"

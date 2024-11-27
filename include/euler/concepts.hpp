@@ -21,9 +21,6 @@ concept is_string =
     std::same_as<std::decay_t<T>, std::u32string_view> || std::same_as<std::decay_t<T>, std::u8string_view>;
 
 template <typename T>
-concept enumerable = requires(const T &t) { t([](auto) {}); };
-
-template <typename T>
 concept is_optional = std::same_as<T, std::optional<typename T::value_type>>;
 
 template <typename T>

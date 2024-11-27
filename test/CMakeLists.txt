@@ -20,7 +20,8 @@ enable_testing()
 
 set(targets
     basic
-    crt)
+    crt
+    find_recurrence)
 
 foreach(target ${targets})
     message("Adding target: ${target}")

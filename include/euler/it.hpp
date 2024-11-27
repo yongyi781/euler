@@ -26,6 +26,13 @@ enum result_t : uint8_t
 /// Predicate that always returns true.
 constexpr auto pred_true = [](auto &&) { return true; };
 
+template <typename T>
+concept enumerable = requires(const T &t) {
+    {
+        t([](auto) {})
+    } -> std::same_as<result_t>;
+};
+
 // Forward declarations.
 template <enumerable E, std::invocable<typename E::value_type> Fn> class map_t;
 
@@ -1641,8 +1648,8 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        using std::gcd;
         using euler::gcd;
+        using std::gcd;
 
         T hv = isqrt(_limit / 2);
         for (T v = 1; v <= hv; ++v)
@@ -2160,7 +2167,7 @@ class lines : public it_base
 // Some helper functions
 
 /// Prints an enumerable to a stream.
-template <typename CharT, typename Traits, enumerable E>
+template <typename CharT, typename Traits, it::enumerable E>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const E &e)
 {
     bool isFirst = true;

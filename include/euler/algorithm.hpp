@@ -392,48 +392,6 @@ template <template <typename...> typename Map = std::map, std::ranges::range Ran
     return result;
 }
 
-/// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm.
-template <integral2 T> std::vector<T> findRecurrence(const std::vector<T> &v, T modulus)
-{
-    int n = v.size();
-    int L = 0;
-    int m = 0;
-    std::vector<T> C(n);
-    std::vector<T> B(n);
-    std::vector<T> U;
-    C[0] = B[0] = 1;
-    T b = 1;
-    for (int i = 0; i < n; ++i)
-    {
-        ++m;
-        T d = v[i] % modulus;
-        for (int j = 1; j <= L; ++j)
-            d = (d + C[j] * v[i - j]) % modulus;
-        if (!d)
-            continue;
-        U = C;
-        T coeff = d * modInverse(b, modulus) % modulus;
-        for (int j = m; j < n; ++j)
-            C[j] = (C[j] - coeff * B[j - m]) % modulus;
-        if (2 * L > i)
-            continue;
-        L = i + 1 - L;
-        B = U;
-        b = d;
-        m = 0;
-    }
-    C.resize(L + 1);
-    C.erase(C.begin());
-    for (auto &x : C)
-    {
-        x = (modulus - x) % modulus;
-        // For the user's benefit
-        if (x > modulus / 2 + 1)
-            x -= modulus;
-    }
-    return C;
-}
-
 /// Appends a range to a vector.
 template <typename T, std::ranges::range Range> constexpr std::vector<T> &operator+=(std::vector<T> &a, Range &&b)
 {

@@ -88,7 +88,7 @@ class ZMod
         return result;
     }
 
-    constexpr ZMod operator-() const { return {true, M - _value}; }
+    constexpr ZMod operator-() const { return {true, _value == 0 ? 0 : M - _value}; }
 
     /// Multiplicative inverse.
     constexpr ZMod operator~() const { return inverse(); }
