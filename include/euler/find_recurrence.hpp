@@ -3,7 +3,6 @@
 #include "algorithm.hpp"
 #include "modular_arithmetic.hpp"
 
-
 /// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm.
 template <integral2 T> std::vector<T> findRecurrence(const std::vector<T> &v, T modulus)
 {
@@ -62,7 +61,7 @@ template <std::ranges::range Range> std::vector<std::ranges::range_value_t<Range
     for (size_t i = 0; i < n; ++i)
     {
         ++m;
-        T const d = sum(0, L, [&](size_t j) { return C[j] * v[i - j]; });
+        T const d = sum(0, L, [&](size_t j) -> T { return C[j] * v[i - j]; });
         if (d == 0)
             continue;
         auto C2 = C;
