@@ -41,7 +41,7 @@ inline void testModInv()
                 if (m == 0 || gcd(a, m) != 1)
                     return true;
                 auto result = modInverse(a, m);
-                auto product = mod((int128_t)result * a, (int128_t)m);
+                auto product = mod(modmul(result, a, m), m);
                 if (product != mod(1LL, m))
                 {
                     cout << failStr << "modInverse(" << a << ", " << m << ") gave " << result << " but " << result

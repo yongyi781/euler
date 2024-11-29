@@ -19,7 +19,7 @@ class BinomialModPrimePower
             _pe *= p;
         }
 
-        int ep = (int)(e < p ? e : p);
+        int const ep = (int)(e < p ? e : p);
         stirling = std::vector<std::vector<int64_t>>(p + 1, std::vector<int64_t>(ep + 1, 0));
         stirling[0][0] = 1;
         for (int i = 1; i <= p; ++i)
@@ -28,7 +28,7 @@ class BinomialModPrimePower
 
         prods.resize(e * 2 - 1);
         int64_t prod = 1;
-        int64_t invStirling = modInverse(stirling[p][1], _pe);
+        int64_t const invStirling = modInverse(stirling[p][1], _pe);
 
         for (int i = 0; i <= e * 2 - 3; ++i)
         {
@@ -42,7 +42,7 @@ class BinomialModPrimePower
         for (int i = 1; i < e; ++i)
             pstirling[i] = (int64_t)((int128_t)pstirling[i - 1] * stirling[p][1] % _pe);
 
-        int len = e * 2 - 1;
+        int const len = e * 2 - 1;
         fact[0] = 1LL;
         pfact[0] = 0;
         for (int i = 1; i < len; ++i)
@@ -84,7 +84,7 @@ class BinomialModPrimePower
     // n! % p^e, but p, 2p, ... is not multiplied
     [[nodiscard]] int64_t factorialWithoutP(int64_t n) const
     {
-        int64_t ndp = n / _p;
+        int64_t const ndp = n / _p;
         int64_t ret = risingFactorial(ndp, n % _p);
 
         if (ndp <= _e * 2 - 2)
@@ -113,7 +113,8 @@ class BinomialModPrimePower
     {
         if (r < 0 || r > n)
             return 0;
-        int64_t binom_padic = factorialValuation(n, _p) - factorialValuation(r, _p) - factorialValuation(n - r, _p);
+        int64_t const binom_padic =
+            factorialValuation(n, _p) - factorialValuation(r, _p) - factorialValuation(n - r, _p);
         if (binom_padic >= _e)
             return 0LL;
 
@@ -152,7 +153,7 @@ class BinomialModPrimePower
     {
         int64_t ret = 0;
         int64_t pn = 1;
-        int ep = (int)(_e < _p ? _e : _p);
+        int const ep = (int)(_e < _p ? _e : _p);
         for (int j = 0; j < ep; ++j)
         {
             ret = (int64_t)(((__int128)stirling[m + 1][j + 1] * pn + ret) % _pe);
@@ -164,7 +165,7 @@ class BinomialModPrimePower
 
     [[nodiscard]] int64_t lagrangeInterpolate(int64_t ndp) const
     {
-        int len = _e * 2 - 1;
+        int const len = _e * 2 - 1;
         int64_t ptot = 0;
 
         std::vector pfactorsnum(len, 0);
@@ -193,8 +194,8 @@ class BinomialModPrimePower
         int64_t sum = 0;
         for (int j = 0; j < len; ++j)
         {
-            int j2 = len - 1 - j;
-            int64_t pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
+            int const j2 = len - 1 - j;
+            int64_t const pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
 
             if (pfactor >= _e)
                 continue;
