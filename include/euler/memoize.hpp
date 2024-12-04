@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/unordered/unordered_flat_map_fwd.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
 
 inline namespace euler
 {

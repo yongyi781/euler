@@ -2,6 +2,7 @@
 
 #include "ansi.hpp"
 #include "euler/concepts.hpp"
+#include "euler/io.hpp"
 
 #include <iostream>
 #include <sstream>

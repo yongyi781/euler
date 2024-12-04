@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decls.hpp"
+#include "it/base.hpp"
 #include "prime.hpp"
 
 inline namespace euler

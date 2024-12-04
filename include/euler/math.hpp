@@ -1,10 +1,10 @@
 #pragma once
 
 #include "decls.hpp"
-#include "it.hpp"
+#include "it/primes.hpp"
 #include "modular_arithmetic.hpp"
 #include "prime.hpp"
-#include <boost/unordered/unordered_flat_map_fwd.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
 #include <numeric>
 #include <primesieve.hpp>
 
@@ -529,15 +529,12 @@ constexpr auto sumFloors(ExecutionPolicy &&exec, Tn n, Ta a = 1, Tb b = 1, Fun &
                    sqrtn * sqrtn;
         }
     auto K = std::max(T(0), std::min(n / b - 1, (T)isqrt(n)));
-    std::invoke_result_t<Fun, T> sum1 = 0;
+    auto res = sum(std::forward<ExecutionPolicy>(exec), T(1), K,
+                   [&](auto &&k) { return f(k) * ((n - b * k) / (a * k) - (n - b * (k + 1)) / (a * k + a)); });
     if (n >= b * (K + 1))
-    {
-        auto I = (n - b * (K + 1)) / (a * K + a);
-        sum1 = sum(std::forward<ExecutionPolicy>(exec), T(0), I, [&](auto &&i) { return f(n / (a * i + b)); });
-    }
-    auto sum2 = sum(std::forward<ExecutionPolicy>(exec), T(1), K,
-                    [&](auto &&k) { return f(k) * ((n - b * k) / (a * k) - (n - b * (k + 1)) / (a * k + a)); });
-    return sum1 + sum2;
+        res += sum(std::forward<ExecutionPolicy>(exec), T(0), (n - b * (K + 1)) / (a * K + a),
+                   [&](auto &&i) { return f(n / (a * i + b)); });
+    return res;
 }
 
 /// Calculates `Σ k ֫≥ 0, f(⌊n / (a * k + b)⌋)`.
@@ -654,15 +651,15 @@ template <integral2 T = int64_t> class floors_array
     {
         size_t s = std::min(n / 2, std::max(isqrt(n), hr.size() - 1));
         s = n / ceilDiv(n, s); // Align on boundary
-        size_t ms = std::min(hr.size(), s + 1);
+        size_t const ms = std::min(hr.size(), s + 1);
         floors_array fa(n, s);
         std::inclusive_scan(hr.begin() + 1, hr.begin() + ms, fa._up.begin() + 1, std::plus{}, T(0));
         for (size_t k = ms; k <= s; ++k)
-            fa._up[k] = H(k) - sumFloors(k, 1LL, 2LL, [&](auto &&j) { return fa._up[j]; });
+            fa._up[k] = H(k) - sumFloors(k, 1, 2, [&](auto &&j) { return fa._up[j]; });
         for (size_t nk = fa._down.size() - 1; nk != 0; --nk)
         {
             auto k = (int64_t)(fa._n / nk);
-            fa._down[nk] = H(k) - sumFloors(k, 1LL, 2LL, [&](auto &&j) { return fa[j]; });
+            fa._down[nk] = H(k) - sumFloors(k, 1, 2, [&](auto &&j) { return fa[j]; });
         }
         return fa;
     }
@@ -672,7 +669,7 @@ template <integral2 T = int64_t> class floors_array
     template <std::ranges::random_access_range Range = std::array<T, 1>>
     [[nodiscard]] static floors_array sumTotient(size_t n, Range &&totients = {0})
     {
-        return mu(n, [&](auto &&x) { return T(x) * (x + 1) / 2; }, std::forward<Range>(totients));
+        return mu(n, [&](auto &&x) -> T { return T(x) * (x + 1) / 2; }, std::forward<Range>(totients));
     }
 
     constexpr T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }

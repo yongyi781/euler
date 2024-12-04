@@ -206,13 +206,13 @@ template <typename T, size_t M, size_t N> class Matrix
         return {T(1)};
     }
 
-    /// Elementary matrix with 1 in the (i, j) entry.
-    [[nodiscard]] constexpr static Matrix elementary(size_t i, size_t j)
+    /// Elementary matrix with 1 on the diagonal and `value` in the (i, j) entry.
+    [[nodiscard]] constexpr static Matrix elementary(size_t i, size_t j, T value = 1)
         requires(M == N)
     {
         assert(i >= 0 && i < M && j >= 0 && j < N);
         auto result = identity();
-        result._data[i][j] = 1;
+        result._data[i][j] = value;
         return result;
     }
 

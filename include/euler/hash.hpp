@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/container_hash/hash_fwd.hpp>
+#include <boost/container_hash/hash.hpp>
 
 namespace boost
 {

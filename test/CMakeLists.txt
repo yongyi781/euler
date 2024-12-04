@@ -22,7 +22,9 @@ enable_testing()
 set(targets
     basic
     crt
-    find_recurrence)
+    find_recurrence
+    it
+    zmod)
 
 foreach(target ${targets})
     message("Adding target: ${target}")
