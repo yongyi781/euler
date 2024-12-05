@@ -19,15 +19,11 @@ link_libraries(primecount primesieve)
 include(CTest)
 enable_testing()
 
-set(targets
-    basic
-    crt
-    find_recurrence
-    it
-    zmod)
+file(GLOB sources *.cpp)
 
-foreach(target ${targets})
-    message("Adding target: ${target}")
-    add_executable(${target} "${target}.cpp")
+foreach(source_file ${sources})
+    cmake_path(GET source_file STEM target)
+    message("Adding test ${target}")
+    add_executable(${target} ${source_file})
     add_test(NAME ${target} COMMAND ${target})
 endforeach()
