@@ -46,7 +46,7 @@ template <integral2 auto M, bool ComputeInverse = true> class FactorialMod
     {
         assert(n >= 0 && n <= (int64_t)fact.size());
         if (r < 0 || r > n)
-            return 0LL;
+            return (int64_t)0;
         return factorial(n) * inverseFactorial(n - r) * inverseFactorial(r);
     }
 

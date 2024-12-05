@@ -43,7 +43,7 @@ class BinomialModPrimePower
             pstirling[i] = (int64_t)((int128_t)pstirling[i - 1] * stirling[p][1] % _pe);
 
         int const len = e * 2 - 1;
-        fact[0] = 1LL;
+        fact[0] = 1;
         pfact[0] = 0;
         for (int i = 1; i < len; ++i)
         {
@@ -116,7 +116,7 @@ class BinomialModPrimePower
         int64_t const binom_padic =
             factorialValuation(n, _p) - factorialValuation(r, _p) - factorialValuation(n - r, _p);
         if (binom_padic >= _e)
-            return 0LL;
+            return (int64_t)0;
 
         return (int64_t)((int128_t)pPower[binom_padic] * factorial(n) % _pe *
                          modInverse((int64_t)((int128_t)factorial(r) * factorial(n - r) % _pe), _pe) % _pe *
@@ -169,8 +169,8 @@ class BinomialModPrimePower
         int64_t ptot = 0;
 
         std::vector pfactorsnum(len, 0);
-        std::vector prenum(len, 0LL);
-        std::vector sufnum(len, 0LL);
+        std::vector prenum(len, (int64_t)0);
+        std::vector sufnum(len, (int64_t)0);
 
         for (int i = 0; i < len; ++i)
         {

@@ -39,7 +39,7 @@ class nums_with_ordered_factorization_shape : public it_base
         auto eTotal = std::accumulate(its, std::ranges::end(_shape), 0);
         assert(eTotal > 0);
         auto length = std::ranges::upper_bound(_primes, std::pow(_limit, 1.0 / eTotal)) - std::ranges::begin(_primes);
-        return std::transform_reduce(std::forward<Exec>(exec), counting_iterator(0LL), counting_iterator(length),
+        return std::transform_reduce(std::forward<Exec>(exec), counting_iterator((int64_t)0), counting_iterator(length),
                                      std::move(init), std::forward<BinaryOp>(op), [&](auto i) {
                                          U total = init;
                                          _enumerate(std::ranges::begin(_primes) + i + 1, its + 1,
@@ -190,7 +190,7 @@ template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_wi
         auto e = *its;
         auto bound = std::pow(_limit, 1.0 / e);
         auto stop = std::ranges::upper_bound(_primes, bound);
-        return std::transform_reduce(std::forward<Exec>(exec), counting_iterator(0LL),
+        return std::transform_reduce(std::forward<Exec>(exec), counting_iterator((int64_t)0),
                                      counting_iterator(stop - std::ranges::begin(_primes)), std::move(init),
                                      std::forward<BinaryOp>(op), [&](auto i) {
                                          auto p = _primes[i];

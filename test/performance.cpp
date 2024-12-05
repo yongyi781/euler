@@ -25,7 +25,7 @@ template <typename T> constexpr auto powmSafe2(const T &base, const integral2 au
 template <typename F1, typename F2> void compare(F1 f1, F2 f2, int trials)
 {
     mt19937_64 rng;
-    uniform_int_distribution<int64_t> dist(-1LL << 22, 1LL << 22);
+    uniform_int_distribution<int64_t> dist(-(int64_t)1 << 22, (int64_t)1 << 22);
     int128_t total = 0;
     auto t1 = now();
     for (int i = 0; i < trials; ++i)
@@ -112,7 +112,7 @@ inline void compareCrt(int trials = 1000000)
             int64_t m = abs(dist(rng)) + 1;
             int64_t n = abs(dist(rng)) + 1;
             if (gcd(m, n) != 1 || m == 0 || n == 0)
-                return 0LL;
+                return (int64_t)0;
             auto result = crt(a, b, m, n);
             return result;
         },
@@ -122,7 +122,7 @@ inline void compareCrt(int trials = 1000000)
             int64_t m = abs(dist(rng)) + 1;
             int64_t n = abs(dist(rng)) + 1;
             if (gcd(m, n) != 1 || m == 0 || n == 0)
-                return 0LL;
+                return (int64_t)0;
             auto result = crt(array{a, b}, array{m, n});
             return result;
         },
@@ -256,14 +256,14 @@ inline void compareModInv(int trials = 10000000)
             auto x = dist(rng);
             Int modulus = static_cast<Int>(10627) * 10627;
             if (x % modulus == 0)
-                return 0LL;
+                return (int64_t)0;
             return modInverse(x, modulus);
         },
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
             Int modulus = static_cast<Int>(10627) * 10627;
             if (x % modulus == 0)
-                return 0LL;
+                return (int64_t)0;
             return powm(x, modulus * (modulus - 1) - 1, modulus);
         },
         trials);

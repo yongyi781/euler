@@ -50,27 +50,27 @@ template <std::ranges::range Range> size_t countSquarefreeHelper(Range &&primes,
 } // namespace detail
 
 /// The factorials from 0 to 20, precisely those which fit in a 64-bit integer.
-constexpr std::array<int64_t, 21> factorialsTo20{1LL,
-                                                 1LL,
-                                                 2LL,
-                                                 6LL,
-                                                 24LL,
-                                                 120LL,
-                                                 720LL,
-                                                 5040LL,
-                                                 40320LL,
-                                                 362880LL,
-                                                 3628800LL,
-                                                 39916800LL,
-                                                 479001600LL,
-                                                 6227020800LL,
-                                                 87178291200LL,
-                                                 1307674368000LL,
-                                                 20922789888000LL,
-                                                 355687428096000LL,
-                                                 6402373705728000LL,
-                                                 121645100408832000LL,
-                                                 2432902008176640000LL};
+constexpr std::array<int64_t, 21> factorialsTo20{1,
+                                                 1,
+                                                 2,
+                                                 6,
+                                                 24,
+                                                 120,
+                                                 720,
+                                                 5040,
+                                                 40320,
+                                                 362880,
+                                                 3628800,
+                                                 39916800,
+                                                 479001600,
+                                                 6227020800,
+                                                 87178291200,
+                                                 1307674368000,
+                                                 20922789888000,
+                                                 355687428096000,
+                                                 6402373705728000,
+                                                 121645100408832000,
+                                                 2432902008176640000};
 
 /// Factors `n!`.
 template <integral2 T = int> constexpr std::vector<PrimePower<T>> factorFactorial(int n)
@@ -602,7 +602,7 @@ constexpr auto latticePointsInDisk2(integral2 auto n)
     using T = decltype(n);
     T l = isqrt(n);
     T sum1;
-    if (n < 600'000'000'000LL)
+    if (n < 600'000'000'000)
         sum1 = sum(T(1), l, [&](T x) -> T { return isqrt(n - x * x); });
     else
         sum1 = sum(std::execution::par, T(1), l, [&](T x) -> T { return isqrt(n - x * x); });
@@ -613,7 +613,7 @@ constexpr auto latticePointsInDisk2(integral2 auto n)
 template <execution_policy Exec, integral2 T> auto countSquarefree(Exec &&exec, T n, const std::vector<int8_t> &mobius)
 {
     T sqrtn = isqrt(n);
-    return sum(std::forward<Exec>(exec), 1LL, sqrtn,
+    return sum(std::forward<Exec>(exec), 1, sqrtn,
                [&](integral2 auto i) { return mobius[i] == 0 ? 0 : mobius[i] * (n / (i * i)); });
 }
 
@@ -649,8 +649,8 @@ template <integral2 T = int64_t> class floors_array
     template <std::invocable<int64_t> SummatoryFun, std::ranges::random_access_range Range = std::array<T, 1>>
     [[nodiscard]] static floors_array mu(size_t n, SummatoryFun H, Range &&hr = {0})
     {
-        size_t s = std::min(n / 2, std::max(isqrt(n), hr.size() - 1));
-        s = n / ceilDiv(n, s); // Align on boundary
+        size_t s = std::min((n + 1) / 2, std::max(isqrt(n), hr.size() - 1));
+        s = n / (n / s); // Align on boundary
         size_t const ms = std::min(hr.size(), s + 1);
         floors_array fa(n, s);
         std::inclusive_scan(hr.begin() + 1, hr.begin() + ms, fa._up.begin() + 1, std::plus{}, T(0));

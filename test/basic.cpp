@@ -15,7 +15,7 @@ inline bool testWithRandomInputs(auto passPred, int maxBinaryDigits = 32)
     for (int d = 2; d <= maxBinaryDigits; ++d)
     {
         bool passed = true;
-        uniform_int_distribution<int64_t> dist(-(1LL << d), 1LL << d);
+        uniform_int_distribution<int64_t> dist(-((int64_t)1 << d), (int64_t)1 << d);
         // cout << "Testing " << d << " binary digits" << endl;
         for (int i = 0; i < 1000; ++i)
         {
@@ -42,7 +42,7 @@ inline void testModInv()
                     return true;
                 auto result = modInverse(a, m);
                 auto product = mod(modmul(result, a, m), m);
-                if (product != mod(1LL, m))
+                if (product != mod((int64_t)1, m))
                 {
                     cout << failStr << "modInverse(" << a << ", " << m << ") gave " << result << " but " << result
                          << " * " << a << " = " << product << '\n';
@@ -197,11 +197,11 @@ inline void testBinom()
 inline void testUtils()
 {
     assert(sum(1, 100) == 5050);
-    assert(sum(1, 100LL) == 5050);
-    assert(sum(1LL, 100) == 5050);
+    assert(sum(1, (int64_t)100) == 5050);
+    assert(sum((int64_t)1, 100) == 5050);
     assert(product(1, 6) == 720);
-    assert(product(1LL, 6) == 720);
-    assert(product(1LL, (int128_t)6) == 720);
+    assert(product((int64_t)1, 6) == 720);
+    assert(product((int64_t)1, (int128_t)6) == 720);
     cout << passStr << "sum and product" << '\n';
 }
 
@@ -259,7 +259,7 @@ inline void testMultiplicativeOrder()
     auto result = sum(execution::par, 3, N, [&](int64_t i) {
         valuationDivide(i, 2);
         valuationDivide(i, 5);
-        return i == 1 ? 0LL : multiplicativeOrder(10LL, i, totients[i], spfs);
+        return i == 1 ? (int64_t)0 : multiplicativeOrder((int64_t)10, i, totients[i], spfs);
     });
     if (result == 55535191115)
         cout << passStr << "multiplicativeOrder\n";

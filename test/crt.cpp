@@ -8,7 +8,7 @@ int main()
 {
     assertEqual(crt(9, 24, 332, 123), 31881);
     assertEqual(crt(0, 5, 1, 7), 5);
-    assertEqual(crt(vector{1LL}, vector{5LL}), 1LL);
-    assertEqual(crt(vector{1LL, 2LL, 3LL}, vector{7LL, 8LL, 9LL}), 498LL);
+    assertEqual(crt(vector{1}, vector{5}), 1);
+    assertEqual(crt(vector{1, 2, 3}, vector{7, 8, 9}), 498);
     pass("CRT");
 }

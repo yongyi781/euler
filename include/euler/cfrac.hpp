@@ -131,15 +131,15 @@ struct e_t : public cfrac_base
 
     template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
     {
-        if (!it::callbackResult(f, 2LL))
+        if (!it::callbackResult(f, (int64_t)2))
             return it::result_break;
         for (int64_t n = 2;; n += 2)
         {
-            if (!it::callbackResult(f, 1LL))
+            if (!it::callbackResult(f, (int64_t)1))
                 return it::result_break;
             if (!it::callbackResult(f, n))
                 return it::result_break;
-            if (!it::callbackResult(f, 1LL))
+            if (!it::callbackResult(f, (int64_t)1))
                 return it::result_break;
         }
     }

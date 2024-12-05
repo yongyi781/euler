@@ -1,5 +1,8 @@
 #pragma once
 
+#include "algorithm.hpp"
+#include "concepts.hpp"
+#include "it/digits.hpp"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <ranges>
 
@@ -490,7 +493,7 @@ constexpr bool _enumTuplesWithSumHelper(std::ranges::range auto &t, size_t index
 /** Enumerate nonnegative tuples with a given sum. Takes about 1-3.5 ns per tuple depending on length. */
 constexpr bool enumTuplesWithSum(size_t length, int64_t total, std::invocable<std::vector<int64_t>> auto callback)
 {
-    std::vector t(length, 0LL);
+    std::vector t(length, (int64_t)0);
     t.back() = total;
     if (!invokeTrueIfVoid(callback, t))
         return false;
@@ -642,10 +645,10 @@ auto _inverseConvolveSumHelper(std::ranges::range auto &&m, int64_t n, std::invo
     int64_t sqrtn = isqrt(n);
     if (sqrtn > 200)
         return H(n) - sum(std::execution::par, 2LL, sqrtn, [&](int64_t i) { return g(i) * m[n / i]; }) -
-               sum(std::execution::par, 1LL, n / sqrtn - 1,
+               sum(std::execution::par, 1, n / sqrtn - 1,
                    [&](int64_t d) -> int64_t { return (G(n / d) - G(n / (d + 1))) * m[d]; });
     return H(n) - sum(2LL, sqrtn, [&](int64_t i) { return g(i) * m[n / i]; }) -
-           sum(1LL, n / sqrtn - 1, [&](int64_t d) -> int64_t { return (G(n / d) - G(n / (d + 1))) * m[d]; });
+           sum(1, n / sqrtn - 1, [&](int64_t d) -> int64_t { return (G(n / d) - G(n / (d + 1))) * m[d]; });
 }
 
 // floors_array is a lot faster here.
@@ -675,27 +678,27 @@ auto mobiusSumTable(int64_t limit, const std::vector<T> &smallValues, std::invoc
     for (int64_t i = 1; i <= cutoff; ++i)
         result[i] = result[i - 1] + smallValues[i];
     for (int64_t i = limit / cutoff - 1; i > 0; i--)
-        result[limit / i] = _inverseConvolveSumHelper(result, limit / i, H, [](auto) { return 1LL; }, std::identity());
+        result[limit / i] = _inverseConvolveSumHelper(result, limit / i, H, [](auto) { return T(1); }, std::identity());
     return result;
 }
 
 /// Returns the map containing values of mertens(n/k) for all k <= n.
 inline auto mertensTable(int64_t limit, const std::vector<int8_t> &mobius)
 {
-    return mobiusSumTable(limit, mobius, [](auto) { return 1LL; });
+    return mobiusSumTable(limit, mobius, [](auto) { return (int64_t)1; });
 }
 
 auto _mobiusModsumHelper(std::ranges::range auto &m, int64_t n, integral2 auto modulus, std::invocable<int64_t> auto f)
 {
     int64_t sqrtn = isqrt(n);
     if (sqrtn > 200)
-        return mod(f(n) - modsum(std::execution::par, 2LL, sqrtn, modulus, [&](int64_t i) { return m[n / i]; }) -
-                       modsum(std::execution::par, 1LL, n / sqrtn - 1, modulus,
+        return mod(f(n) - modsum(std::execution::par, 2, sqrtn, modulus, [&](int64_t i) { return m[n / i]; }) -
+                       modsum(std::execution::par, 1, n / sqrtn - 1, modulus,
                               [&](int64_t d) -> int64_t { return (n / d - n / (d + 1)) * m[d]; }),
                    modulus);
     return mod(
-        f(n) - modsum(2LL, sqrtn, modulus, [&](int64_t i) { return m[n / i]; }) -
-            modsum(1LL, n / sqrtn - 1, modulus, [&](int64_t d) -> int64_t { return (n / d - n / (d + 1)) * m[d]; }),
+        f(n) - modsum(2, sqrtn, modulus, [&](int64_t i) { return m[n / i]; }) -
+            modsum(1, n / sqrtn - 1, modulus, [&](int64_t d) -> int64_t { return (n / d - n / (d + 1)) * m[d]; }),
         modulus);
 }
 
@@ -718,8 +721,8 @@ template <integral2 T>
 auto reducePythagoreanTriples(auto &&exec, int64_t limit, const T &identity, auto binaryOp, auto f)
 {
     int64_t hu = isqrt(limit);
-    return transform_reduce(std::forward<decltype(exec)>(exec), counting_iterator(1LL), counting_iterator(hu + 1),
-                            identity, binaryOp, [&](auto &&u) {
+    return transform_reduce(std::forward<decltype(exec)>(exec), counting_iterator((int64_t)1),
+                            counting_iterator(hu + 1), identity, binaryOp, [&](auto &&u) {
                                 T result = identity;
                                 for (T v = (u % 2) + 1; v <= u - 1; v += 2)
                                 {
