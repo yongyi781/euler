@@ -641,7 +641,7 @@ template <integral2 T = int64_t> class floors_array
 {
   public:
     /// s should be 1 less than the size of the small values array.
-    constexpr floors_array(size_t n, size_t s) : _n(n), _up(s + 1), _down(n / s) {}
+    constexpr floors_array(size_t n, size_t s) : _n(n), _up(s + 1), _down(n / (s + 1) + 1) {}
     constexpr explicit floors_array(size_t n) : floors_array(n, isqrt(n)) {}
 
     /// Stores `∑ i ∈ [1..k], (μ * h)(i) = ∑ i ∈ [1..k], μ(i) * H(⌊k/i⌋)` for each `k` in the floors array. Here,
@@ -684,8 +684,7 @@ template <integral2 T = int64_t> class floors_array
     /// The down vector.
     [[nodiscard]] constexpr const std::vector<T> &down() const { return _down; }
 
-    /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns
-    /// `it::result_break`.
+    /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <typename Fun> constexpr it::result_t ascending(Fun f) const
     {
         for (size_t i = 1; i < _up.size(); ++i)
@@ -697,8 +696,7 @@ template <integral2 T = int64_t> class floors_array
         return it::result_continue;
     }
 
-    /// Enumerates keys of this floors array in descending order. Breaks if `f` returns
-    /// `it::result_break`.
+    /// Enumerates keys of this floors array in descending order. Breaks if `f` returns `it::result_break`.
     template <typename Fun> constexpr it::result_t descending(Fun f) const
     {
         for (size_t i = 1; i < _down.size(); ++i)
