@@ -1,7 +1,7 @@
 #pragma once
 
-#include "euler/concepts.hpp"
-#include "euler/decls.hpp"
+#include "../concepts.hpp"
+#include "../decls.hpp"
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <cstdint>
 #include <ranges>
