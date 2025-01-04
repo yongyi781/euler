@@ -537,7 +537,7 @@ constexpr auto sumFloors(ExecutionPolicy &&exec, Tn n, Ta a = 1, Tb b = 1, Fun &
     return res;
 }
 
-/// Calculates `Σ k ֫≥ 0, f(⌊n / (a * k + b)⌋)`.
+/// Calculates `Σ k ≥ 0, f(⌊n / (a * k + b)⌋)`.
 template <std::integral Tn, std::integral Ta = int, std::integral Tb = int, typename F = std::identity>
 constexpr auto sumFloors(Tn n, Ta a = 1, Tb b = 1, F &&f = {})
 {
@@ -680,7 +680,11 @@ template <integral2 T = int64_t> class floors_array
     /// The transition point between up and down. What was passed as the s parameter during construction.
     [[nodiscard]] constexpr size_t transitionPoint() const { return _up.size() - 1; }
     /// The up vector.
+    [[nodiscard]] std::vector<T> &up() { return _up; }
+    /// The up vector.
     [[nodiscard]] constexpr const std::vector<T> &up() const { return _up; }
+    /// The down vector.
+    [[nodiscard]] std::vector<T> &down() { return _down; }
     /// The down vector.
     [[nodiscard]] constexpr const std::vector<T> &down() const { return _down; }
 

@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "decls.hpp"
-#include "it.hpp"
+#include "it/digits.hpp"
 
 inline namespace euler
 {
@@ -106,7 +106,7 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 // Need to hide behind a namespace to avoid name collision with std::print.
 namespace io
 {
-constexpr size_t defaultPrintLimit = 1000;
+constexpr size_t defaultPrintLimit = 100;
 
 /// Prints a non-range.
 template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename T>

@@ -148,6 +148,7 @@ template <typename T, size_t N> class Vector
 template <typename T, typename... U>
     requires(std::is_same_v<T, U> && ...)
 Vector(T, U...) -> Vector<T, 1 + sizeof...(U)>;
+
 template <std::size_t I, typename T, std::size_t N>
     requires(I < N)
 [[nodiscard]] constexpr T &get(Vector<T, N> &v) noexcept
@@ -190,7 +191,7 @@ template <typename T, size_t M, size_t N> class Matrix
     }
 
     /// Makes a multiple of the identity matrix.
-    template <integral2 U>
+    template <typename U>
         requires(M == N && std::convertible_to<U, T>)
     [[nodiscard]] constexpr Matrix(U scalar)
     {
@@ -336,6 +337,16 @@ template <typename T, size_t M, size_t N> class Matrix
         requires(M == N)
     {
         return euler::powm(*this, std::move(exponent), std::move(modulus), identity());
+    }
+
+    /// Trace of the matrix (sum of diagonal elements).
+    [[nodiscard]] constexpr T trace() const
+        requires(M == N)
+    {
+        T result{};
+        for (size_t i = 0; i < N; ++i)
+            result += _data[i][i];
+        return result;
     }
 
     template <typename CharT, typename Traits>
