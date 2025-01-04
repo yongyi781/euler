@@ -392,6 +392,74 @@ template <template <typename...> typename Map = std::map, std::ranges::range Ran
     return result;
 }
 
+// Period finding
+
+struct period_result
+{
+    size_t period;
+    size_t preperiod;
+
+    template <typename CharT, typename Traits>
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const period_result &x)
+    {
+        std::basic_ostringstream<CharT, Traits> ss;
+        ss.flags(o.flags());
+        ss.imbue(o.getloc());
+        ss.precision(o.precision());
+        ss << "{ period: " << x.period << ", preperiod: " << x.preperiod << " }";
+        return o << std::move(ss).str();
+    }
+};
+
+/// Finds the period of a recurrence given by `a(0) = a0, a(n) = f(a(n-1)).`.
+template <typename T, std::invocable<T> Fun> period_result findPeriod(Fun f, T a0, double ratio = 2.0)
+{
+    size_t periodBound = 1;
+    period_result res{};
+    T tortoise = a0;
+    T hare = f(a0);
+    while (tortoise != hare)
+    {
+        if (res.period == periodBound)
+        {
+            tortoise = hare;
+            periodBound = std::max(periodBound + 1, (size_t)((double)periodBound * ratio));
+            res.period = 0;
+        }
+        hare = f(hare);
+        ++res.period;
+    }
+    tortoise = a0;
+    hare = a0;
+    for (size_t i = 0; i < res.period; ++i)
+        hare = f(hare);
+    while (tortoise != hare)
+    {
+        tortoise = f(tortoise);
+        hare = f(hare);
+        ++res.preperiod;
+    }
+    return res;
+}
+
+/// Sums a known periodic function by taking advantage of the period.
+template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z period, Z start, Z stop)
+{
+    using T = decltype(fn(Z(0)));
+    T total = sum(start, std::min(stop, preperiod - 1), ([&](auto &&i) -> decltype(auto) { return fn(i); }));
+    T mid = 0;
+    start = std::max(preperiod, start);
+    Z const l = (stop - start + 1) % period + start - 1;
+    for (Z i = start; i <= std::min(stop, start + period - 1); ++i)
+    {
+        auto res = fn(i);
+        mid += res;
+        if (i <= l)
+            total += res;
+    }
+    return total += (stop - start + 1) / period * mid;
+}
+
 /// Appends a range to a vector.
 template <typename T, std::ranges::range Range> constexpr std::vector<T> &operator+=(std::vector<T> &a, Range &&b)
 {
