@@ -457,7 +457,7 @@ template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z per
         if (i <= l)
             total += res;
     }
-    return total += (stop - start + 1) / period * mid;
+    return total + (stop - start + 1) / period * mid;
 }
 
 /// Appends a range to a vector.
