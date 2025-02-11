@@ -9,70 +9,70 @@ namespace ansi
 /// Terminal color ansi escape codes.
 enum style : uint8_t
 {
-    reset,
-    bold,
-    dim,
-    italic,
-    underline,
+    reset = 0,
+    bold = 1,
+    dim = 2,
+    italic = 3,
+    underline = 4,
     /// `slowBlink` and `rapidBlink` don't seem to work on modern terminals.
-    slowBlink,
-    rapidBlink,
+    slowBlink = 5,
+    rapidBlink = 6,
     ///
-    invert,
-    hide,
-    strike,
-    fontDefault,
+    invert = 7,
+    hide = 8,
+    strike = 9,
+    fontDefault = 10,
     doubleUnderline = 21,
-    normalIntensity,
-    noItalic,
-    noUnderline,
-    noBlink,
+    normalIntensity = 22,
+    noItalic = 23,
+    noUnderline = 24,
+    noBlink = 25,
     /// Not known to be used in terminals.
-    proportionalSpacing,
+    proportionalSpacing = 26,
     ///
-    noReverse,
-    reveal,
-    noStrike,
-    black,
-    red,
-    green,
-    yellow,
-    blue,
-    magenta,
-    cyan,
-    white,
-    fgCustom,
-    fgDefault,
-    bgBlack,
-    bgRed,
-    bgGreen,
-    bgYellow,
-    bgBlue,
-    bgMagenta,
-    bgCyan,
-    bgWhite,
-    bgCustom,
-    bgDefault,
-    noProportionalSpacing,
-    frame,
-    encircle,
-    overline,
+    noReverse = 27,
+    reveal = 28,
+    noStrike = 29,
+    black = 30,
+    red = 31,
+    green = 32,
+    yellow = 33,
+    blue = 34,
+    magenta = 35,
+    cyan = 36,
+    white = 37,
+    fgCustom = 38,
+    fgDefault = 39,
+    bgBlack = 40,
+    bgRed = 41,
+    bgGreen = 42,
+    bgYellow = 43,
+    bgBlue = 44,
+    bgMagenta = 45,
+    bgCyan = 46,
+    bgWhite = 47,
+    bgCustom = 48,
+    bgDefault = 49,
+    noProportionalSpacing = 50,
+    frame = 51,
+    encircle = 52,
+    overline = 53,
     brightBlack = 90,
-    brightRed,
-    brightGreen,
-    brightYellow,
-    brightBlue,
-    brightMagenta,
-    brightCyan,
-    brightWhite,
+    brightRed = 91,
+    brightGreen = 92,
+    brightYellow = 93,
+    brightBlue = 94,
+    brightMagenta = 95,
+    brightCyan = 96,
+    brightWhite = 97,
     bgBrightBlack = 100,
-    bgBrightRed,
-    bgBrightGreen,
-    bgBrightYellow,
-    bgBrightBlue,
-    bgBrightMagenta,
-    bgBrightCyan,
-    bgBrightWhite
+    bgBrightRed = 101,
+    bgBrightGreen = 102,
+    bgBrightYellow = 103,
+    bgBrightBlue = 104,
+    bgBrightMagenta = 105,
+    bgBrightCyan = 106,
+    bgBrightWhite = 107
 };
 
 /// Converts an ANSI style to a string.
@@ -89,7 +89,7 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 inline std::string fg(std::array<uint8_t, 3> rgb)
 {
     std::string s = "\033[38;2";
-    for (uint8_t x : rgb)
+    for (uint8_t const x : rgb)
         s += ";" + std::to_string(x);
     s += "m";
     return s;
@@ -102,7 +102,7 @@ inline std::string fg(uint8_t r, uint8_t g, uint8_t b) { return fg({r, g, b}); }
 inline std::string bg(std::array<uint8_t, 3> rgb)
 {
     std::string s = "\033[48;2";
-    for (uint8_t x : rgb)
+    for (uint8_t const x : rgb)
         s += ";" + std::to_string(x);
     s += "m";
     return s;

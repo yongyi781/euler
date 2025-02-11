@@ -415,7 +415,7 @@ struct period_result
 template <typename T, std::invocable<T> Fun> period_result findPeriod(Fun f, T a0, double ratio = 2.0)
 {
     size_t periodBound = 1;
-    period_result res{};
+    period_result res{.period = 1};
     T tortoise = a0;
     T hare = f(a0);
     while (tortoise != hare)

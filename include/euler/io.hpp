@@ -143,6 +143,8 @@ print(Range &&r, size_t limit = defaultPrintLimit, std::basic_ostream<CharT, Tra
         if (it != first)
             ss << delimiter;
         ss << "...";
+        if constexpr (std::ranges::sized_range<Range>)
+            ss << " size=" << std::ranges::size(r);
     }
     ss << close;
     return o << std::move(ss).str();

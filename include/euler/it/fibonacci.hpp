@@ -6,12 +6,12 @@ inline namespace euler
 {
 namespace it
 {
-template <integral2 T = int64_t> class fibonacci : public it_base
+template <typename T = int64_t> class fibonacci : public it_base
 {
   public:
     using value_type = T;
 
-    constexpr fibonacci(T a = 0, T b = 1) : _a(a), _b(b) {}
+    constexpr fibonacci(T a = T(0), T b = T(1)) : _a(a), _b(b) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
