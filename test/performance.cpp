@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 
 #include "euler.hpp"
@@ -45,7 +46,7 @@ template <typename F1, typename F2> void compare(F1 f1, F2 f2, int trials)
 // 586 ns and 283 ns with clang++, 390 ns and 288 ns with g++.
 inline void comparePowm(int trials = 1000000)
 {
-    cout << "Comparing powm\n";
+    cout << "Comparing boost powm and my powm\n";
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
@@ -65,7 +66,7 @@ inline void comparePowm(int trials = 1000000)
 // 586 ns and 283 ns with clang++, 390 ns and 288 ns with g++.
 inline void comparePowmSafe(int trials = 1000000)
 {
-    cout << "Comparing powmSafe\n";
+    cout << "Comparing boost powm and my powmSafe\n";
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
@@ -83,9 +84,9 @@ inline void comparePowmSafe(int trials = 1000000)
 }
 
 // 22 ns for both (g++), 31 ns for both (clang++).
-inline void comparePow(int trials = 10000000)
+inline void comparePowInt128(int trials = 10000000)
 {
-    cout << "Comparing pow\n";
+    cout << "Comparing boost pow and my pow on int128s\n";
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
@@ -104,23 +105,23 @@ inline void comparePow(int trials = 10000000)
 // New crt only takes 162 ns now. Woo! 228 ns with g++. (6/22/2024).
 inline void compareCrt(int trials = 1000000)
 {
-    cout << "Copmaring crt\n";
+    cout << "Copmaring 4-argument CRT and 2-argument CRT\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
-            int64_t m = abs(dist(rng)) + 1;
-            int64_t n = abs(dist(rng)) + 1;
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
+            int64_t const m = abs(dist(rng)) + 1;
+            int64_t const n = abs(dist(rng)) + 1;
             if (gcd(m, n) != 1 || m == 0 || n == 0)
                 return (int64_t)0;
             auto result = crt(a, b, m, n);
             return result;
         },
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
-            int64_t m = abs(dist(rng)) + 1;
-            int64_t n = abs(dist(rng)) + 1;
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
+            int64_t const m = abs(dist(rng)) + 1;
+            int64_t const n = abs(dist(rng)) + 1;
             if (gcd(m, n) != 1 || m == 0 || n == 0)
                 return (int64_t)0;
             auto result = crt(array{a, b}, array{m, n});
@@ -132,15 +133,15 @@ inline void compareCrt(int trials = 1000000)
 // 6 ns and 25 ns with clang++, 5 ns and 29 ns with g++.
 inline void compareSqrt(int trials = 10000000)
 {
-    cout << "Copmaring sqrt\n";
+    cout << "Copmaring boost sqrt and isqrt\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = abs(dist(rng));
-            return (int64_t)sqrt(a);
+            int64_t const a = abs(dist(rng));
+            return boost::multiprecision::sqrt(a);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = abs(dist(rng));
-            return boost::multiprecision::sqrt(a);
+            int64_t const a = abs(dist(rng));
+            return isqrt(a);
         },
         trials);
 }
@@ -148,14 +149,14 @@ inline void compareSqrt(int trials = 10000000)
 // 6 ns and 25 ns with clang++, 5 ns and 29 ns with g++.
 inline void compareSqrt2(int trials = 10000000)
 {
-    cout << "Copmaring sqrt against isqrt\n";
+    cout << "Copmaring sqrt + cast and isqrt\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = abs(dist(rng));
+            int64_t const a = abs(dist(rng));
             return (int64_t)sqrt(a);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = abs(dist(rng));
+            int64_t const a = abs(dist(rng));
             return isqrt(a);
         },
         trials);
@@ -164,14 +165,15 @@ inline void compareSqrt2(int trials = 10000000)
 // 27 ns and 57 ns with clang++, 25 ns and 50 ns with g++.
 inline void compareCbrt(int trials = 10000000)
 {
+    cout << "Copmaring boost cbrt and std::cbrt\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            return (int64_t)cbrt(a);
+            int64_t const a = dist(rng);
+            return (int64_t)boost::math::cbrt(a);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            return (int64_t)boost::math::cbrt(a);
+            int64_t const a = dist(rng);
+            return (int64_t)cbrt(a);
         },
         trials);
 }
@@ -179,15 +181,16 @@ inline void compareCbrt(int trials = 10000000)
 // 47 ns and 64 ns with clang++, 63 ns and 90 ns with g++.
 inline void compareGcd(int trials = 10000000)
 {
+    cout << "Copmaring std::gcd and boost::integer::gcd\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
             return std::gcd(a, b);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
             return boost::integer::gcd(a, b);
         },
         trials);
@@ -196,15 +199,16 @@ inline void compareGcd(int trials = 10000000)
 // 51 ms and 68 ns with clang++, 72 ns and 97 ns with g++.
 inline void compareLcm(int trials = 10000000)
 {
+    cout << "Copmaring std::lcm and boost::integer::lcm\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
             return std::lcm(a, b);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = dist(rng);
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
             return boost::integer::lcm(a, b);
         },
         trials);
@@ -212,6 +216,7 @@ inline void compareLcm(int trials = 10000000)
 
 template <int N> void compareConstantPow(int trials = 10000000)
 {
+    cout << "Copmaring std::pow and boost::integer::pow\n";
     compare(
         [](auto &rng, auto &dist) {
             int64_t a = dist(rng);
@@ -227,22 +232,23 @@ template <int N> void compareConstantPow(int trials = 10000000)
 auto floorDiv2(integral2 auto a, integral2 auto b)
 {
     using T = decltype(a);
-    T d = a / b;
-    T r = a % b;
+    T const d = a / b;
+    T const r = a % b;
     return r ? (d - ((a < 0) ^ (b < 0))) : d;
 }
 
 void compareFloorDiv(int trials = 10000000)
 {
+    cout << "Copmaring floorDiv and floorDiv2\n";
     compare(
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = abs(dist(rng)) + 1;
+            int64_t const a = dist(rng);
+            int64_t const b = abs(dist(rng)) + 1;
             return floorDiv(a, b);
         },
         [](auto &rng, auto &dist) {
-            int64_t a = dist(rng);
-            int64_t b = abs(dist(rng)) + 1;
+            int64_t const a = dist(rng);
+            int64_t const b = abs(dist(rng)) + 1;
             return floorDiv2(a, b);
         },
         trials);
@@ -251,17 +257,18 @@ void compareFloorDiv(int trials = 10000000)
 // powm faster with primes, modInverse faster with prime powers.
 inline void compareModInv(int trials = 10000000)
 {
+    cout << "Copmaring modInverse and powm\n";
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
-            Int modulus = static_cast<Int>(10627) * 10627;
+            Int const modulus = static_cast<Int>(10627) * 10627;
             if (x % modulus == 0)
                 return (int64_t)0;
             return modInverse(x, modulus);
         },
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
-            Int modulus = static_cast<Int>(10627) * 10627;
+            Int const modulus = static_cast<Int>(10627) * 10627;
             if (x % modulus == 0)
                 return (int64_t)0;
             return powm(x, modulus * (modulus - 1) - 1, modulus);
@@ -271,6 +278,7 @@ inline void compareModInv(int trials = 10000000)
 
 inline void compareInt128(int trials = 10000000)
 {
+    cout << "Copmaring __int128 and boost::multiprecision::int128_t\n";
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
@@ -283,6 +291,24 @@ inline void compareInt128(int trials = 10000000)
             auto y = abs(dist(rng));
             auto z = (int128_t)x * 9223372036854775808ULL + y;
             return z % 324235235;
+        },
+        trials);
+}
+
+// powm faster with primes, modInverse faster with prime powers.
+inline void compareFastDiv(int trials = 10000000)
+{
+    cout << "Copmaring integer division and fastDiv\n";
+    compare(
+        [](auto &rng, auto &dist) {
+            int64_t const a = abs(dist(rng));
+            int64_t const b = abs(dist(rng)) + 1;
+            return floorDiv(a, b);
+        },
+        [](auto &rng, auto &dist) {
+            int64_t const a = abs(dist(rng));
+            int64_t const b = abs(dist(rng)) + 1;
+            return fastDiv(a, b);
         },
         trials);
 }
@@ -419,27 +445,27 @@ inline auto spfTest2()
 
 inline auto powmTest1()
 {
-    int4096_t base = 2;
-    int4096_t exponent = ((int4096_t)1) << 4095;
-    int4096_t modulus = (int64_t)1e18;
+    int4096_t const base = 2;
+    int4096_t const exponent = ((int4096_t)1) << 4095;
+    int4096_t const modulus = (int64_t)1e18;
     auto result = boost::multiprecision::powm(base, exponent, modulus);
     return result;
 }
 
 inline auto powmTest2()
 {
-    int128_t base = 2;
-    int4096_t exponent = ((int4096_t)1) << 4095;
+    int128_t const base = 2;
+    int4096_t const exponent = ((int4096_t)1) << 4095;
     // cout << exponent << endl;
-    int64_t modulus = 1e18;
+    int64_t const modulus = 1e18;
     auto result = ::powm(base, exponent, modulus);
     return result;
 }
 
 inline auto multiplyPFTest()
 {
-    Factorization<int> pf1{};
-    Factorization<int> pf2{{2, 4}, {7, 4}, {11, 6}, {13, 8}};
+    Factorization<int> const pf1{};
+    Factorization<int> const pf2{{2, 4}, {7, 4}, {11, 6}, {13, 8}};
     auto a = mulPF(pf1, pf2);
 }
 
@@ -455,35 +481,23 @@ inline void factorTest()
 
 inline void digitsTest()
 {
-    int256_t n("1234567");
+    int256_t const n("1234567");
     auto s = to_string(n);
-    // reverse(s.begin(), s.end());
     vector<int> digits(s.size());
-    transform(s.begin(), s.end(), digits.begin(), [](char c) { return (int)c - '0'; });
-    reverse(digits.begin(), digits.end());
-}
-
-inline void rationalTest()
-{
-    auto x = boost::rational<int>(1618033, 1000000);
-    x *= x;
-}
-
-inline int64_t valuationTest()
-{
-    int64_t n = abs(rand());
-    valuationDivide(n, 2LL);
-    return n;
+    std::ranges::transform(s, digits.begin(), [](char c) { return (int)c - '0'; });
+    std::ranges::reverse(digits);
 }
 
 int main()
 {
     comparePowm();
     comparePowmSafe();
-    comparePow();
+    comparePowInt128();
     compareCrt();
     compareSqrt();
     compareSqrt2();
+    compareFloorDiv();
+    compareFastDiv();
     printTiming(spfTest);
     printTiming(spfTest2);
     printTiming(powmTest1);
@@ -491,7 +505,4 @@ int main()
     printTiming(multiplyPFTest);
     printTiming(factorTest);
     printTiming(digitsTest);
-    // printTiming(digitsTest2);
-    printTiming(rationalTest);
-    printTiming(valuationTest);
 }
