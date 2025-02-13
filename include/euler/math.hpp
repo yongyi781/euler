@@ -258,7 +258,7 @@ constexpr std::vector<bool> squarefreeSieve(size_t limit)
 {
     std::vector sieve(limit + 1, true);
     sieve[0] = false;
-    size_t s = isqrt(limit);
+    size_t const s = isqrt(limit);
     for (size_t i = 2; i <= s; ++i)
         if (sieve[i])
             for (size_t j = i * i; j <= limit; j += i * i)
@@ -269,28 +269,31 @@ constexpr std::vector<bool> squarefreeSieve(size_t limit)
 /// Sieve for the totient function.
 template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
 {
-    std::vector<T> sieve(limit + 1);
-    sieve[1] = 1;
-    for (T i = 2; i <= limit; ++i)
-        if (sieve[i] == 0)
-        {
-            sieve[i] = i - 1;
-            for (T j = 2; i * j <= limit; ++j)
-            {
-                if (sieve[j] == 0)
-                    continue;
+    std::vector<T> phi(limit + 1);
+    std::vector<T> primes;
+    phi[1] = 1;
+    primes.reserve(limit / std::max(1.0, log(limit)));
 
-                T q = j;
-                T f = i - 1;
-                while (q % i == 0)
-                {
-                    f *= i;
-                    q /= i;
-                }
-                sieve[i * j] = f * sieve[q];
-            }
+    for (T i = 2; i <= limit; i++)
+    {
+        if (phi[i] == 0)
+        {
+            phi[i] = i - 1;
+            primes.push_back(i);
         }
-    return sieve;
+        for (T p : primes)
+        {
+            if (i * p > limit)
+                break;
+            if (i % p == 0)
+            {
+                phi[i * p] = phi[i] * p;
+                break;
+            }
+            phi[i * p] = phi[i] * (p - 1);
+        }
+    }
+    return phi;
 }
 
 /// Returns (s, t) where d = s²t and t is squarefree.

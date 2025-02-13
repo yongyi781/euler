@@ -305,6 +305,27 @@ constexpr uint64_t binom(int n, int k)
     return result;
 }
 
+/// A replacement for integer floor division.
+template <typename T, typename U> constexpr auto fastDiv(T n, U d)
+{
+    auto res = T((double)n / (double)d);
+    if (n < res * d)
+    {
+        --res;
+        while (n < res * d)
+            --res;
+        return res;
+    }
+    if (n >= (res + 1) * d)
+    {
+        ++res;
+        while (n >= (res + 1) * d)
+            ++res;
+        return res;
+    }
+    return res;
+}
+
 // Function to check if a character is the start of a UTF-8 sequence
 constexpr bool isUtf8Start(char c) { return (c & 0xC0) != 0x80; }
 

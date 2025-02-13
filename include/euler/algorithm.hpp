@@ -460,6 +460,27 @@ template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z per
     return total + (stop - start + 1) / period * mid;
 }
 
+/// Perform the Walsh-Hadamard transform in-place.
+template <std::ranges::range Range> void fwht(Range &v, bool inverse = false)
+{
+    using T = Range::value_type;
+    assert(std::has_single_bit(v.size()));
+    for (size_t h = 1; h < v.size(); h *= 2)
+        for (size_t i = 0; i < v.size(); i += 2 * h)
+            for (size_t j = i; j < i + h; ++j)
+            {
+                std::tie(v[j], v[j + h]) = std::pair{T(v[j] + v[j + h]), T(v[j] - v[j + h])};
+                if (inverse)
+                {
+                    v[j] /= 2;
+                    v[j + h] /= 2;
+                }
+            }
+}
+
+/// Perform the inverse Walsh-Hadamard transform in-place.
+template <std::ranges::range Range> void ifwht(Range &v) { fwht(v, true); }
+
 /// Appends a range to a vector.
 template <typename T, std::ranges::range Range> constexpr std::vector<T> &operator+=(std::vector<T> &a, Range &&b)
 {
