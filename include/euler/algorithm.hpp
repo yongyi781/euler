@@ -278,6 +278,35 @@ constexpr auto maxRangeBy(Exec &&exec, TBegin begin, TEnd end, Tp init, Key key 
                        });
 }
 
+/// Returns a vector of partial sums of a function over a range.
+template <execution_policy Exec, std::ranges::range Range,
+          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::plus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr auto partialSum(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+{
+    std::vector<T> res(std::ranges::size(r));
+    std::transform_inclusive_scan(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(res),
+                                  std::move(op), std::move(f), std::move(init));
+    return res;
+}
+
+/// Returns a vector of partial sums of a function over a range.
+template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::plus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr auto partialSum(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+{
+    std::vector<T> res(std::ranges::size(r));
+    std::transform_inclusive_scan(std::ranges::begin(r), std::ranges::end(r), std::begin(res), std::move(op),
+                                  std::move(f), std::move(init));
+    return res;
+}
+
 /// Generates a random vector of a given size.
 template <typename T, typename Gen = std::mt19937_64>
     requires std::integral<T> || std::floating_point<T>

@@ -283,7 +283,7 @@ template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
         }
         for (T p : primes)
         {
-            if (i * p > limit)
+            if (!mulLeq(i, p, limit))
                 break;
             if (i % p == 0)
             {

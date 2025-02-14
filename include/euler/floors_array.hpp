@@ -60,6 +60,10 @@ template <typename T = int64_t> class floors_array
     [[nodiscard]] std::vector<T> &down() { return _down; }
     /// The down vector.
     [[nodiscard]] constexpr const std::vector<T> &down() const { return _down; }
+    [[nodiscard]] constexpr T &front() { return _up[1]; }
+    [[nodiscard]] constexpr const T &front() const { return _up[1]; }
+    [[nodiscard]] constexpr T &back() { return _down[1]; }
+    [[nodiscard]] constexpr const T &back() const { return _down[1]; }
 
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
