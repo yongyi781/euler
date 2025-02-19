@@ -307,6 +307,34 @@ constexpr auto partialSum(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
     return res;
 }
 
+/// Returns a vector of partial sums of a function over a range.
+template <execution_policy Exec, std::ranges::range Range,
+          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::minus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr auto adjacentDifference(Exec &&exec, Range &&r, BinaryOp op = {})
+{
+    std::vector<T> res(std::ranges::size(r));
+    std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(res),
+                             std::move(op));
+    return res;
+}
+
+/// Returns a vector of partial sums of a function over a range.
+template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::minus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr auto adjacentDifference(Range &&r, BinaryOp op = {})
+{
+    std::vector<T> res(std::ranges::size(r));
+    std::adjacent_difference(std::ranges::begin(r), std::ranges::end(r), std::begin(res), std::move(op));
+    return res;
+}
+
 /// Generates a random vector of a given size.
 template <typename T, typename Gen = std::mt19937_64>
     requires std::integral<T> || std::floating_point<T>
