@@ -1,6 +1,7 @@
 #pragma once
 
 #include "concepts.hpp"
+#include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/integer.hpp>
 
 inline namespace euler
@@ -15,6 +16,9 @@ using uint128_t = boost::multiprecision::uint128_t;
 using boost::multiprecision::int1024_t;
 using boost::multiprecision::int256_t;
 using boost::multiprecision::int512_t;
+using boost::multiprecision::uint1024_t;
+using boost::multiprecision::uint256_t;
+using boost::multiprecision::uint512_t;
 using int2048_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
     2048, 2048, boost::multiprecision::signed_magnitude, boost::multiprecision::unchecked, void>>;
 using int4096_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
@@ -28,55 +32,127 @@ using boost::multiprecision::mpq_rational;
 using boost::multiprecision::mpz_int;
 template <typename T> using PrimePower = std::pair<T, int>;
 
-// template <typename T>
-// struct FactorizationType
-// {
-//     using type = std::vector<PrimePower<T>>;
-// };
-
-// template <>
-// struct FactorizationType<int>
-// {
-//     using type = static_vector<PrimePower<int>, 9>;
-// };
-
-// template <>
-// struct FactorizationType<unsigned int>
-// {
-//     using type = static_vector<PrimePower<unsigned int>, 9>;
-// };
-
-// template <>
-// struct FactorizationType<int64_t>
-// {
-//     using type = static_vector<PrimePower<int64_t>, 15>;
-// };
-
-// template <>
-// struct FactorizationType<uint64_t>
-// {
-//     using type = static_vector<PrimePower<uint64_t>, 15>;
-// };
-
-// template <>
-// struct FactorizationType<int128_t>
-// {
-//     using type = static_vector<PrimePower<int128_t>, 25>;
-// };
-
-// template <>
-// struct FactorizationType<int256_t>
-// {
-//     using type = static_vector<PrimePower<int256_t>, 43>;
-// };
-
-// template <>
-// struct FactorizationType<int512_t>
-// {
-//     using type = static_vector<PrimePower<int512_t>, 75>;
-// };
-
 template <typename T> using Factorization = std::vector<PrimePower<T>>;
+
+template <typename T> struct double_integer
+{
+    using type = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
+        2 * std::numeric_limits<T>::digits, 2 * std::numeric_limits<T>::digits,
+        boost::multiprecision::is_signed_number<T>::value ? boost::multiprecision::signed_magnitude
+                                                          : boost::multiprecision::unsigned_magnitude>>;
+};
+template <std::integral T>
+    requires(std::is_signed_v<T> and 2 * sizeof(T) <= sizeof(intmax_t))
+struct double_integer<T>
+{
+    using type = boost::int_t<CHAR_BIT * 2 * sizeof(T)>::least;
+};
+template <std::integral T>
+    requires(std::is_unsigned_v<T> and 2 * sizeof(T) <= sizeof(intmax_t))
+struct double_integer<T>
+{
+    using type = boost::uint_t<CHAR_BIT * 2 * sizeof(T)>::least;
+};
+template <> struct double_integer<int64_t>
+{
+    using type = int128_t;
+};
+template <> struct double_integer<uint64_t>
+{
+    using type = uint128_t;
+};
+template <> struct double_integer<int128_t>
+{
+    using type = int256_t;
+};
+template <> struct double_integer<uint128_t>
+{
+    using type = uint256_t;
+};
+template <> struct double_integer<cpp_int>
+{
+    using type = cpp_int;
+};
+template <> struct double_integer<mpz_int>
+{
+    using type = mpz_int;
+};
+template <typename T> using double_integer_t = double_integer<T>::type;
+
+/// Converts a string to a number in a constant-evaluated context.
+template <typename T> consteval T fromString(const char *str)
+{
+    T res{};
+    int base = 10;
+
+    // Detect base from prefix if present.
+    if (str[0] == '0')
+    {
+        if (str[1] == 'x' || str[1] == 'X')
+        {
+            base = 16;
+            str += 2;
+        }
+        else if (str[1] == 'b' || str[1] == 'B')
+        {
+            base = 2;
+            str += 2;
+        }
+        else
+        {
+            base = 8;
+            ++str;
+        }
+    }
+
+    // Process each character according to the detected base.
+    for (; *str; ++str)
+    {
+        char const c = *str;
+        int digit = 0;
+
+        if (c >= '0' && c <= '9')
+            digit = c - '0';
+        else if (base == 16 && c >= 'a' && c <= 'f')
+            digit = c - 'a' + 10;
+        else if (base == 16 && c >= 'A' && c <= 'F')
+            digit = c - 'A' + 10;
+        else
+            throw std::invalid_argument("Invalid character");
+
+        if (digit >= base)
+            throw std::invalid_argument("Digit out of range for the given base");
+
+        res = res * base + digit;
+    }
+    return res;
+}
+
+inline namespace literals
+{
+consteval int8_t operator""_i8(unsigned long long n) { return n; }
+consteval int16_t operator""_i16(unsigned long long n) { return n; }
+consteval int32_t operator""_i32(unsigned long long n) { return n; }
+consteval int64_t operator""_i64(unsigned long long n) { return n; }
+consteval int128_t operator""_i128(const char *str) { return fromString<int128_t>(str); }
+consteval int256_t operator""_i256(const char *str) { return fromString<int256_t>(str); }
+consteval int512_t operator""_i512(const char *str) { return fromString<int512_t>(str); }
+consteval int1024_t operator""_i1024(const char *str) { return fromString<int1024_t>(str); }
+
+consteval uint8_t operator""_u8(unsigned long long n) { return n; }
+consteval uint16_t operator""_u16(unsigned long long n) { return n; }
+consteval uint32_t operator""_u32(unsigned long long n) { return n; }
+consteval uint64_t operator""_u64(unsigned long long n) { return n; }
+consteval uint128_t operator""_u128(const char *str) { return fromString<uint128_t>(str); }
+consteval uint256_t operator""_u256(const char *str) { return fromString<uint256_t>(str); }
+consteval uint512_t operator""_u512(const char *str) { return fromString<uint512_t>(str); }
+consteval uint1024_t operator""_u1024(const char *str) { return fromString<uint1024_t>(str); }
+
+inline cpp_int operator""_cppi(const char *str) { return cpp_int{str}; }
+inline mpz_int operator""_Z(const char *str) { return mpz_int{str}; }
+inline mpq_rational operator""_Q(const char *str) { return mpq_rational{str}; }
+inline mpf_float operator""_R(const char *str) { return mpf_float{str}; }
+} // namespace literals
 
 /// Returns a base raised to an integer power. The type of the base needs a multiplication operation
 /// defined on it.
@@ -87,7 +163,8 @@ constexpr T pow(const T &base, U exponent, const T &identity, BinaryOp op)
         return identity;
     if (exponent == 1)
         return base;
-    if constexpr ((integral2<T> || std::floating_point<T>) && std::is_same_v<BinaryOp, std::multiplies<>>)
+    if constexpr ((integral2<T> || std::floating_point<T>) && std::is_same_v<BinaryOp, std::multiplies<>> &&
+                  boost::multiprecision::is_signed_number<T>::value)
         if (base == -identity)
             return exponent % 2 == 0 ? identity : -identity;
     assert(exponent >= 0);
@@ -144,24 +221,16 @@ template <integral2 Ta, integral2 Tb, integral2 Tm>
 constexpr std::common_type_t<Ta, Tb, Tm> modmul(const Ta &a, const Tb &b, const Tm &m)
 {
     using T = std::common_type_t<Ta, Tb, Tm>;
-    if constexpr (std::numeric_limits<T>::digits == std::numeric_limits<int>::max())
+    using Td = double_integer_t<T>;
+    if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
     {
-        // We're in the cpp_int or mpz_int case.
-        return T(a * b % m);
+        Td result{};
+        __builtin_mul_overflow(a, b, &result);
+        return T(result % m);
     }
     else
     {
-        using Td = boost::multiprecision::detail::double_integer<T>::type;
-        if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
-        {
-            Td result{};
-            __builtin_mul_overflow(a, b, &result);
-            return T(result % m);
-        }
-        else
-        {
-            return T(Td(a) * Td(b) % Td(m));
-        }
+        return T(Td(a) * Td(b) % Td(m));
     }
 }
 

@@ -9,13 +9,13 @@ inline namespace euler
 namespace it
 {
 /// Enumerates the prime factorization of a number.
-template <integral2 T, std::ranges::view V = std::ranges::empty_view<int>> class factor : public it_base
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class factor : public it_base
 {
   public:
     using value_type = PrimePower<T>;
 
     factor() = default;
-    constexpr explicit factor(T n, V spfs = {}) : _n(std::move(n)), _spfs(std::move(spfs))
+    constexpr explicit factor(T n, const SPFSieve &spfs = {}) : _n(std::move(n)), _spfs(std::ref(spfs))
     {
         assert(_n != 0 && "0 does not have a factorization");
     }
@@ -25,14 +25,15 @@ template <integral2 T, std::ranges::view V = std::ranges::empty_view<int>> class
         T n = _n;
         if (n < 0)
         {
-            if (!callbackResult(f, PrimePower<T>{-1, 1}))
+            if (!callbackResult(f, PrimePower<T>{T(-1), T(1)}))
                 return result_break;
             n = -n;
         }
         T start = 2;
         while (n > 1)
         {
-            T p = !_spfs.empty() && n < (int64_t)_spfs.size() ? _spfs[(size_t)n] : smallestPrimeFactor(n, start);
+            T p = !_spfs.get().empty() && n < (int64_t)_spfs.get().size() ? _spfs.get()[(size_t)n]
+                                                                          : smallestPrimeFactor(n, start);
             if (!callbackResult(f, PrimePower<T>{p, valuationDivide<true>(n, p)}))
                 return result_break;
             if (p == 2)
@@ -57,20 +58,17 @@ template <integral2 T, std::ranges::view V = std::ranges::empty_view<int>> class
 
   private:
     T _n;
-    V _spfs;
+    std::reference_wrapper<const SPFSieve> _spfs;
 };
-
-template <integral2 T, std::ranges::random_access_range Range>
-factor(T, Range &&) -> factor<T, std::views::all_t<Range>>;
 } // namespace it
 
 /// Gives the prime factorization of a number.
-template <integral2 T, std::ranges::range Range = std::vector<int>>
-constexpr Factorization<T> factor(T num, Range &&spfs = {})
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
+constexpr Factorization<T> factor(T num, SPFSieve &&spfs = {})
 {
     Factorization<T> result;
     result.reserve(8);
-    it::factor(std::move(num), std::forward<Range>(spfs))([&](auto &&pe) { result.push_back(pe); });
+    it::factor(std::move(num), spfs)([&](auto &&pe) { result.push_back(pe); });
     return result;
 }
 
@@ -90,14 +88,14 @@ template <integral2 T> constexpr T totient(T n) // Pass by value intentional
  * @param totient The totient of `modulus`.
  * @return The multiplicative order of `a` modulo `modulus`.
  */
-template <integral2 Ta, integral2 Tp, integral2 Tt, std::ranges::range Range = std::vector<int>>
-constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, Range &&spfs = {})
+template <integral2 Ta, integral2 Tp, integral2 Tt, typename SPFSieve = std::vector<int>>
+constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPFSieve &&spfs = {})
 {
     using euler::gcd;
     using std::gcd;
     if (gcd(a, modulus) != 1)
         return 0;
-    it::factor(totient, std::forward<Range>(spfs))([&](auto &&pe) {
+    it::factor(totient, std::forward<SPFSieve>(spfs))([&](auto &&pe) {
         auto [q, _] = pe;
         while (totient % q == 0 && powmSafe(a, totient / q, modulus) == 1)
             totient /= q;

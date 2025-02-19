@@ -164,7 +164,7 @@ template <std::ranges::range Range> constexpr auto evalPF(Range &&r)
 }
 
 /// Returns a sieve containing smallest prime factors up to `limit`.
-template <integral2 T> constexpr std::vector<T> spfSieve(T limit)
+template <std::integral T> constexpr std::vector<T> spfSieve(T limit)
 {
     std::vector<T> sieve(limit + 1);
     for (T i = 2; i <= limit; ++i)
@@ -184,6 +184,82 @@ template <integral2 T> constexpr std::vector<T> spfSieve(T limit)
         detail::doSpfSieveSequential(T(7), T(limit), sqrtLimit, sieve);
     return sieve;
 }
+
+// Space-optimized structure for smallest prime factors (SPF) up to n.
+// It stores SPF only for odd numbers. For any even number (>2), the SPF is 2.
+template <integral2 T> struct SPF
+{
+    T n;
+    // spfOdd[i] holds the smallest prime factor for number (2*i + 1).
+    // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
+    std::vector<T> spfOdd;
+    std::vector<T> smallPrimes; // Odd primes up to sqrt(n).
+
+    SPF(T n) : n(n), spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(T(3), isqrt(n)))
+    {
+        T const m = (n + 1) / 2; // covers numbers 1,3,5,... up to n
+        // We ignore index 0 (number 1) and process indices [1, m).
+        // Partition these indices into segments.
+        int const segSize = 32768; // you can adjust this block size as needed
+        std::vector<std::pair<T, T>> segments;
+        for (T start = 1; start < m; start += segSize)
+            segments.emplace_back(start, std::min(m, start + segSize));
+
+        // Process each segment in parallel.
+        std::for_each(std::execution::par, segments.begin(), segments.end(), [&](const std::pair<T, T> &seg) {
+            T const L = seg.first;
+            T const R = seg.second; // R is not inclusive
+            // The segment covers odd numbers from:
+            //   segStart = 2*L + 1  up to  segEnd = 2*R + 1 (exclusive)
+            T const segStart = 2 * L + 1;
+            T const segEnd = 2 * R + 1;
+            // For each small prime p, mark its odd multiples in this segment.
+            for (T const p : smallPrimes)
+            {
+                // Compute the first number to mark in this segment.
+                T startVal = p * p;
+                // If p*p is not less than the upper bound of the segment, nothing to mark.
+                if (startVal >= segEnd)
+                    break;
+                if (startVal < segStart)
+                {
+                    // Increase startVal in steps of 2*p until it's >= segStart.
+                    T const diff = segStart - startVal;
+                    T const k = (diff + 2 * p - 1) / (2 * p); // ceil(diff / (2*p))
+                    startVal += k * 2 * p;
+                }
+                // Mark every odd multiple of p in [startVal, segEnd)
+                for (T x = startVal; x < segEnd; x += 2 * p)
+                {
+                    T const idx = (x - 1) / 2;
+                    // Only update if not already marked (ensuring the smallest prime factor remains)
+                    if (spfOdd[idx] == 0)
+                        spfOdd[idx] = p;
+                }
+            }
+        });
+    }
+
+    /// Accessor: returns the smallest prime factor for any x (1 <= x <= n).
+    [[nodiscard]] T get(T n) const
+    {
+        if (n < 2)
+            return 0; // For 0 or 1.
+        if (n % 2 == 0)
+            return 2; // Even numbers (>2).
+        // If spfOdd[idx] is 0, then x is prime.
+        return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
+    }
+
+    /// Returns whether the SPF sieve is empty.
+    [[nodiscard]] bool empty() const { return spfOdd.empty(); }
+
+    /// Returns the effective size of this SPF sieve, which is 1 more than the max valid input to this sieve.
+    [[nodiscard]] size_t size() const { return spfOdd.size() * 2 + 1; }
+
+    /// Accessor: returns the smallest prime factor for any x (1 <= x <= n).
+    [[nodiscard]] T operator[](T x) const { return get(x); }
+};
 
 /// Sieve for divisor counts. This is faster than divisorCountSieve2 for limits over 2 million.
 template <std::integral T> constexpr std::vector<T> divisorCountSieve(T limit)
@@ -229,9 +305,8 @@ constexpr std::vector<uint8_t> omegaSieve(size_t limit)
     return sieve;
 }
 
-/// Generates a sieve of the mobius function.
-template <std::ranges::range Range>
-constexpr std::vector<int8_t> mobiusSieve(const Range &spfs, size_t limit = std::numeric_limits<size_t>::max())
+/// Generates a sieve of the mobius function, given a SPF sieve.
+template <typename SPFSieve> constexpr std::vector<int8_t> mobiusSieve(size_t limit, const SPFSieve &spfs)
 {
     limit = std::min(limit, spfs.size() - 1);
     std::vector<int8_t> μ(limit + 1);
@@ -248,10 +323,7 @@ constexpr std::vector<int8_t> mobiusSieve(const Range &spfs, size_t limit = std:
 }
 
 /// Sieve for the Mobius function.
-template <integral2 T> constexpr std::vector<int8_t> mobiusSieve(T limit)
-{
-    return mobiusSieve(spfSieve(limit), limit);
-}
+template <std::integral T> constexpr std::vector<int8_t> mobiusSieve(T limit) { return mobiusSieve(limit, SPF{limit}); }
 
 /// Generates a sieve of squarefree numbers up to a given limit.
 constexpr std::vector<bool> squarefreeSieve(size_t limit)
@@ -347,7 +419,7 @@ template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto
     if (diff % g != 0)
         return std::pair<T, T>{-1, -1};
     T l = m / g * n;
-    return std::pair{mod(T(a + modmul(modmul(diff / g, x, l), m, l)), l), l};
+    return std::pair{mod(T(a + modmul(modmul(T(diff / g), x, l), m, l)), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:
@@ -361,7 +433,7 @@ constexpr auto crtlcm(Range1 &&remainders, Range2 &&moduli)
 
     return it::range(0UZ, std::min(remainders.size(), moduli.size()) - 1)
         .map([&](size_t i) { return std::pair<T, T>{remainders[i], moduli[i]}; })
-        .reduce(std::execution::unseq, std::pair<T, T>{0, 1},
+        .reduce(std::pair<T, T>{0, 1},
                 [&](auto &&a, auto &&b) { return crtlcm(a.first, b.first, a.second, b.second); });
 }
 
@@ -397,14 +469,14 @@ template <typename T> constexpr std::vector<T> powers(T a, int n)
 }
 
 // Function to find smallest primitive root of p
-template <integral2 T, std::ranges::range Range = std::vector<int>>
-constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, Range &&spfs = {})
+template <integral2 T, typename SPFSieve = std::vector<int>>
+constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&spfs = {})
 {
     using Tp = std::common_type_t<int64_t, T>;
     if (p == 2)
         return Tp(1);
     auto phi = p - 1;
-    auto pf = factor(phi, std::forward<Range>(spfs));
+    auto pf = factor(phi, std::forward<SPFSieve>(spfs));
     for (Tp r = 2; r <= phi; ++r)
     {
         bool flag = false;
