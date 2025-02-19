@@ -145,8 +145,8 @@ inline void testCrt()
 inline void testMobius()
 {
     int limit = 1e7;
-    auto spfs = spfSieve(limit);
-    auto mu = mobiusSieve(spfs);
+    SPF spfs(limit);
+    auto mu = mobiusSieve(limit, spfs);
     vector<pair<int, int8_t>> cases = {{1, 1},
                                        {2, -1},
                                        {3, -1},
