@@ -187,15 +187,17 @@ template <std::integral T> constexpr std::vector<T> spfSieve(T limit)
 
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number (>2), the SPF is 2.
-template <integral2 T> struct SPF
+template <std::integral T> struct SPF
 {
-    T n;
+    // Only need to store integer half the size of the input!
+    using H = std::make_unsigned_t<half_integer_t<T>>;
     // spfOdd[i] holds the smallest prime factor for number (2*i + 1).
     // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
-    std::vector<T> spfOdd;
-    std::vector<T> smallPrimes; // Odd primes up to sqrt(n).
+    std::vector<H> spfOdd;
+    std::vector<H> smallPrimes; // Odd primes up to sqrt(n).
 
-    SPF(T n) : n(n), spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(T(3), isqrt(n)))
+    SPF() = default;
+    SPF(T n) : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(H(3), H(isqrt(n))))
     {
         T const m = (n + 1) / 2; // covers numbers 1,3,5,... up to n
         // We ignore index 0 (number 1) and process indices [1, m).
@@ -214,7 +216,7 @@ template <integral2 T> struct SPF
             T const segStart = 2 * L + 1;
             T const segEnd = 2 * R + 1;
             // For each small prime p, mark its odd multiples in this segment.
-            for (T const p : smallPrimes)
+            for (H const p : smallPrimes)
             {
                 // Compute the first number to mark in this segment.
                 T startVal = p * p;
@@ -244,10 +246,9 @@ template <integral2 T> struct SPF
     [[nodiscard]] T get(T n) const
     {
         if (n < 2)
-            return 0; // For 0 or 1.
+            return 0;
         if (n % 2 == 0)
-            return 2; // Even numbers (>2).
-        // If spfOdd[idx] is 0, then x is prime.
+            return 2;
         return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
     }
 

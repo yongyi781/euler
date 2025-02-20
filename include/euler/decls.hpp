@@ -41,43 +41,72 @@ template <typename T> struct double_integer
         boost::multiprecision::is_signed_number<T>::value ? boost::multiprecision::signed_magnitude
                                                           : boost::multiprecision::unsigned_magnitude>>;
 };
+
 template <std::integral T>
-    requires(std::is_signed_v<T> and 2 * sizeof(T) <= sizeof(intmax_t))
+    requires(std::is_signed_v<T> && 2 * sizeof(T) <= sizeof(intmax_t))
 struct double_integer<T>
 {
     using type = boost::int_t<CHAR_BIT * 2 * sizeof(T)>::least;
 };
+
 template <std::integral T>
-    requires(std::is_unsigned_v<T> and 2 * sizeof(T) <= sizeof(intmax_t))
+    requires(std::is_unsigned_v<T> && 2 * sizeof(T) <= sizeof(intmax_t))
 struct double_integer<T>
 {
     using type = boost::uint_t<CHAR_BIT * 2 * sizeof(T)>::least;
 };
+
 template <> struct double_integer<int64_t>
 {
     using type = int128_t;
 };
+
 template <> struct double_integer<uint64_t>
 {
     using type = uint128_t;
 };
+
 template <> struct double_integer<int128_t>
 {
     using type = int256_t;
 };
+
 template <> struct double_integer<uint128_t>
 {
     using type = uint256_t;
 };
+
 template <> struct double_integer<cpp_int>
 {
     using type = cpp_int;
 };
+
 template <> struct double_integer<mpz_int>
 {
     using type = mpz_int;
 };
+
 template <typename T> using double_integer_t = double_integer<T>::type;
+
+template <std::integral T> struct half_integer
+{
+};
+
+template <std::integral T>
+    requires(std::is_signed_v<T>)
+struct half_integer<T>
+{
+    using type = boost::int_t<CHAR_BIT / 2 * sizeof(T)>::least;
+};
+
+template <std::integral T>
+    requires(std::is_unsigned_v<T>)
+struct half_integer<T>
+{
+    using type = boost::uint_t<CHAR_BIT / 2 * sizeof(T)>::least;
+};
+
+template <typename T> using half_integer_t = half_integer<T>::type;
 
 /// Converts a string to a number in a constant-evaluated context.
 template <typename T> consteval T fromString(const char *str)
