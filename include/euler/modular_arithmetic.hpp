@@ -62,11 +62,11 @@ template <typename T> constexpr euclidean_result_t<T> extendedEuclidean(T m, T n
     return result;
 }
 
-/// @brief Computes modular inverse.
+/// Computes modular inverse.
 /// @param a A number.
 /// @param modulus The modulus.
 /// @return number^-1 mod modulus.
-template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modInverse(Ta a, Tm modulus)
+template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modInverse(const Ta &a, const Tm &modulus)
 {
     using Tp = std::common_type_t<Ta, Tm>;
     assert(modulus > 0);
@@ -85,7 +85,15 @@ template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modIn
     return u.x;
 }
 
-/// Modular exponentiation.  Works for negative exponents.
+/// Specialization of `modInverse` for `mpz_int`.
+template <> constexpr mpz_int modInverse(const mpz_int &a, const mpz_int &modulus)
+{
+    mpz_int res;
+    mpz_invert(res.backend().data(), a.backend().data(), modulus.backend().data());
+    return res;
+}
+
+/// Modular exponentiation. Works for negative exponents.
 template <typename T, integral2 Te, typename Tm>
 constexpr T powm(const T &base, const Te &exponent, Tm modulus, const T &identity = T(1))
 {
