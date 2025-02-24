@@ -218,8 +218,16 @@ template <integral2 T> constexpr std::string to_string(T n, int base = 10)
     return s;
 }
 
+/// Converts a duration to a friendly string.
+template <typename Rep, typename Period> constexpr std::string to_string(const std::chrono::duration<Rep, Period> &d)
+{
+    std::ostringstream ss;
+    io::print(d, io::defaultPrintLimit, ss);
+    return std::move(ss).str();
+}
+
 /// Converts an integral number to its binary representation.
-template <integral2 T> std::string bin(T n) { return to_string(std::move(n), 2); }
+template <integral2 T> constexpr std::string bin(T n) { return to_string(std::move(n), 2); }
 
 /// Reads the entire contents of a file as a string. Buggy with CRLF though.
 inline std::string getFileContents(std::string_view fileName)
