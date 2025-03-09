@@ -205,6 +205,14 @@ constexpr auto sum(T begin, U end, Fun f = {})
     return reduceRange(std::move(begin), std::move(end), Tp{}, std::plus{}, std::move(f));
 }
 
+template <size_t Threshold, integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
+constexpr auto sumMaybeParallel(T begin, U end, Fun f = {})
+{
+    if (end - begin + 1 >= Threshold)
+        return sum(std::execution::par, begin, end, f);
+    return sum(begin, end, f);
+}
+
 /// Multiplies a function over a range.
 template <execution_policy Exec, std::ranges::range Range,
           std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity>
@@ -305,6 +313,31 @@ constexpr auto partialSum(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
     std::transform_inclusive_scan(std::ranges::begin(r), std::ranges::end(r), std::begin(res), std::move(op),
                                   std::move(f), std::move(init));
     return res;
+}
+
+/// Takes partial sums of a function over a range in place.
+template <execution_policy Exec, std::ranges::range Range,
+          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::plus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr void partialSumInPlace(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+{
+    std::transform_inclusive_scan(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(r),
+                                  std::move(op), std::move(f), std::move(init));
+}
+
+/// Takes partial sums of a function over a range in place.
+template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
+          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
+                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
+              BinaryOp = std::plus<>,
+          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+constexpr void partialSumInPlace(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+{
+    std::transform_inclusive_scan(std::ranges::begin(r), std::ranges::end(r), std::begin(r), std::move(op),
+                                  std::move(f), std::move(init));
 }
 
 /// Returns a vector of partial sums of a function over a range.
@@ -503,7 +536,7 @@ template <typename T, std::invocable<T> Fun> period_result findPeriod(Fun f, T a
 template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z period, Z start, Z stop)
 {
     using T = decltype(fn(Z(0)));
-    T total = sum(start, std::min(stop, preperiod - 1), ([&](auto &&i) -> decltype(auto) { return fn(i); }));
+    T total = sum(start, std::min(stop, preperiod - 1), [&](auto &&i) -> decltype(auto) { return fn(i); });
     T mid = 0;
     start = std::max(preperiod, start);
     Z const l = (stop - start + 1) % period + start - 1;
