@@ -220,7 +220,7 @@ constexpr T pow(const T &base, U exponent, const T &identity, BinaryOp op)
 template <typename T, integral2 U>
 constexpr T pow(T base, U exponent)
     requires requires {
-        base *base;
+        base * base;
         T(1);
     }
 {
@@ -704,6 +704,8 @@ template <typename T> class vector2d
     using value_type = T;
     using iterator = std::vector<T>::iterator;
     using const_iterator = std::vector<T>::const_iterator;
+    using reference = std::vector<T>::reference;
+    using const_reference = std::vector<T>::const_reference;
 
     vector2d() = default;
     constexpr vector2d(size_t rows, size_t columns) : _rows(rows), _columns(columns), _data(rows * columns) {}
@@ -716,9 +718,9 @@ template <typename T> class vector2d
     [[nodiscard]] constexpr int toIndex(int i, int j) const noexcept { return _columns * i + j; }
 
     /// `i`th row, `j`th column.
-    constexpr const T &operator[](size_t i, size_t j) const noexcept { return _data[toIndex(i, j)]; }
+    constexpr const_reference operator[](size_t i, size_t j) const noexcept { return _data[toIndex(i, j)]; }
     /// `i`th row, `j`th column.
-    constexpr T &operator[](size_t i, size_t j) noexcept { return _data[toIndex(i, j)]; }
+    constexpr reference operator[](size_t i, size_t j) noexcept { return _data[toIndex(i, j)]; }
 
     [[nodiscard]] constexpr size_t rows() const noexcept { return _rows; }
     [[nodiscard]] constexpr size_t columns() const noexcept { return _columns; }

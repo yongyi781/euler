@@ -588,7 +588,7 @@ auto sumConvolution(T n, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
                           : sumConvolution(std::execution::par, n, g, G, h, H);
 }
 
-/// Calculates `Σ k ֫≥ 0, f(⌊n / (a * k + b)⌋)`.
+/// Calculates `Σ k ≥ 0, f(⌊n / (a * k + b)⌋)`.
 template <execution_policy ExecutionPolicy, std::integral Tn, std::integral Ta = int, std::integral Tb = int,
           typename Fun = std::identity>
     requires(!std::integral<ExecutionPolicy>)

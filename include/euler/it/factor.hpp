@@ -73,9 +73,10 @@ constexpr Factorization<T> factor(T num, SPFSieve &&spfs = {})
 }
 
 /// Calculates Euler's totient function.
-template <integral2 T> constexpr T totient(T n) // Pass by value intentional
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
+constexpr T totient(T n, SPFSieve &&spfs = {}) // Pass by value intentional
 {
-    it::factor{n}([&](auto &&pe) { n -= n / pe.first; });
+    it::factor{n, spfs}([&](auto &&pe) { n -= n / pe.first; });
     return n;
 }
 
