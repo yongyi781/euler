@@ -205,7 +205,8 @@ constexpr auto sum(T begin, U end, Fun f = {})
     return reduceRange(std::move(begin), std::move(end), Tp{}, std::plus{}, std::move(f));
 }
 
-template <size_t Threshold, integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
+template <size_t Threshold = 8192, integral2 T, integral2 U,
+          std::invocable<std::common_type_t<T, U>> Fun = std::identity>
 constexpr auto sumMaybeParallel(T begin, U end, Fun f = {})
 {
     if (end - begin + 1 >= Threshold)
@@ -340,32 +341,38 @@ constexpr void partialSumInPlace(Range &&r, T init = {}, BinaryOp op = {}, Fun f
                                   std::move(f), std::move(init));
 }
 
-/// Returns a vector of partial sums of a function over a range.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::minus<>,
-          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+/// Returns a vector of adjacent differences of a function over a range.
+template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::minus<>>
 constexpr auto adjacentDifference(Exec &&exec, Range &&r, BinaryOp op = {})
 {
-    std::vector<T> res(std::ranges::size(r));
-    std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(res),
+    std::vector<std::ranges::range_value_t<Range>> res(std::ranges::size(r));
+    std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), res.begin(),
                              std::move(op));
     return res;
 }
 
-/// Returns a vector of partial sums of a function over a range.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::minus<>,
-          typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
+/// Returns a vector of adjacent differences of a function over a range.
+template <std::ranges::range Range, typename BinaryOp = std::minus<>>
 constexpr auto adjacentDifference(Range &&r, BinaryOp op = {})
 {
-    std::vector<T> res(std::ranges::size(r));
-    std::adjacent_difference(std::ranges::begin(r), std::ranges::end(r), std::begin(res), std::move(op));
+    std::vector<std::ranges::range_value_t<Range>> res(std::ranges::size(r));
+    std::adjacent_difference(std::ranges::begin(r), std::ranges::end(r), res.begin(), std::move(op));
     return res;
+}
+
+/// Takes adjacent difference in place.
+template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::minus<>>
+constexpr void adjacentDifferenceInPlace(Exec &&exec, Range &&r, BinaryOp op = {})
+{
+    std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r),
+                             std::ranges::begin(r), std::move(op));
+}
+
+/// Takes adjacent difference in place.
+template <std::ranges::range Range, typename BinaryOp = std::minus<>>
+constexpr void adjacentDifferenceInPlace(Range &&r, BinaryOp op = {})
+{
+    std::adjacent_difference(std::ranges::begin(r), std::ranges::end(r), std::ranges::begin(r), std::move(op));
 }
 
 /// Generates a random vector of a given size.
