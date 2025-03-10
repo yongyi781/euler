@@ -9,6 +9,7 @@
 #include "it/farey_sequence.hpp"
 #include "it/fibonacci.hpp"
 #include "it/lines.hpp"
+#include "it/powerful_numbers.hpp"
 #include "it/primes.hpp"
 #include "it/product_partitions.hpp"
 #include "it/pythagorean_triples.hpp"

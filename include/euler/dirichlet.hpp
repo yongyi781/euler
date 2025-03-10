@@ -434,6 +434,29 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_rs(size_t n, int
     return {n, [&](auto &&k) { return mertens[(size_t)std::pow(k + 0.5, 1.0 / r)]; }};
 }
 
+/// ζ(as - b). f(n) = [n = k^a] * k^b. Requires `a > 1`.
+template <typename T = int64_t> constexpr Dirichlet<T> zeta_linear(size_t n, int a, int b)
+{
+    assert(a > 1);
+    size_t const s = std::pow(n + 0.5, 1.0 / a);
+    auto sieve = range(0, s, [&](size_t k) { return std ::pow(T(k), b); });
+    sieve[0] = 0;
+    partialSumInPlace(sieve);
+    return {n, [&](auto &&k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+}
+
+/// 1 / ζ(as - b). f(n) = [n = k^a] * μ(k) * k^b. Requires `a > 1`.
+template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_linear(size_t n, int a, int b)
+{
+    assert(a > 1);
+    size_t const s = std::pow(n + 0.5, 1.0 / a);
+    auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
+    auto sieve = range(0, s, [&](size_t k) { return std ::pow(T(k), b) * mu[k]; });
+    sieve[0] = 0;
+    partialSumInPlace(sieve);
+    return {n, [&](auto &&k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+}
+
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)).
 template <typename T = int64_t> constexpr Dirichlet<T> mu(size_t n)
 {
