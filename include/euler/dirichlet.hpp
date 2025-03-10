@@ -156,11 +156,13 @@ template <typename T = int64_t> class Dirichlet
             _down[i] = squareValue(_quotients[i]);
         // Sieve for the up values.
         std::vector<T> sieve(_up.size());
-        for (size_t i = 1; i < _up.size(); ++i)
+        uint32_t const s = isqrt(_up.size() - 1);
+        for (size_t i = 1; i <= s; ++i)
         {
             auto const a = _up[i] - _up[i - 1];
-            for (size_t j = 1; i * j < _up.size(); ++j)
-                sieve[i * j] += a * (_up[j] - _up[j - 1]);
+            sieve[i * i] += a * a;
+            for (size_t j = i + 1; i * j < _up.size(); ++j)
+                sieve[i * j] += 2 * a * (_up[j] - _up[j - 1]);
         }
         _up = sieve;
         partialSumInPlace(_up);
