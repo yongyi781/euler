@@ -19,7 +19,7 @@ constexpr size_t threshold(size_t n)
 }
 } // namespace dirichlet
 
-/// Class for computing Dirichlet series summatory functions, where `up` has size (n / log(n))^(2/3).
+/// Class for computing Dirichlet series summatory functions, where `up` has size O((n / log(n))^(2/3)).
 template <typename T = int64_t> class Dirichlet
 {
   public:
@@ -59,6 +59,10 @@ template <typename T = int64_t> class Dirichlet
     [[nodiscard]] constexpr const T &front() const { return _up[1]; }
     [[nodiscard]] constexpr T &back() { return _down[1]; }
     [[nodiscard]] constexpr const T &back() const { return _down[1]; }
+
+    /// Returns a vector of function values from 1 to the size of the up vector. This is the vector of adjacent
+    /// differences of `up`.
+    [[nodiscard]] constexpr std::vector<T> upValues() { return adjacentDifference(_up); }
 
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
@@ -119,9 +123,10 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        return 2 * (sumMaybeParallel(1, u, [&](uint32_t j) { return (_up[j] - _up[j - 1]) * _down[i * j]; }) +
-                    sumMaybeParallel(u + 1, s,
-                                     [&](uint32_t j) { return (_up[j] - _up[j - 1]) * _up[_quotients[j] / fasti]; })) -
+        return 2 * (sumMaybeParallel(1, u, [&](uint32_t j) -> T { return (_up[j] - _up[j - 1]) * _down[i * j]; }) +
+                    sumMaybeParallel(
+                        u + 1, s,
+                        [&](uint32_t j) -> T { return (_up[j] - _up[j - 1]) * _up[_quotients[j] / fasti]; })) -
                _up[s] * _up[s];
     }
 
@@ -137,12 +142,12 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
         return sumMaybeParallel(1, u,
-                                [&](uint32_t j) {
+                                [&](uint32_t j) -> T {
                                     return (_up[j] - _up[j - 1]) * other.down()[i * j] +
                                            (other.up()[j] - other.up()[j - 1]) * _down[i * j];
                                 }) +
                sumMaybeParallel(u + 1, s,
-                                [&](uint32_t j) {
+                                [&](uint32_t j) -> T {
                                     auto const kdivj = _quotients[j] / fasti;
                                     return (_up[j] - _up[j - 1]) * other.up()[kdivj] +
                                            (other.up()[j] - other.up()[j - 1]) * _up[kdivj];
@@ -157,9 +162,10 @@ template <typename T = int64_t> class Dirichlet
         // Sieve for the up values.
         std::vector<T> sieve(_up.size());
         uint32_t const s = isqrt(_up.size() - 1);
+        T a{};
         for (size_t i = 1; i <= s; ++i)
         {
-            auto const a = _up[i] - _up[i - 1];
+            a = _up[i] - _up[i - 1];
             sieve[i * i] += a * a;
             for (size_t j = i + 1; i * j < _up.size(); ++j)
                 sieve[i * j] += 2 * a * (_up[j] - _up[j - 1]);
@@ -196,6 +202,13 @@ template <typename T = int64_t> class Dirichlet
         return Dirichlet{*this}.divideInPlace(other, std::forward<Range>(precomputed));
     }
 
+    /// Dirichlet inverse.
+    constexpr Dirichlet inverse() const
+    {
+        Dirichlet res{_n, [](auto &&) { return T(1); }};
+        return res.divideInPlace(*this);
+    }
+
     /// Addition.
     template <typename U> constexpr Dirichlet &operator+=(const Dirichlet<U> &other)
     {
@@ -229,14 +242,18 @@ template <typename T = int64_t> class Dirichlet
     /// Multiplication.
     template <typename U> constexpr Dirichlet &operator*=(const Dirichlet<U> &other)
     {
+        if constexpr (std::is_same_v<T, U>)
+            if (this == &other)
+                return squareInPlace();
         assert(_n == other.n());
         for (uint32_t i = 1; i < _down.size(); ++i)
             _down[i] = productValue(other, _n / i);
         // Sieve for the up values.
         std::vector<T> sieve(_up.size());
+        T a{};
         for (size_t i = 1; i < _up.size(); ++i)
         {
-            auto const a = _up[i] - _up[i - 1];
+            a = _up[i] - _up[i - 1];
             for (size_t j = 1; i * j < _up.size(); ++j)
                 sieve[i * j] += a * (other.up()[j] - other.up()[j - 1]);
         }
@@ -256,9 +273,10 @@ template <typename T = int64_t> class Dirichlet
         auto const c = other.up()[1] - other.up()[0];
         // Sieve for the up values.
         adjacentDifferenceInPlace(_up);
+        T a{};
         for (size_t i = 1; i <= (_up.size() - 1) / 2; ++i)
         {
-            auto const a = _up[i];
+            a = _up[i];
             for (size_t j = 2; i * j < _up.size(); ++j)
                 _up[i * j] -= a * (other.up()[j] - other.up()[j - 1]);
             _up[i] /= c;
@@ -300,11 +318,11 @@ template <typename T = int64_t> class Dirichlet
         _down[i] -= (_up[1] - _up[0]) * other[k];
         _down[i] -=
             sumMaybeParallel(2, u,
-                             [&](uint32_t j) {
+                             [&](uint32_t j) -> T {
                                  return (_up[j] - _up[j - 1]) * other.down()[i * j] +
                                         (other.up()[j] - other.up()[j - 1]) * _down[i * j];
                              }) +
-            sumMaybeParallel(u + 1, s, [&](uint32_t j) {
+            sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T {
                 size_t const kdivj = _quotients[j] / fasti;
                 return (_up[j] - _up[j - 1]) * other.up()[kdivj] + (other.up()[j] - other.up()[j - 1]) * _up[kdivj];
             });
@@ -361,8 +379,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> mu(size_t n)
     auto sieve = mobiusSieve(s);
     auto ssieve = partialSum(sieve, T{});
     auto res = unit<T>(n);
-    res.divideInPlace(zeta<T>(n), ssieve);
-    return res;
+    return res.divideInPlace(zeta<T>(n), ssieve);
 }
 
 /// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(2/3)).
@@ -372,8 +389,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n)
     auto sieve = squarefreeSieve(s);
     auto ssieve = partialSum(sieve, T{});
     auto res = zeta<T>(n);
-    res.divideInPlace(zeta_2s<T>(n), ssieve);
-    return res;
+    return res.divideInPlace(zeta_2s<T>(n), ssieve);
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)).
@@ -383,8 +399,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n)
     auto sieve = totientSieve(s);
     auto ssieve = partialSum(sieve, T{});
     auto res = id<T>(n);
-    res.divideInPlace(zeta<T>(n), ssieve);
-    return res;
+    return res.divideInPlace(zeta<T>(n), ssieve);
 }
 
 /// ζ(s)^2. f(n) = number of divisors of n.
