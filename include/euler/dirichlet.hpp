@@ -172,7 +172,7 @@ template <typename T = int64_t> class Dirichlet
     [[nodiscard]] constexpr Dirichlet square() const { return Dirichlet{*this}.squareInPlace(); }
 
     /// Division in place.
-    /// Precondition: `precomputed` must have size at least √n, or be empty.
+    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
     constexpr Dirichlet &divideInPlace(const Dirichlet<U> &other, Range &&precomputed = {})
     {
@@ -189,7 +189,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Division.
-    /// Precondition: `precomputed` must have size at least √n, or be empty.
+    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
     constexpr Dirichlet divide(const Dirichlet<U> &other, Range &&precomputed = {}) const
     {
@@ -390,27 +390,14 @@ template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n)
 /// ζ(s)^2. f(n) = number of divisors of n.
 template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n)
 {
-    // auto sieve = divisorCountSieve((size_t)(0.85 * std::pow(n, 2.0 / 3)));
-    // auto ssieve = partialSum(sieve, T{});
     auto res = zeta<T>(n);
-    res.squareInPlace();
-    return res;
+    return res.squareInPlace();
 }
 
 /// ζ(s)ζ(s-1). f(n) = sum of divisors of n.
-template <typename T = int64_t> constexpr Dirichlet<T> sigma(size_t n)
-{
-    // auto sieve = divisorCountSieve((size_t)(0.85 * std::pow(n, 2.0 / 3)));
-    // auto ssieve = partialSum(sieve, T{});
-    return zeta<T>(n) * id<T>(n);
-}
+template <typename T = int64_t> constexpr Dirichlet<T> sigma(size_t n) { return zeta<T>(n) * id<T>(n); }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n).
-template <typename T = int64_t> constexpr Dirichlet<T> liouville(size_t n)
-{
-    // auto sieve = divisorCountSieve((size_t)(0.85 * std::pow(n, 2.0 / 3)));
-    // auto ssieve = partialSum(sieve, T{});
-    return zeta_2s<T>(n) / zeta<T>(n);
-}
+template <typename T = int64_t> constexpr Dirichlet<T> liouville(size_t n) { return zeta_2s<T>(n) / zeta<T>(n); }
 } // namespace dirichlet
 } // namespace euler
