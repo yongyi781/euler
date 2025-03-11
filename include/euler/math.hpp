@@ -710,4 +710,26 @@ constexpr auto countSquarefree(T n, Range &&primes)
 
 /// Calculates the nth polygonal number of a given type.
 template <integral2 T> constexpr T polygonalNumber(int p, T n) { return (n * n * (p - 2) - n * (p - 4)) / 2; }
+
+namespace detail
+{
+template <integral2 Tk, integral2 T, typename SPFSieve>
+T countCoprimeHelper(Tk k, T limit, T d, T currentPrime, const std::vector<int8_t> &mobius, SPFSieve &&spfs)
+{
+    if (k <= 1)
+        return mobius[d] * (limit / d);
+    auto const p = spfs[k];
+    T const n1 = countCoprimeHelper(k / p, limit, d, p, mobius, spfs);
+    if (p == currentPrime)
+        return n1;
+    return n1 + countCoprimeHelper(k / p, limit, d * p, p, mobius, spfs);
+}
+} // namespace detail
+
+/// Returns the number of integers coprime to k in the range [1, limit].
+template <integral2 Tk, integral2 T, typename SPFSieve>
+T countCoprime(Tk k, T limit, const std::vector<int8_t> &mobius, SPFSieve &&spfs)
+{
+    return detail::countCoprimeHelper(k, limit, T(1), T(1), mobius, spfs);
+}
 } // namespace euler
