@@ -5,6 +5,7 @@
 #include "euler/ZMod.hpp"
 #include "euler/ZModpp.hpp"
 #include "euler/algorithm.hpp"
+#include "euler/bernoulli.hpp"
 #include "euler/cfrac.hpp"
 #include "euler/decls.hpp"
 #include "euler/dirichlet.hpp"

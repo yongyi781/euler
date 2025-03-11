@@ -385,21 +385,18 @@ template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfre
 /// Returns (s, t) where d = s²t and t is squarefree.
 template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num) { return sqfreeDecompose(num, factor(num)); }
 
-template <integral2 T = int64_t> constexpr std::vector<std::vector<T>> binomTable(int size, const T &modulus = 0)
+/// Returns a table of binomial coefficients of size `size`.
+template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(int size)
 {
     std::vector<std::vector<T>> table(size + 1);
     table[0] = {1};
     for (int n = 1; n <= size; ++n)
     {
         table[n] = std::vector<T>(n + 1);
-        table[n][0] = 1;
-        table[n][n] = 1;
+        table[n][0] = T(1);
+        table[n][n] = T(1);
         for (int r = 1; r < n; ++r)
-        {
             table[n][r] = table[n - 1][r - 1] + table[n - 1][r];
-            if (modulus > 0)
-                table[n][r] %= modulus;
-        }
     }
     return table;
 }
@@ -731,5 +728,20 @@ template <integral2 Tk, integral2 T, typename SPFSieve>
 T countCoprime(Tk k, T limit, const std::vector<int8_t> &mobius, SPFSieve &&spfs)
 {
     return detail::countCoprimeHelper(k, limit, T(1), T(1), mobius, spfs);
+}
+
+/// Generate the B + 1 numbers (B(1) = 1/2) up to `k`.
+template <typename T> std::vector<T> bernoulliPlus(size_t k)
+{
+    std::vector<T> A(k + 1), B(k + 1);
+    for (size_t m = 0; m <= k; m++)
+    {
+        A[m] = T(1) / T(m + 1);
+        for (int j = m; j >= 1; j--)
+            A[j - 1] = j * (A[j - 1] - A[j]);
+        if (m == 1 || m % 2 == 0)
+            B[m] = A[0];
+    }
+    return B;
 }
 } // namespace euler

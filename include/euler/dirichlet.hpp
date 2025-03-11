@@ -28,7 +28,7 @@ template <typename T = int64_t> class Dirichlet
         return n / (n / res);
     }
 
-    constexpr Dirichlet(size_t n)
+    constexpr explicit Dirichlet(size_t n)
         : _n(n), _up(defaultPivot(n) + 1), _down(n / (defaultPivot(n) + 1) + 1), _quotients(isqrt(n) + 1)
     {
         for (size_t i = 1; i < _quotients.size(); ++i)
@@ -40,7 +40,7 @@ template <typename T = int64_t> class Dirichlet
     {
         for (size_t k = 1; k < _up.size(); ++k)
             _up[k] = F(k);
-        for (uint32_t i = _down.size() - 1; i > 0; --i)
+        for (uint32_t i = _down.size() - 1; i != 0; --i)
             _down[i] = F(_quotients[i]);
     }
 
@@ -51,6 +51,8 @@ template <typename T = int64_t> class Dirichlet
     [[nodiscard]] constexpr size_t n() const { return _n; }
     /// The index of the transition point between up and down vectors.
     [[nodiscard]] constexpr size_t pivot() const { return _up.size() - 1; }
+    /// Gets the value of `n / i` avoiding a division CPU instruction. `i` must be `≤ √n`.
+    [[nodiscard]] constexpr size_t quotient(uint32_t i) const { return _quotients[i]; }
 
     /// The up vector, mutable.
     [[nodiscard]] constexpr std::vector<T> &up() { return _up; }
@@ -95,7 +97,7 @@ template <typename T = int64_t> class Dirichlet
     {
         for (size_t k = 1; k < _up.size(); ++k)
             up(k) = f(up(k));
-        for (uint32_t i = _down.size() - 1; i > 0; --i)
+        for (uint32_t i = _down.size() - 1; i != 0; --i)
             down(i) = f(down(i));
         return *this;
     }
@@ -106,7 +108,7 @@ template <typename T = int64_t> class Dirichlet
         for (size_t k = 1; k < _up.size(); ++k)
             if (!it::callbackResult(f, k))
                 return it::result_break;
-        for (uint32_t i = _down.size() - 1; i > 0; --i)
+        for (uint32_t i = _down.size() - 1; i != 0; --i)
             if (!it::callbackResult(f, _quotients[i]))
                 return it::result_break;
         return it::result_continue;
@@ -119,7 +121,7 @@ template <typename T = int64_t> class Dirichlet
         for (size_t k = 1; k < _up.size(); ++k)
             if (!it::callbackResult(f, k, up(k)))
                 return it::result_break;
-        for (uint32_t i = _down.size() - 1; i > 0; --i)
+        for (uint32_t i = _down.size() - 1; i != 0; --i)
             if (!it::callbackResult(f, _quotients[i], down(i)))
                 return it::result_break;
         return it::result_continue;
@@ -132,7 +134,7 @@ template <typename T = int64_t> class Dirichlet
         for (uint32_t i = 1; i < _down.size(); ++i)
             if (!it::callbackResult(f, _quotients[i]))
                 return it::result_break;
-        for (size_t k = _up.size() - 1; k > 0; --k)
+        for (size_t k = _up.size() - 1; k != 0; --k)
             if (!it::callbackResult(f, k))
                 return it::result_break;
         return it::result_continue;
@@ -145,7 +147,7 @@ template <typename T = int64_t> class Dirichlet
         for (uint32_t i = 1; i < _down.size(); ++i)
             if (!it::callbackResult(f, _quotients[i], down(i)))
                 return it::result_break;
-        for (size_t k = _up.size() - 1; k > 0; --k)
+        for (size_t k = _up.size() - 1; k != 0; --k)
             if (!it::callbackResult(f, k, up(k)))
                 return it::result_break;
         return it::result_continue;
@@ -428,6 +430,12 @@ template <typename T = int64_t> constexpr Dirichlet<T> chi4(size_t n)
     return {n, [&](auto &&k) { return T(k % 4 == 1 || k % 4 == 2); }};
 }
 
+/// χ_5(s). f(n) = (5|n).
+template <typename T = int64_t> constexpr Dirichlet<T> chi5(size_t n)
+{
+    return {n, [&](auto &&k) { return std::array{0, 1, 0, -1, 0}[k % 5]; }};
+}
+
 /// 1 / ζ(2s). f(n) = [n is square] * μ(√n). O(n^(1/2)). Motive = -[1] - [-1].
 template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_2s(size_t n)
 {
@@ -449,7 +457,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta_linear(size_t n, int
 {
     assert(a > 1);
     size_t const s = std::pow(n + 0.5, 1.0 / a);
-    auto sieve = range(0, s, [&](size_t k) { return std ::pow(T(k), b); });
+    auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b); });
     sieve[0] = 0;
     partialSumInPlace(sieve);
     return {n, [&](auto &&k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
@@ -462,40 +470,41 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_linear(size_t n,
     assert(a > 1);
     size_t const s = std::pow(n + 0.5, 1.0 / a);
     auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
-    auto sieve = range(0, s, [&](size_t k) { return std ::pow(T(k), b) * mu[k]; });
+    auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
     partialSumInPlace(sieve);
     return {n, [&](auto &&k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+}
+
+/// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(3/5)). Motive = -[-1].
+template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n)
+{
+    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(1.25 * std::pow(n, 0.6)));
+    auto const mu = mobiusSieve(isqrt(n));
+    auto const mertens = partialSum(mu, T{});
+    auto const precomputed = partialSum(squarefreeSieve(s), T{});
+    return {n, [&](size_t k) -> T {
+                if (k < precomputed.size())
+                    return precomputed[k];
+                uint32_t const s = cbrt(k);
+                return sum(1, s,
+                           [&](uint32_t j) { return mu[j] * (k / ((size_t)j * j)) + mertens[std::sqrt(k / j)]; }) -
+                       mertens[s] * s;
+            }};
 }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
 template <typename T = int64_t> constexpr Dirichlet<T> mu(size_t n)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(0.35 * std::pow(n, 2.0 / 3)));
-    auto sieve = mobiusSieve(s);
-    auto ssieve = partialSum(sieve, T{});
-    auto res = unit<T>(n);
-    return res.divideInPlace(zeta<T>(n), ssieve);
-}
-
-/// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(2/3)). Motive = -[-1].
-template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n)
-{
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(0.6 * std::pow(n, 2.0 / 3)));
-    auto sieve = squarefreeSieve(s);
-    auto ssieve = partialSum(sieve, T{});
-    auto res = zeta<T>(n);
-    return res.divideInPlace(zeta_2s<T>(n), ssieve);
+    return unit<T>(n).divideInPlace(zeta<T>(n), partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
 template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(0.6 * std::pow(n, 2.0 / 3)));
-    auto sieve = totientSieve(s);
-    auto ssieve = partialSum(sieve, T{});
-    auto res = id<T>(n);
-    return res.divideInPlace(zeta<T>(n), ssieve);
+    return id<T>(n).divideInPlace(zeta<T>(n), partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(s)^2. f(n) = number of divisors of n. O(n^(2/3)). Motive = 2[1].
