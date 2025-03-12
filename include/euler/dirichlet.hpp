@@ -459,6 +459,38 @@ template <typename T = int64_t> class Dirichlet
         return left;
     }
 
+    /// Multiplication by a scalar.
+    constexpr Dirichlet &operator*=(T value)
+    {
+        for (size_t k = 1; k < _up.size(); ++k)
+            up(k) *= value;
+        for (uint32_t i = 1; i < _down.size(); ++i)
+            down(i) *= value;
+        return *this;
+    }
+
+    [[nodiscard]] constexpr friend Dirichlet operator*(Dirichlet left, T value)
+    {
+        left *= value;
+        return left;
+    }
+
+    /// Division by a scalar.
+    constexpr Dirichlet &operator/=(T value)
+    {
+        for (size_t k = 1; k < _up.size(); ++k)
+            up(k) /= value;
+        for (uint32_t i = 1; i < _down.size(); ++i)
+            down(i) /= value;
+        return *this;
+    }
+
+    [[nodiscard]] constexpr friend Dirichlet operator/(Dirichlet left, T value)
+    {
+        left /= value;
+        return left;
+    }
+
     /// Dirichlet inverse.
     [[nodiscard]] constexpr Dirichlet operator~() const { return inverse(); }
 
@@ -558,7 +590,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta_2s(size_t n)
 }
 
 /// ζ(as). f(n) = [n is a perfect ath power]. Motive = sum([r] for r in ath roots of unity)
-template <typename T = int64_t> constexpr Dirichlet<T> zeta_multiple(size_t n, int a)
+template <typename T = int64_t> constexpr Dirichlet<T> zeta_multiple(int a, size_t n)
 {
     return {n, [&](size_t k) { return (T)std::pow(k + 0.5, 1.0 / a); }};
 }
