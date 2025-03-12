@@ -76,8 +76,8 @@ template <typename T = int64_t> class Dirichlet
 
     [[nodiscard]] constexpr T &front() { return up(1); }
     [[nodiscard]] constexpr const T &front() const { return up(1); }
-    [[nodiscard]] constexpr T &back() { return down(1); }
-    [[nodiscard]] constexpr const T &back() const { return down(1); }
+    [[nodiscard]] constexpr T &back() { return _down.size() > 1 ? down(1) : _up.back(); }
+    [[nodiscard]] constexpr const T &back() const { return _down.size() > 1 ? down(1) : _up.back(); }
 
     /// Returns a vector of function values from 1 to the size of the up vector. This is the vector of adjacent
     /// differences of `up`.
