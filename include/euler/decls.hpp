@@ -186,7 +186,7 @@ inline mpf_float operator""_R(const char *str) { return mpf_float{str}; }
 /// Returns a base raised to an integer power. The type of the base needs a multiplication operation
 /// defined on it.
 template <typename T, integral2 U, std::invocable<T, T> BinaryOp>
-constexpr T pow(const T &base, U exponent, const T &identity, BinaryOp op)
+constexpr T pow(T base, U exponent, T identity, BinaryOp op)
 {
     if (exponent == 0 || base == identity)
         return identity;
@@ -196,15 +196,26 @@ constexpr T pow(const T &base, U exponent, const T &identity, BinaryOp op)
                   boost::multiprecision::is_signed_number<T>::value)
         if (base == -identity)
             return exponent % 2 == 0 ? identity : -identity;
-    assert(exponent >= 0);
+    if constexpr (requires(T a, T b) { a / b; })
+    {
+        if (exponent < 0)
+        {
+            base = T(1) / std::move(base);
+            exponent = -std::move(exponent);
+        }
+    }
+    else
+    {
+        assert(exponent >= 0);
+    }
 
-    T x = identity;
-    T y = base;
+    T x = std::move(identity);
+    T y = std::move(base);
     while (true)
     {
         if (exponent & 1)
         {
-            x = op(x, y);
+            x = op(std::move(x), y);
             if (exponent == 1)
                 break;
         }
