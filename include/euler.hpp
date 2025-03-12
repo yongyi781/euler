@@ -2,6 +2,7 @@
 
 #include "euler/FactorialMod.hpp"
 #include "euler/FenwickTree.hpp"
+#include "euler/PF.hpp"
 #include "euler/ZMod.hpp"
 #include "euler/ZModpp.hpp"
 #include "euler/algorithm.hpp"

@@ -31,16 +31,26 @@ class ZMod
             _value -= M;
         return *this;
     }
-    constexpr ZMod operator+(const ZMod &other) const { return ZMod{*this} += other; }
-    constexpr friend ZMod operator+(const integral2 auto &left, const ZMod &right) { return ZMod{left} + right; }
+
+    [[nodiscard]] constexpr friend ZMod operator+(ZMod left, const ZMod &right)
+    {
+        left += right;
+        return left;
+    }
+
+    // constexpr friend ZMod operator+(const integral2 auto &left, const ZMod &right) { return ZMod{left} + right; }
 
     constexpr ZMod &operator-=(const ZMod &other)
     {
         _value = _value < other._value ? _value + (M - other._value) : _value - other._value;
         return *this;
     }
-    constexpr ZMod operator-(const ZMod &other) const { return ZMod{*this} -= other; }
-    constexpr friend ZMod operator-(const integral2 auto &left, const ZMod &right) { return ZMod{left} - right; }
+
+    [[nodiscard]] constexpr friend ZMod operator-(ZMod left, const ZMod &right)
+    {
+        left -= right;
+        return left;
+    }
 
     constexpr ZMod &operator*=(const ZMod &other)
     {
@@ -56,8 +66,12 @@ class ZMod
         }
         return *this;
     }
-    constexpr ZMod operator*(const ZMod &other) const { return ZMod{*this} *= other; }
-    constexpr friend ZMod operator*(const integral2 auto &left, const ZMod &right) { return ZMod{left} * right; }
+
+    [[nodiscard]] constexpr friend ZMod operator*(ZMod left, const ZMod &right)
+    {
+        left *= right;
+        return left;
+    }
 
     constexpr ZMod &operator/=(const ZMod &other)
     {
@@ -68,8 +82,12 @@ class ZMod
         }
         return *this *= ~other;
     }
-    constexpr ZMod operator/(const ZMod &other) const { return ZMod{*this} /= other; }
-    constexpr friend ZMod operator/(const integral2 auto &left, const ZMod &right) { return ZMod{left} / right; }
+
+    [[nodiscard]] constexpr friend ZMod operator/(ZMod left, const ZMod &right)
+    {
+        left /= right;
+        return left;
+    }
 
     constexpr ZMod &operator++() { return *this += 1; }
 
@@ -94,10 +112,7 @@ class ZMod
     /// Multiplicative inverse.
     constexpr ZMod operator~() const { return inverse(); }
 
-    constexpr bool operator==(const ZMod &other) const { return _value == other._value; }
-    constexpr bool operator!=(const ZMod &other) const { return _value != other._value; }
-
-    constexpr std::strong_ordering operator<=>(const ZMod &other) const { return _value <=> other._value; }
+    std::strong_ordering operator<=>(const ZMod &other) const = default;
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const ZMod &x)

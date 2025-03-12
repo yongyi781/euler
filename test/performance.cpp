@@ -433,7 +433,7 @@ template <typename T> std::vector<T> spf2(T limit)
 // 468 ms with g++ and clang++.
 inline auto spfTest()
 {
-    auto v = spfSieve((int)1e8);
+    SPF<int> const v(1e8);
     return v[17051];
 }
 
@@ -474,7 +474,7 @@ vector<int> spfs;
 inline void factorTest()
 {
     cout << "Doing the factor test\n";
-    spfs = spfSieve(10000000);
+    SPF const spfs{10000000};
     for (int i = 1; i < 10000000; ++i)
         factor(i, spfs);
 }

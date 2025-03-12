@@ -36,8 +36,8 @@ inline void testModInv()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int64_t a = dist(rng);
-                int64_t m = abs(dist(rng)) + 1;
+                int64_t const a = dist(rng);
+                int64_t const m = abs(dist(rng)) + 1;
                 if (m == 0 || gcd(a, m) != 1)
                     return true;
                 auto result = modInverse(a, m);
@@ -58,9 +58,9 @@ inline void testPowm()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int64_t a = dist(rng);
-                int64_t b = abs(dist(rng));
-                int64_t c = abs(dist(rng)) + 2;
+                int64_t const a = dist(rng);
+                int64_t const b = abs(dist(rng));
+                int64_t const c = abs(dist(rng)) + 2;
                 auto result = powm(a, b, c);
                 auto expected = boost::multiprecision::powm(a, b, c);
                 if (result != expected)
@@ -79,9 +79,9 @@ inline void testPowmSafe()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int64_t a = dist(rng);
-                int64_t b = abs(dist(rng));
-                int64_t c = abs(dist(rng)) + 2;
+                int64_t const a = dist(rng);
+                int64_t const b = abs(dist(rng));
+                int64_t const c = abs(dist(rng)) + 2;
                 auto result = powmSafe(a, b, c);
                 auto expected = boost::multiprecision::powm(a, b, c);
                 if (result != expected)
@@ -120,10 +120,10 @@ inline void testCrt()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int64_t a = dist(rng);
-                int64_t b = dist(rng);
-                int64_t m = abs(dist(rng));
-                int64_t n = abs(dist(rng));
+                int64_t const a = dist(rng);
+                int64_t const b = dist(rng);
+                int64_t const m = abs(dist(rng));
+                int64_t const n = abs(dist(rng));
                 if (gcd(m, n) != 1 || m == 0 || n == 0)
                     return true;
                 // auto result = crt(array{a, b}, array{m, n});
@@ -144,23 +144,23 @@ inline void testCrt()
 
 inline void testMobius()
 {
-    int limit = 1e7;
-    SPF spfs(limit);
+    int const limit = 1e7;
+    SPF const spfs(limit);
     auto mu = mobiusSieve(limit, spfs);
-    vector<pair<int, int8_t>> cases = {{1, 1},
-                                       {2, -1},
-                                       {3, -1},
-                                       {4, 0},
-                                       {5, -1},
-                                       {6, 1},
-                                       {30, -1},
-                                       {210, 1},
-                                       {100, 0},
-                                       {9999998, 1},
-                                       {9999999, 0},
-                                       {10'000'000, 0},
-                                       {1'000'000'000, 0},
-                                       {999'999'995, 1}};
+    vector<pair<int, int8_t>> const cases = {{1, 1},
+                                             {2, -1},
+                                             {3, -1},
+                                             {4, 0},
+                                             {5, -1},
+                                             {6, 1},
+                                             {30, -1},
+                                             {210, 1},
+                                             {100, 0},
+                                             {9999998, 1},
+                                             {9999999, 0},
+                                             {10'000'000, 0},
+                                             {1'000'000'000, 0},
+                                             {999'999'995, 1}};
     bool passed = true;
     for (auto [n, m] : cases)
         if (n < (int)mu.size() && mu[n] != m)
@@ -180,7 +180,7 @@ inline void testBinom()
     Int mod = (1e7 + 19);
     mod *= mod;
 
-    BinomialModPrimePower binom(1e7 + 19, 2);
+    BinomialModPrimePower const binom(1e7 + 19, 2);
 
     for (int i = 1; i < 100; ++i)
     {
@@ -254,7 +254,7 @@ inline void testFactor()
 inline void testMultiplicativeOrder()
 {
     constexpr int N = 1'000'000;
-    auto spfs = spfSieve(N);
+    SPF spfs{N};
     auto totients = totientSieve(N);
     auto result = sum(execution::par, 3, N, [&](int64_t i) {
         valuationDivide(i, 2);
@@ -271,8 +271,8 @@ inline void testIsSquare()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int64_t a = abs(dist(rng)) + 2;
-                bool ok = !isSquare(a * a + 1) && !isSquare(a * a - 1) && isSquare(a * a);
+                int64_t const a = abs(dist(rng)) + 2;
+                bool const ok = !isSquare(a * a + 1) && !isSquare(a * a - 1) && isSquare(a * a);
                 if (!ok)
                 {
                     cout << failStr << "isSquare is wrong for a = " << a << "\n";
@@ -290,8 +290,8 @@ inline void testIsqrt()
 {
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                Int a = abs(dist(rng)) + 1;
-                bool ok = isqrt(a * a + 1) == a && isqrt(a * a - 1) == a - 1 && isqrt(a * a) == a;
+                Int const a = abs(dist(rng)) + 1;
+                bool const ok = isqrt(a * a + 1) == a && isqrt(a * a - 1) == a - 1 && isqrt(a * a) == a;
                 if (!ok)
                 {
                     cout << failStr << "isqrt is wrong for a = " << a << "\n";
@@ -317,9 +317,9 @@ inline void testModmul()
     static constexpr int m = 1'000'000'007;
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int a = dist(rng);
-                int b = dist(rng);
-                bool ok = modmul(a, b, m) == (Int)a * b % m;
+                int const a = dist(rng);
+                int const b = dist(rng);
+                bool const ok = modmul(a, b, m) == (Int)a * b % m;
                 if (!ok)
                 {
                     cout << failStr << "modmul is wrong for a = " << a << "\n";
@@ -338,10 +338,10 @@ inline void testZMod()
     using Z = ZMod<1'000'000'007>;
     if (testWithRandomInputs(
             [](auto &&rng, auto &&dist) {
-                int a = dist(rng);
-                int b = dist(rng);
-                Z x = Z(a) * b;
-                bool ok = x.value() == mod((Int)a * b, Z::modulus);
+                int const a = dist(rng);
+                int const b = dist(rng);
+                Z const x = Z(a) * b;
+                bool const ok = x.value() == mod((Int)a * b, Z::modulus);
                 if (!ok)
                 {
                     cout << failStr << "ZMod is wrong for a = " << a << "\n";
@@ -358,9 +358,9 @@ inline void testZMod()
 inline void testFloorsArray()
 {
     constexpr Int N = 2e9;
-    int L = (int)(0.25 * pow(N, 2.0 / 3));
+    int const L = (int)(0.25 * pow(N, 2.0 / 3));
     assert(floors_array<>::sumTotient(N)[N] == 1215854204348393714);
-    for (int sieveSize : {100, 999, 1001, (int)isqrt(N), L - 1, L, L + 1})
+    for (int const sieveSize : {100, 999, 1001, (int)isqrt(N), L - 1, L, L + 1})
     {
         auto sieve = totientSieve(sieveSize);
         assert(floors_array<>::sumTotient(N, sieve)[N] == 1215854204348393714);

@@ -26,46 +26,72 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr T &operator[](size_t i) { return _data[i]; }
     [[nodiscard]] constexpr const T &operator[](size_t i) const { return _data[i]; }
 
-    constexpr Vector &operator+=(const Vector &other)
+    template <typename U> constexpr Vector &operator+=(const Vector<U, N> &other)
     {
         for (size_t i = 0; i < N; ++i)
             _data[i] += other._data[i];
         return *this;
     }
-    [[nodiscard]] constexpr Vector operator+(const Vector &other) const { return Vector{*this} += other; }
 
-    constexpr Vector &operator-=(const Vector &other)
+    template <typename U> [[nodiscard]] constexpr friend Vector operator+(Vector left, const Vector<U, N> &right)
+    {
+        left += right;
+        return left;
+    }
+
+    template <typename U> constexpr Vector &operator-=(const Vector<U, N> &other)
     {
         for (size_t i = 0; i < N; ++i)
             _data[i] -= other._data[i];
         return *this;
     }
-    [[nodiscard]] constexpr Vector operator-(const Vector &other) const { return Vector{*this} -= other; }
 
-    constexpr Vector &operator*=(T t)
+    template <typename U> [[nodiscard]] constexpr friend Vector operator-(Vector left, const Vector<U, N> &right)
+    {
+        left -= right;
+        return left;
+    }
+
+    template <typename U> constexpr Vector &operator*=(U value)
     {
         for (auto &&x : _data)
-            x *= t;
+            x *= value;
         return *this;
     }
-    [[nodiscard]] constexpr Vector operator*(T t) const { return Vector{*this} *= t; }
-    [[nodiscard]] friend constexpr Vector operator*(T t, const Vector &m) { return m * t; }
 
-    constexpr Vector &operator/=(T t)
+    template <typename U> [[nodiscard]] constexpr friend Vector operator*(Vector v, U value)
+    {
+        v *= value;
+        return v;
+    }
+
+    [[nodiscard]] constexpr friend Vector operator*(T t, Vector v) { return v * t; }
+
+    template <typename U> constexpr Vector &operator/=(U value)
     {
         for (auto &&x : _data)
-            x /= t;
+            x /= value;
         return *this;
     }
-    [[nodiscard]] constexpr Vector operator/(T t) { return Vector{*this} /= t; }
 
-    constexpr Vector &operator%=(T t)
+    template <typename U> [[nodiscard]] constexpr friend Vector operator/(Vector v, U value)
+    {
+        v /= value;
+        return v;
+    }
+
+    template <typename U> constexpr Vector &operator%=(U value)
     {
         for (auto &&x : _data)
-            x %= t;
+            x %= value;
         return *this;
     }
-    [[nodiscard]] constexpr Vector operator%(T t) const { return Vector{*this} %= t; }
+
+    template <typename U> [[nodiscard]] constexpr friend Vector operator%(Vector v, U value)
+    {
+        v %= value;
+        return v;
+    }
 
     [[nodiscard]] constexpr Vector operator-() const
     {
@@ -77,10 +103,8 @@ template <typename T, size_t N> class Vector
 
     [[nodiscard]] constexpr Vector operator+() const { return *this; }
 
-    constexpr bool operator==(const Vector &other) const { return _data == other._data; }
-    constexpr bool operator!=(const Vector &other) const { return _data != other._data; }
-
-    constexpr auto operator<=>(const Vector &other) const { return _data <=> other._data; }
+    /// Spaceship (3-way comparison) operator
+    std::strong_ordering operator<=>(const Vector &other) const = default;
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Vector &x)
@@ -229,25 +253,36 @@ template <typename T, size_t M, size_t N> class Matrix
     /// Accesses the ith row, by const reference.
     [[nodiscard]] constexpr const std::array<T, N> &operator[](size_t i) const { return _data[i]; }
 
-    constexpr Matrix &operator+=(const Matrix &other)
+    template <typename U> constexpr Matrix &operator+=(const Matrix<U, M, N> &other)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
                 _data[i][j] += other._data[i][j];
         return *this;
     }
-    [[nodiscard]] constexpr Matrix operator+(const Matrix &other) const { return Matrix{*this} += other; }
 
-    constexpr Matrix &operator-=(const Matrix &other)
+    template <typename U> [[nodiscard]] constexpr friend Matrix operator+(Matrix left, const Matrix<U, M, N> &right)
+    {
+        left += right;
+        return left;
+    }
+
+    template <typename U> constexpr Matrix &operator-=(const Matrix<U, M, N> &other)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
                 _data[i][j] -= other._data[i][j];
         return *this;
     }
-    [[nodiscard]] constexpr Matrix operator-(const Matrix &other) const { return Matrix{*this} -= other; }
 
-    template <size_t P> [[nodiscard]] constexpr Matrix<T, M, P> operator*(const Matrix<T, N, P> &other) const
+    template <typename U> [[nodiscard]] constexpr friend Matrix operator-(Matrix left, const Matrix<U, M, N> &right)
+    {
+        left -= right;
+        return left;
+    }
+
+    template <typename U, size_t P>
+    [[nodiscard]] constexpr Matrix<T, M, P> operator*(const Matrix<U, N, P> &other) const
     {
         Matrix<T, M, P> result{};
         for (size_t i = 0; i < M; ++i)
@@ -256,7 +291,7 @@ template <typename T, size_t M, size_t N> class Matrix
                     result[i, j] += _data[i][k] * other[k, j];
         return result;
     }
-    template <size_t P> constexpr Matrix<T, M, P> operator*=(const Matrix<T, N, P> &other)
+    template <typename U, size_t P> constexpr Matrix<T, M, P> &operator*=(const Matrix<U, N, P> &other)
     {
         return *this = *this * other;
     }
@@ -270,15 +305,21 @@ template <typename T, size_t M, size_t N> class Matrix
         return result;
     }
 
-    constexpr Matrix &operator*=(T t)
+    constexpr Matrix &operator*=(T value)
     {
         for (auto &&row : _data)
             for (auto &&x : row)
-                x *= t;
+                x *= value;
         return *this;
     }
-    [[nodiscard]] constexpr Matrix operator*(T t) const { return Matrix{*this} *= t; }
-    [[nodiscard]] friend constexpr Matrix operator*(T t, const Matrix &m) { return m * t; }
+
+    [[nodiscard]] friend constexpr Matrix operator*(Matrix m, T value)
+    {
+        m *= value;
+        return m;
+    }
+
+    [[nodiscard]] friend constexpr Matrix operator*(T value, Matrix m) { return m * value; }
 
     constexpr Matrix &operator/=(T t)
     {
@@ -287,7 +328,12 @@ template <typename T, size_t M, size_t N> class Matrix
                 x /= t;
         return *this;
     }
-    [[nodiscard]] constexpr Matrix operator/(T t) { return Matrix{*this} /= t; }
+
+    [[nodiscard]] friend constexpr Matrix operator/(Matrix m, T value)
+    {
+        m /= value;
+        return m;
+    }
 
     constexpr Matrix &operator%=(T t)
     {
@@ -296,7 +342,11 @@ template <typename T, size_t M, size_t N> class Matrix
                 x %= t;
         return *this;
     }
-    [[nodiscard]] constexpr Matrix operator%(T t) const { return Matrix{*this} %= t; }
+    [[nodiscard]] friend constexpr Matrix operator%(Matrix m, T value)
+    {
+        m %= value;
+        return m;
+    }
 
     [[nodiscard]] constexpr Matrix operator-() const
     {
@@ -309,12 +359,9 @@ template <typename T, size_t M, size_t N> class Matrix
 
     [[nodiscard]] constexpr Matrix operator+() const { return *this; }
 
-    constexpr bool operator==(const Matrix &other) const { return _data == other._data; }
-    constexpr bool operator!=(const Matrix &other) const { return _data != other._data; }
+    std::strong_ordering operator<=>(const Matrix &other) const = default;
 
-    constexpr std::strong_ordering operator<=>(const Matrix &other) const { return _data <=> other._data; }
-
-    [[nodiscard]] std::array<std::array<T, N>, M> data() const { return _data; }
+    [[nodiscard]] const std::array<std::array<T, N>, M> &data() const { return _data; }
 
     [[nodiscard]] constexpr Matrix<T, N, M> transpose() const
     {
@@ -423,9 +470,11 @@ template <typename T, size_t N> class SymmetricMatrix
             _data[i] += other._data[i];
         return *this;
     }
-    [[nodiscard]] constexpr SymmetricMatrix operator+(const SymmetricMatrix &other) const
+
+    [[nodiscard]] constexpr friend SymmetricMatrix operator+(SymmetricMatrix left, const SymmetricMatrix &right)
     {
-        return SymmetricMatrix{*this} += other;
+        left += right;
+        return left;
     }
 
     constexpr SymmetricMatrix &operator-=(const SymmetricMatrix &other)
@@ -434,9 +483,11 @@ template <typename T, size_t N> class SymmetricMatrix
             _data[i] += other._data[i];
         return *this;
     }
-    [[nodiscard]] constexpr SymmetricMatrix operator-(const SymmetricMatrix &other) const
+
+    [[nodiscard]] constexpr friend SymmetricMatrix operator-(SymmetricMatrix left, const SymmetricMatrix &right)
     {
-        return SymmetricMatrix{*this} -= other;
+        left -= right;
+        return left;
     }
 
     [[nodiscard]] constexpr SymmetricMatrix operator*(const SymmetricMatrix &other) const
@@ -448,7 +499,7 @@ template <typename T, size_t N> class SymmetricMatrix
                     result[i, j] += (*this)[i, k] * other[k, j];
         return result;
     }
-    constexpr SymmetricMatrix operator*=(const SymmetricMatrix &other) { return *this = *this * other; }
+    constexpr SymmetricMatrix &operator*=(const SymmetricMatrix &other) { return *this = *this * other; }
 
     [[nodiscard]] constexpr Vector<T, N> operator*(const Vector<T, N> &v) const
     {
@@ -459,51 +510,61 @@ template <typename T, size_t N> class SymmetricMatrix
         return result;
     }
 
-    constexpr SymmetricMatrix &operator*=(T t)
+    constexpr SymmetricMatrix &operator*=(T value)
     {
-        for (auto &&x : _data)
-            x *= t;
+        for (auto &&row : _data)
+            for (auto &&x : row)
+                x *= value;
         return *this;
     }
-    [[nodiscard]] constexpr SymmetricMatrix operator*(T t) const { return SymmetricMatrix{*this} *= t; }
-    [[nodiscard]] friend constexpr SymmetricMatrix operator*(T t, const SymmetricMatrix &m) { return m * t; }
+
+    [[nodiscard]] friend constexpr SymmetricMatrix operator*(SymmetricMatrix m, T value)
+    {
+        m *= value;
+        return m;
+    }
+
+    [[nodiscard]] friend constexpr SymmetricMatrix operator*(T value, SymmetricMatrix m) { return m * value; }
 
     constexpr SymmetricMatrix &operator/=(T t)
     {
-        for (auto &&x : _data)
-            x /= t;
+        for (auto &&row : _data)
+            for (auto &&x : row)
+                x /= t;
         return *this;
     }
-    [[nodiscard]] constexpr SymmetricMatrix operator/(T t) { return SymmetricMatrix{*this} /= t; }
+
+    [[nodiscard]] friend constexpr SymmetricMatrix operator/(SymmetricMatrix m, T value)
+    {
+        m /= value;
+        return m;
+    }
 
     constexpr SymmetricMatrix &operator%=(T t)
     {
-        for (auto &&x : _data)
-            x %= t;
+        for (auto &&row : _data)
+            for (auto &&x : row)
+                x %= t;
         return *this;
     }
-    [[nodiscard]] constexpr SymmetricMatrix operator%(T t) const { return SymmetricMatrix{*this} %= t; }
+    [[nodiscard]] friend constexpr SymmetricMatrix operator%(SymmetricMatrix m, T value)
+    {
+        m %= value;
+        return m;
+    }
 
     [[nodiscard]] constexpr SymmetricMatrix operator-() const
     {
         SymmetricMatrix result{};
-        for (auto &&x : result._data)
-            x = -x;
+        for (size_t i = 0; i < N; ++i)
+            for (size_t j = 0; j < N; ++j)
+                result._data[i][j] = -_data[i][j];
         return result;
     }
 
     [[nodiscard]] constexpr SymmetricMatrix operator+() const { return *this; }
 
-    constexpr bool operator==(const SymmetricMatrix &other) const { return _data == other._data; }
-    constexpr bool operator!=(const SymmetricMatrix &other) const { return _data != other._data; }
-
-    constexpr std::strong_ordering operator<=>(const SymmetricMatrix &other) const { return _data <=> other._data; }
-
-    template <typename CharT, typename Traits>
-    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const SymmetricMatrix &x)
-    {
-        return o << x._data;
-    }
+    std::strong_ordering operator<=>(const SymmetricMatrix &other) const = default;
 
     [[nodiscard]] std::array<T, size> data() const { return _data; }
 
@@ -519,6 +580,12 @@ template <typename T, size_t N> class SymmetricMatrix
     [[nodiscard]] constexpr SymmetricMatrix powm(integral2 auto exponent, integral2 auto modulus)
     {
         return ::powm(*this, std::move(exponent), std::move(modulus), identity());
+    }
+
+    template <typename CharT, typename Traits>
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const SymmetricMatrix &x)
+    {
+        return o << x._data;
     }
 
   private:

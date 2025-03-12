@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../PF.hpp"
 #include "../modular_arithmetic.hpp"
 #include "../prime.hpp"
 #include "base.hpp"
@@ -64,11 +65,11 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
 
 /// Gives the prime factorization of a number.
 template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
-constexpr Factorization<T> factor(T num, SPFSieve &&spfs = {})
+constexpr PF<T> factor(T num, SPFSieve &&spfs = {})
 {
-    Factorization<T> result;
-    result.reserve(8);
-    it::factor(std::move(num), spfs)([&](auto &&pe) { result.push_back(pe); });
+    PF<T> result;
+    result.data().reserve(8);
+    it::factor(std::move(num), spfs)([&](auto &&pe) { result.data().push_back(pe); });
     return result;
 }
 

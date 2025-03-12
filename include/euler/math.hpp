@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PF.hpp"
 #include "decls.hpp"
 #include "it/primes.hpp"
 #include "modular_arithmetic.hpp"
@@ -73,13 +74,13 @@ constexpr std::array<int64_t, 21> factorialsTo20{1,
                                                  2432902008176640000};
 
 /// Factors `n!`.
-template <integral2 T = int> constexpr std::vector<PrimePower<T>> factorFactorial(int n)
+template <integral2 T = int> constexpr PF<T> factorFactorial(int n)
 {
     return it::primes{2, n}.map([&](auto &&p) { return PrimePower<T>{p, factorialValuation(n, p)}; }).to();
 }
 
 /// Factors `binomial(n, r)`.
-template <integral2 T = int> constexpr std::vector<PrimePower<T>> factorBinomial(int n, int r)
+template <integral2 T = int> constexpr PF<T> factorBinomial(int n, int r)
 {
     return it::primes{2, n}
         .map([&](auto &&p) {
@@ -91,7 +92,8 @@ template <integral2 T = int> constexpr std::vector<PrimePower<T>> factorBinomial
 
 /// Combines two prime factorizations using `op` on the exponents.
 template <std::ranges::range Range, std::invocable<int, int> BinaryOp>
-constexpr std::remove_cvref_t<Range> combinePF(const Range &r1, const std::ranges::range auto &r2, BinaryOp op)
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range>
+combinePF(const Range &r1, const std::ranges::range auto &r2, BinaryOp op)
 {
     std::remove_cvref_t<Range> result;
     auto it1 = r1.begin();
@@ -126,30 +128,31 @@ constexpr std::remove_cvref_t<Range> combinePF(const Range &r1, const std::range
 }
 
 template <std::ranges::range Range1, std::ranges::range Range2>
-constexpr std::remove_cvref_t<Range1> mulPF(Range1 &&r1, Range2 &&r2)
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> mulPF(Range1 &&r1, Range2 &&r2)
 {
     return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), std::plus());
 }
 
 template <std::ranges::range Range1, std::ranges::range Range2>
-constexpr std::remove_cvref_t<Range1> lcmPF(Range1 &&r1, Range2 &&r2)
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> lcmPF(Range1 &&r1, Range2 &&r2)
 {
     return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), maximum());
 }
 
 template <std::ranges::range Range1, std::ranges::range Range2>
-constexpr std::remove_cvref_t<Range1> gcdPF(Range1 &&r1, Range2 &&r2)
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> gcdPF(Range1 &&r1, Range2 &&r2)
 {
     return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), minimum());
 }
 
 template <std::ranges::range Range1, std::ranges::range Range2>
-constexpr std::remove_cvref_t<Range1> divPF(Range1 &&r1, Range2 &&r2)
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> divPF(Range1 &&r1, Range2 &&r2)
 {
     return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), std::minus());
 }
 
-template <std::ranges::range Range> constexpr std::remove_cvref_t<Range> powPF(Range &&r, const int n)
+template <std::ranges::range Range>
+[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range> powPF(Range &&r, const int n)
 {
     auto f2 = std::forward<Range>(r);
     for (auto &&x : f2)
@@ -158,13 +161,15 @@ template <std::ranges::range Range> constexpr std::remove_cvref_t<Range> powPF(R
 }
 
 /// Returns the product of the prime factorization.
-template <std::ranges::range Range> constexpr auto evalPF(Range &&r)
+template <std::ranges::range Range> [[deprecated("Use PF instead")]] constexpr auto evalPF(Range &&r)
 {
     return product(std::forward<Range>(r), [](auto &&t) { return pow(t.first, t.second); });
 }
 
-/// Returns a sieve containing smallest prime factors up to `limit`.
-template <std::integral T> constexpr std::vector<T> spfSieve(T limit)
+/// Returns a sieve containing smallest prime factors up to `limit`. Deprecated, use SPF.
+template <std::integral T>
+[[deprecated("Use SPF instead")]]
+constexpr std::vector<T> spfSieve(T limit)
 {
     std::vector<T> sieve(limit + 1);
     for (T i = 2; i <= limit; ++i)
@@ -187,7 +192,7 @@ template <std::integral T> constexpr std::vector<T> spfSieve(T limit)
 
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number (>2), the SPF is 2.
-template <std::integral T> struct SPF
+template <std::integral T = int64_t> struct SPF
 {
     // Only need to store integer half the size of the input!
     using H = std::make_unsigned_t<half_integer_t<T>>;
@@ -197,7 +202,7 @@ template <std::integral T> struct SPF
     std::vector<H> smallPrimes; // Odd primes up to sqrt(n).
 
     SPF() = default;
-    SPF(T n) : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(H(3), H(isqrt(n))))
+    explicit SPF(T n) : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(H(3), H(isqrt(n))))
     {
         T const m = (n + 1) / 2; // covers numbers 1,3,5,... up to n
         // We ignore index 0 (number 1) and process indices [1, m).
@@ -263,35 +268,44 @@ template <std::integral T> struct SPF
 };
 
 /// Sieve for divisor counts. This is faster than divisorCountSieve2 for limits over 2 million.
-template <std::integral T> constexpr std::vector<T> divisorCountSieve(T limit)
+template <typename T = int64_t> constexpr std::vector<T> divisorCountSieve(size_t limit)
 {
-    std::vector<T> sieve(limit + 1);
-    for (T i = 1; i <= limit; ++i)
-        sieve[i] = 1;
-    for (T i = 2; i <= limit; ++i)
-        if (sieve[i] == 1)
-            for (T j = i; j <= limit; j += i)
-                sieve[j] *= valuation(j, i) + 1;
-    return sieve;
-}
-
-// Sieve for divisor counts. This is faster than divisorCountSieve for limits up to 2 million.
-template <std::integral T> constexpr std::vector<T> divisorCountSieve2(T limit)
-{
-    std::vector<T> sieve(limit + 1);
-    for (T i = 1; i <= limit; ++i)
-        for (T j = i; j <= limit; j += i)
-            ++sieve[j];
+    std::vector<T> sieve(limit + 1, 1);
+    sieve[0] = 0;
+    SPF const spf{limit};
+    std::for_each(std::execution::par, counting_iterator(2UZ), counting_iterator(limit + 1), [&](size_t i) {
+        size_t n = i;
+        while (n != 1)
+        {
+            auto const p = spf[n];
+            sieve[i] *= 1 + valuationDivide<true>(n, p);
+        }
+    });
     return sieve;
 }
 
 /// Sieve for the σ₁ function, the divisor sum function.
-template <std::integral T> constexpr std::vector<T> divisorSumSieve(T limit)
+template <typename T = int64_t> constexpr std::vector<T> divisorSumSieve(size_t limit)
 {
-    std::vector<T> sieve(limit + 1);
-    for (T i = 1; i <= limit; ++i)
-        for (T j = i; j <= limit; j += i)
-            sieve[j] += i;
+    std::vector<T> sieve(limit + 1, 1);
+    sieve[0] = 0;
+    SPF const spf{limit};
+    std::for_each(std::execution::par, counting_iterator(2UZ), counting_iterator(limit + 1), [&](size_t i) {
+        size_t n = i;
+        while (n != 1)
+        {
+            auto const p = spf[n];
+            n /= p;
+            size_t q = p, S = 1 + p;
+            while (n % p == 0)
+            {
+                q *= p;
+                n /= p;
+                S += q;
+            }
+            sieve[i] *= S;
+        }
+    });
     return sieve;
 }
 
@@ -354,6 +368,22 @@ template <typename SPFSieve> constexpr std::vector<int8_t> liouvilleSieve(size_t
 template <std::integral T> constexpr std::vector<int8_t> liouvilleSieve(T limit)
 {
     return liouvilleSieve(limit, SPF{limit});
+}
+
+/// Generates a sieve of the Ω function, given a SPF sieve.
+template <typename SPFSieve> constexpr std::vector<uint8_t> bigOmegaSieve(size_t limit, const SPFSieve &spfs)
+{
+    limit = std::min(limit, spfs.size() - 1);
+    std::vector<uint8_t> Ω(limit + 1);
+    for (size_t i = 2; i <= limit; ++i)
+        Ω[i] = Ω[i / spfs[i]] + 1;
+    return Ω;
+}
+
+/// Sieve for the Ω function.
+template <std::integral T> constexpr std::vector<uint8_t> bigOmegaSieve(T limit)
+{
+    return bigOmegaSieve(limit, SPF{limit});
 }
 
 /// Sieve for the totient function.
@@ -583,9 +613,9 @@ template <execution_policy Exec, std::integral T, std::invocable<T> Fun1, std::i
           std::invocable<T> Fun2, std::invocable<T> SummatoryFun2>
 auto sumConvolution(Exec &&exec, T n, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
 {
-    T sqrtn = isqrt(n);
-    return sum(std::forward<Exec>(exec), T(1), sqrtn, [&](auto i) { return g(i) * H(n / i); }) +
-           sum(std::forward<Exec>(exec), T(1), sqrtn, [&](auto i) { return h(i) * G(n / i); }) - G(sqrtn) * H(sqrtn);
+    T const s = isqrt(n);
+    return sum(std::forward<Exec>(exec), T(1), s, [&](auto &&k) { return g(k) * H(n / k) + h(k) * G(n / k); }) -
+           G(s) * H(s);
 }
 
 /// Computes `∑ (ab ≤ n), g(a) * h(b)`.
@@ -760,5 +790,28 @@ template <typename T> std::vector<T> bernoulliPlus(size_t k)
             B[m] = A[0];
     }
     return B;
+}
+
+/// Sums `1^2 + 2^2 + ... + limit^2`.
+template <typename T = int64_t> T sumSquares(size_t limit)
+{
+    assert(limit >= 0);
+    switch (limit % 6)
+    {
+    case 0:
+        return T(limit / 6) * (limit + 1) * T(2 * limit + 1);
+    case 1:
+        return T(limit) * T((limit + 1) / 2) * T((2 * limit + 1) / 3);
+    case 2:
+        return T(limit / 2) * T((limit + 1) / 3) * T(2 * limit + 1);
+    case 3:
+        return T(limit / 3) * T((limit + 1) / 2) * T(2 * limit + 1);
+    case 4:
+        return T(limit / 2) * T(limit + 1) * T((2 * limit + 1) / 3);
+    case 5:
+        return T(limit) * T((limit + 1) / 6) * T(2 * limit + 1);
+    default:
+        std::unreachable();
+    }
 }
 } // namespace euler

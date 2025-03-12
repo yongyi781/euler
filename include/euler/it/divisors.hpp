@@ -94,11 +94,11 @@ template <std::ranges::range Range> constexpr auto divisors(Range &&factorizatio
     return result;
 }
 
-template <integral2 T, std::ranges::range Range = std::vector<int>>
-constexpr std::vector<T> divisors(T num, Range &&spfs = {})
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
+constexpr std::vector<T> divisors(T num, SPFSieve &&spfs = {})
 {
     if (num == 1)
         return {1};
-    return divisors(factor(std::move(num), std::forward<Range>(spfs)));
+    return divisors(factor(std::move(num), std::forward<SPFSieve>(spfs)));
 }
 } // namespace euler
