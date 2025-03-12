@@ -134,20 +134,44 @@ struct it_base
         return result;
     }
 
+    /// Appends this enumerable into a container. The enumerable must be finite, or else this may run forever.
+    template <typename Cont, typename Self>
+        requires(!std::ranges::view<Cont>)
+    constexpr void appendTo(this const Self &self, Cont &out)
+    {
+        self([&](auto &&x) -> void {
+            if constexpr (requires { out.emplace_back(std::forward<decltype(x)>(x)); })
+                out.emplace_back(std::forward<decltype(x)>(x));
+            else if constexpr (requires { out.push_back(std::forward<decltype(x)>(x)); })
+                out.push_back(std::forward<decltype(x)>(x));
+            else
+                out.insert(std::forward<decltype(x)>(x));
+        });
+    }
+
+    /// Appends this enumerable into a container. The enumerable must be finite, or else this may run forever.
+    template <typename Cont, typename Self>
+        requires(!std::ranges::view<Cont>)
+    constexpr void appendTo(this const Self &self, size_t n, Cont &out)
+    {
+        size_t i = 0;
+        self([&](auto &&x) -> bool {
+            if constexpr (requires { out.emplace_back(std::forward<decltype(x)>(x)); })
+                out.emplace_back(std::forward<decltype(x)>(x));
+            else if constexpr (requires { out.push_back(std::forward<decltype(x)>(x)); })
+                out.push_back(std::forward<decltype(x)>(x));
+            else
+                out.insert(std::forward<decltype(x)>(x));
+            return ++i < n;
+        });
+    }
     /// Collects this enumerable into a container. The enumerable must be finite.
     template <typename Cont, typename Self>
         requires(!std::ranges::view<Cont>)
     [[nodiscard]] constexpr Cont to(this const Self &self)
     {
         Cont result;
-        self([&](auto &&x) -> void {
-            if constexpr (requires { result.emplace_back(std::forward<decltype(x)>(x)); })
-                result.emplace_back(std::forward<decltype(x)>(x));
-            else if constexpr (requires { result.push_back(std::forward<decltype(x)>(x)); })
-                result.push_back(std::forward<decltype(x)>(x));
-            else
-                result.insert(std::forward<decltype(x)>(x));
-        });
+        self.appendTo(result);
         return result;
     }
 
@@ -165,16 +189,7 @@ struct it_base
     {
         Cont result;
         result.reserve(n);
-        size_t i = 0;
-        self([&](auto &&x) -> bool {
-            if constexpr (requires { result.emplace_back(std::forward<decltype(x)>(x)); })
-                result.emplace_back(std::forward<decltype(x)>(x));
-            else if constexpr (requires { result.push_back(std::forward<decltype(x)>(x)); })
-                result.push_back(std::forward<decltype(x)>(x));
-            else
-                result.insert(std::forward<decltype(x)>(x));
-            return ++i < n;
-        });
+        self.appendTo(result, n);
         return result;
     }
 

@@ -69,7 +69,7 @@ constexpr PF<T> factor(T num, SPFSieve &&spfs = {})
 {
     PF<T> result;
     result.data().reserve(8);
-    it::factor(std::move(num), spfs)([&](auto &&pe) { result.data().push_back(pe); });
+    it::factor(std::move(num), spfs).appendTo(result.data());
     return result;
 }
 

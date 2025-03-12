@@ -149,11 +149,13 @@ template <typename T = int64_t> class PF
     {
         if (pf.empty())
             return o << '1';
-        for (auto i = pf._data.begin(); i != pf._data.end(); ++i)
+        for (auto i = pf.begin(); i != pf.end(); ++i)
         {
-            if (i != pf._data.begin())
-                o << ' ';
-            o << i->first << "^" << i->second;
+            if (i != pf.begin())
+                o << " * ";
+            o << i->first;
+            if (i->second != 1)
+                o << '^' << i->second;
         }
         return o;
     }
