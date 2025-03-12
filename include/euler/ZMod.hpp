@@ -118,7 +118,7 @@ class ZMod
     }
 
     /// Returns the modular exponentiation of this number.
-    constexpr ZMod pow(integral2 auto exponent) const
+    template <integral2 T> constexpr ZMod pow(T exponent) const
     {
         if constexpr (isPrimeModulus)
             exponent = mod(exponent, M - 1);

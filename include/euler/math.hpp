@@ -327,9 +327,9 @@ template <typename SPFSieve> constexpr std::vector<int8_t> mobiusSieve(size_t li
 template <std::integral T> constexpr std::vector<int8_t> mobiusSieve(T limit) { return mobiusSieve(limit, SPF{limit}); }
 
 /// Generates a sieve of squarefree numbers up to a given limit.
-constexpr std::vector<bool> squarefreeSieve(size_t limit)
+template <typename T = bool> constexpr std::vector<T> squarefreeSieve(size_t limit)
 {
-    std::vector sieve(limit + 1, true);
+    std::vector<T> sieve(limit + 1, true);
     sieve[0] = false;
     size_t const s = isqrt(limit);
     for (size_t i = 2; i <= s; ++i)
@@ -337,6 +337,23 @@ constexpr std::vector<bool> squarefreeSieve(size_t limit)
             for (size_t j = i * i; j <= limit; j += i * i)
                 sieve[j] = false;
     return sieve;
+}
+
+/// Generates a sieve of the Liouville function, given a SPF sieve.
+template <typename SPFSieve> constexpr std::vector<int8_t> liouvilleSieve(size_t limit, const SPFSieve &spfs)
+{
+    limit = std::min(limit, spfs.size() - 1);
+    std::vector<int8_t> λ(limit + 1);
+    λ[1] = 1;
+    for (size_t i = 2; i <= limit; ++i)
+        λ[i] = -λ[i / spfs[i]];
+    return λ;
+}
+
+/// Sieve for the Liouville function.
+template <std::integral T> constexpr std::vector<int8_t> liouvilleSieve(T limit)
+{
+    return liouvilleSieve(limit, SPF{limit});
 }
 
 /// Sieve for the totient function.
