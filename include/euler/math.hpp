@@ -398,7 +398,7 @@ template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto
 
     if (m < 0 || n < 0)
         return std::pair<T, T>{-1, -1};
-    auto &&[g, x, _] = extendedEuclidean(m, n);
+    auto &&[g, x, _] = xgcd(m, n);
     T diff = b - a;
     if (diff % g != 0)
         return std::pair<T, T>{-1, -1};

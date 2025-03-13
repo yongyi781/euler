@@ -6,13 +6,11 @@ inline namespace euler
 {
 template <typename T> struct euclidean_result_t
 {
-    T gcd;
-    T x;
-    T y;
+    T gcd, x, y;
 };
 
 /// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
-template <typename T> constexpr euclidean_result_t<T> extendedEuclidean(T m, T n)
+template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
 {
     if (m < 1 || n < 1)
         throw std::domain_error("extended_euclidean: arguments must be strictly positive");
@@ -76,7 +74,7 @@ template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modIn
     Tp aSmall = Tp(mod(a, modulus));
     if (a == 0)
         return 0;
-    euclidean_result_t<Tp> u = extendedEuclidean(aSmall, Tp(modulus));
+    euclidean_result_t<Tp> u = xgcd(aSmall, Tp(modulus));
     if (u.gcd > 1)
         return 0;
     // x might not be in the range 0 < x < m, let's fix that:
