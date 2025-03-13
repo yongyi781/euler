@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../PF.hpp"
 #include "tree.hpp"
 
 inline namespace euler
@@ -44,18 +45,18 @@ smooth_numbers(Range &&, T) -> smooth_numbers<std::views::all_t<Range>, T>;
 template <std::ranges::view V, integral2 T> class smooth_numbers_factored : public it_base
 {
   public:
-    using value_type = std::pair<T, Factorization<T>>;
-    using value_reference_type = std::pair<T, const Factorization<T> &>;
+    using value_type = std::pair<T, PF<T>>;
+    using value_reference_type = std::pair<T, const PF<T> &>;
 
     smooth_numbers_factored() = default;
     constexpr smooth_numbers_factored(V primes, T limit) : _primes(std::move(primes)), _limit(limit) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        Factorization<T> fac{};
-        fac.reserve(4);
+        PF<T> fac{};
+        fac.data().reserve(4);
         return it::tree_preorder(
-            std::tuple<T, Factorization<T> &, It>{T(1), fac, std::ranges::begin(_primes)},
+            std::tuple<T, PF<T> &, It>{T(1), fac, std::ranges::begin(_primes)},
             [&](auto &&x, auto f) {
                 auto &&[n, fac, i] = x;
                 bool exists = !fac.empty();
@@ -64,7 +65,7 @@ template <std::ranges::view V, integral2 T> class smooth_numbers_factored : publ
                     if (exists)
                         ++fac.back().second;
                     else
-                        fac.emplace_back(*j, 1);
+                        fac.data().emplace_back(*j, 1);
                     if (!f({n * *j, fac, j}))
                         return result_break;
                     if (exists)
@@ -73,7 +74,7 @@ template <std::ranges::view V, integral2 T> class smooth_numbers_factored : publ
                         exists = false;
                     }
                     else
-                        fac.pop_back();
+                        fac.data().pop_back();
                 }
                 return result_continue;
             },

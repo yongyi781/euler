@@ -70,82 +70,6 @@ template <integral2 T = int> constexpr PF<T> factorBinomial(int n, int r)
         .to();
 }
 
-/// Combines two prime factorizations using `op` on the exponents.
-template <std::ranges::range Range, std::invocable<int, int> BinaryOp>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range>
-combinePF(const Range &r1, const std::ranges::range auto &r2, BinaryOp op)
-{
-    std::remove_cvref_t<Range> result;
-    auto it1 = r1.begin();
-    auto it2 = r2.begin();
-    while (it1 != r1.end() && it2 != r2.end())
-    {
-        auto [p1, e1] = *it1;
-        auto [p2, e2] = *it2;
-        if (p1 == p2)
-        {
-            auto e = op(e1, e2);
-            if (e != 0)
-                result.emplace_back(p1, e);
-            ++it1;
-            ++it2;
-        }
-        else if (p1 < p2)
-        {
-            result.emplace_back(p1, op(e1, 0));
-            ++it1;
-        }
-        else
-        {
-            result.emplace_back(p2, op(0, e2));
-            ++it2;
-        }
-    }
-    auto it3 = std::transform(it2, r2.end(), std::back_inserter(result),
-                              [&](auto &&p) { return std::pair{p.first, op(0, p.second)}; });
-    std::copy(it1, r1.end(), it3);
-    return result;
-}
-
-template <std::ranges::range Range1, std::ranges::range Range2>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> mulPF(Range1 &&r1, Range2 &&r2)
-{
-    return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), std::plus());
-}
-
-template <std::ranges::range Range1, std::ranges::range Range2>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> lcmPF(Range1 &&r1, Range2 &&r2)
-{
-    return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), maximum());
-}
-
-template <std::ranges::range Range1, std::ranges::range Range2>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> gcdPF(Range1 &&r1, Range2 &&r2)
-{
-    return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), minimum());
-}
-
-template <std::ranges::range Range1, std::ranges::range Range2>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range1> divPF(Range1 &&r1, Range2 &&r2)
-{
-    return combinePF(std::forward<Range1>(r1), std::forward<Range2>(r2), std::minus());
-}
-
-template <std::ranges::range Range>
-[[deprecated("Use PF instead")]] constexpr std::remove_cvref_t<Range> powPF(Range &&r, const int n)
-{
-    auto f2 = std::forward<Range>(r);
-    for (auto &&x : f2)
-        x.second *= n;
-    return f2;
-}
-
-/// Returns the product of the prime factorization.
-template <std::ranges::range Range> [[deprecated("Use PF instead")]] constexpr auto evalPF(Range &&r)
-{
-    return product(std::forward<Range>(r), [](auto &&t) { return pow(t.first, t.second); });
-}
-
 /// Sieve for the totient function.
 template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
 {
@@ -472,26 +396,27 @@ constexpr auto countSquarefree(T n, Range &&primes)
 /// Calculates the nth polygonal number of a given type.
 template <integral2 T> constexpr T polygonalNumber(int p, T n) { return (n * n * (p - 2) - n * (p - 4)) / 2; }
 
-namespace detail
+/// Returns the sum of a function `f` over the integers coprime to the given prime list in the range [1, limit]. The
+/// function `f` is passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
+template <typename SummatoryFun, typename It, typename T>
+constexpr auto sumCoprime(SummatoryFun F, It primeBegin, It primeEnd, T limit)
+    -> std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>
 {
-template <integral2 Tk, integral2 T, typename SPFSieve>
-T countCoprimeHelper(Tk k, T limit, T d, T currentPrime, const std::vector<int8_t> &mobius, SPFSieve &&spfs)
-{
-    if (k <= 1)
-        return mobius[d] * (limit / d);
-    T const p = spfs[k];
-    T const n1 = countCoprimeHelper(k / p, limit, d, p, mobius, spfs);
-    if (p == currentPrime)
-        return n1;
-    return n1 + countCoprimeHelper(k / p, limit, d * p, p, mobius, spfs);
+    if (primeBegin == primeEnd)
+        return F(limit);
+    if (primeBegin + 1 == primeEnd)
+        return F(limit) - F(limit / *(primeEnd - 1));
+    auto const p = *(primeEnd - 1);
+    auto res = sumCoprime(F, primeBegin, std::prev(primeEnd), limit);
+    if (limit >= p)
+        res -= sumCoprime(std::move(F), primeBegin, std::prev(primeEnd), limit / p);
+    return res;
 }
-} // namespace detail
 
-/// Returns the number of integers coprime to k in the range [1, limit].
-template <integral2 Tk, integral2 T, typename SPFSieve>
-T countCoprime(Tk k, T limit, const std::vector<int8_t> &mobius, SPFSieve &&spfs)
+/// Returns the number of integers coprime to the given prime list in the range [1, limit].
+template <typename It, typename T> constexpr T countCoprime(It primeBegin, It primeEnd, T limit)
 {
-    return detail::countCoprimeHelper(k, limit, T(1), T(1), mobius, spfs);
+    return sumCoprime(std::identity{}, primeBegin, primeEnd, limit);
 }
 
 /// Generate the B + 1 numbers (B(1) = 1/2) up to `k`.

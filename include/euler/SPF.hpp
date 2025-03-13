@@ -1,8 +1,11 @@
 #pragma once
 
 #include "it/base.hpp"
-#include "prime.hpp"
+#include "it/factor.hpp"
+#include "math.hpp"
 
+inline namespace euler
+{
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.
 template <std::integral T = int64_t> class SPF
@@ -63,6 +66,16 @@ template <std::integral T = int64_t> class SPF
 
     /// Returns the effective size of this SPF sieve, which is 1 more than the max valid input to this sieve.
     [[nodiscard]] size_t size() const noexcept { return spfOdd.size() * 2 + 1; }
+
+    /// Accessor: returns the smallest prime factor for any x (1 <= x <= n).
+    [[nodiscard]] T operator[](T n) const noexcept
+    {
+        if (n < 2)
+            return 0;
+        if (n % 2 == 0)
+            return 2;
+        return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
+    }
 
     /// Returns whether the given number is prime.
     [[nodiscard]] bool isPrime(T n) const noexcept { return (*this)[n] == n; }
@@ -133,14 +146,22 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Accessor: returns the smallest prime factor for any x (1 <= x <= n).
-    [[nodiscard]] T operator[](T n) const noexcept
+    /// Returns the sum of a function `f` over the integers coprime to `k` in the range [1, limit]. The function `f` is
+    /// passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
+    template <typename SummatoryFun, typename Tk>
+    [[nodiscard]] auto sumCoprime(SummatoryFun F, Tk k, T limit) const
+        -> std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>
     {
-        if (n < 2)
-            return 0;
-        if (n % 2 == 0)
-            return 2;
-        return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
+        thread_local std::vector<Tk> primes;
+        primes.clear();
+        it::factor(k, *this).map([&](auto &&t) { return t.first; }).appendTo(primes);
+        return euler::sumCoprime(std::move(F), primes.begin(), primes.end(), limit);
+    }
+
+    /// Returns the number of integers coprime to the given prime list in the range [1, limit].
+    template <typename Tk> constexpr T countCoprime(Tk k, T limit) const
+    {
+        return sumCoprime(std::identity{}, k, limit);
     }
 
   private:
@@ -296,3 +317,4 @@ template <std::integral T> constexpr std::vector<uint8_t> bigOmegaSieve(T limit)
 {
     return bigOmegaSieve(limit, SPF{limit});
 }
+} // namespace euler

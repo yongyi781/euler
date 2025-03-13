@@ -1,6 +1,7 @@
 #pragma once
 
-#include "euler/prime.hpp"
+#include "../PF.hpp"
+#include "../prime.hpp"
 #include "tree.hpp"
 
 inline namespace euler
@@ -12,18 +13,18 @@ namespace it
 class powerful_numbers_factored : public it_base
 {
   public:
-    using value_type = std::pair<int64_t, Factorization<int64_t>>;
-    using value_reference_type = std::pair<int64_t, const Factorization<int64_t> &>;
+    using value_type = std::pair<int64_t, PF<int64_t>>;
+    using value_reference_type = std::pair<int64_t, const PF<int64_t> &>;
 
     powerful_numbers_factored() = default;
     constexpr powerful_numbers_factored(int64_t limit) : _limit(limit), _primes(primeRange(isqrt(limit))) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        Factorization<int64_t> fac{};
-        fac.reserve(4);
+        PF<int64_t> fac{};
+        fac.data().reserve(4);
         return it::tree_preorder(
-            std::tuple<int64_t, Factorization<int64_t> &, It>{1_i64, fac, _primes.begin()},
+            std::tuple<int64_t, PF<int64_t> &, It>{1_i64, fac, _primes.begin()},
             [&](auto &&x, auto f) {
                 auto &&[n, fac, i] = x;
                 bool currPrimeInFac = !fac.empty();
@@ -35,7 +36,7 @@ class powerful_numbers_factored : public it_base
                     if (currPrimeInFac)
                         ++fac.back().second;
                     else
-                        fac.emplace_back(*j, 2);
+                        fac.data().emplace_back(*j, 2);
                     if (!f({n * p, fac, j}))
                         return result_break;
                     if (currPrimeInFac)
@@ -44,7 +45,7 @@ class powerful_numbers_factored : public it_base
                         currPrimeInFac = false;
                     }
                     else
-                        fac.pop_back();
+                        fac.data().pop_back();
                 }
                 return result_continue;
             },

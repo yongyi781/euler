@@ -30,9 +30,8 @@ using boost::multiprecision::cpp_int;
 using boost::multiprecision::mpf_float;
 using boost::multiprecision::mpq_rational;
 using boost::multiprecision::mpz_int;
-template <typename T> using PrimePower = std::pair<T, int>;
 
-template <typename T> using Factorization = std::vector<PrimePower<T>>;
+template <typename T> using PrimePower = std::pair<T, int>;
 
 template <typename T> struct double_integer
 {

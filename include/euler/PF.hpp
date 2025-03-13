@@ -2,7 +2,8 @@
 
 #include "algorithm.hpp"
 
-/// Prime factorization class.
+inline namespace euler
+{ /// Prime factorization class.
 template <typename T = int64_t> class PF
 {
   public:
@@ -216,3 +217,4 @@ template <typename T = int64_t> class PF
   private:
     container_type _data;
 };
+} // namespace euler

@@ -162,16 +162,17 @@ template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int rem
 
     /// Specialization for GMP integers.
     if constexpr (std::same_as<Tn, mpz_int> && std::same_as<Tp, mpz_int>)
-    {
         return mpz_remove((mpz_ptr)n.backend().data(), (mpz_srcptr)n.backend().data(), (mpz_srcptr)p.backend().data());
-    }
-    else if (std::integral<Tn> && p == 2)
+    if constexpr (std::integral<Tn>)
     {
-        int e = std::countr_zero(std::make_unsigned_t<Tn>(n));
-        n >>= e;
-        return e;
+        if (p == 2)
+        {
+            int e = std::countr_zero(std::make_unsigned_t<Tn>(n));
+            n >>= e;
+            return e;
+        }
     }
-    else if constexpr (KnownDivides)
+    if constexpr (KnownDivides)
     {
         int result = 1;
         n /= p;

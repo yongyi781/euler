@@ -77,9 +77,9 @@ template <std::ranges::range Range> it::divisors_t<std::views::all_t<Range>> div
     return {std::forward<Range>(r)};
 }
 
-template <integral2 T> it::divisors_t<std::views::all_t<Factorization<T>>> divisors(T num)
+template <integral2 T> it::divisors_t<std::views::all_t<PF<T>>> divisors(T num)
 {
-    return {factor(std::move(num)).to()};
+    return {PF{factor(std::move(num)).to()}};
 }
 } // namespace it
 
