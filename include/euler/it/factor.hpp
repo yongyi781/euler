@@ -35,7 +35,7 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
         {
             T p = !_spfs.get().empty() && n < (int64_t)_spfs.get().size() ? _spfs.get()[(size_t)n]
                                                                           : smallestPrimeFactor(n, start);
-            if (!callbackResult(f, PrimePower<T>{p, valuationDivide<true>(n, p)}))
+            if (!callbackResult(f, PrimePower<T>{p, removeFactors<true>(n, p)}))
                 return result_break;
             if (p == 2)
                 start = 3;

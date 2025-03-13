@@ -545,7 +545,7 @@ constexpr bool enumFactor(const T &num, std::invocable<PrimePower<T>> auto callb
     while (n > 1)
     {
         T p = !spfs.empty() && n < (int64_t)spfs.size() ? spfs[(size_t)n] : smallestPrimeFactor(n, start);
-        if (!invokeTrueIfVoid(callback, PrimePower<T>{p, valuationDivide(n, p)}))
+        if (!invokeTrueIfVoid(callback, PrimePower<T>{p, removeFactors<true>(n, p)}))
             return false;
         if (p == 2)
             start = 3;

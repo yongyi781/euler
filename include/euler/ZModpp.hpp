@@ -22,7 +22,7 @@ class ZModpp : public ZMod<pow(P, E)>
         auto a = this->value();
         if (a == 0)
             return 0;
-        auto v = valuationDivide(a, P);
+        auto v = removeFactors(a, P);
         if (v % 2 != 0)
             return std::nullopt;
         auto x = ZMod<P>(a).sqrt();

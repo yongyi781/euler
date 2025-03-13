@@ -246,8 +246,8 @@ inline void testMultiplicativeOrder()
     SPF spfs{N};
     auto totients = totientSieve(N);
     auto result = sum(execution::par, 3, N, [&](int64_t i) {
-        valuationDivide(i, 2);
-        valuationDivide(i, 5);
+        removeFactors(i, 2);
+        removeFactors(i, 5);
         return i == 1 ? (int64_t)0 : multiplicativeOrder((int64_t)10, i, totients[i], spfs);
     });
     if (result == 55535191115)

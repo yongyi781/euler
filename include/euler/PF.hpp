@@ -86,14 +86,14 @@ template <typename T = int64_t> class PF
         return *this;
     }
 
-    constexpr PF &powInPlace(int n)
+    constexpr PF &powInPlace(int n) noexcept
     {
         for (auto &[p, e] : _data)
             e *= n;
         return *this;
     }
 
-    [[nodiscard]] constexpr PF pow(this PF self, int n)
+    [[nodiscard]] constexpr PF pow(this PF self, int n) noexcept
     {
         self.powInPlace(n);
         return self;

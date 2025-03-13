@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SPF.hpp"
 #include "decls.hpp"
 #include "euler/math.hpp"
 #include "it/base.hpp"
@@ -677,7 +678,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alph
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
-    Dirichlet S{n};
+    Dirichlet<T> S{n};
     std::copy(precomputed.begin(), precomputed.begin() + S.up().size(), S.up().begin());
     uint32_t const u = n / precomputed.size();
     for (uint32_t i = u + 1; i < S.down().size(); ++i)

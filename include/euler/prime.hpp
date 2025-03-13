@@ -155,7 +155,7 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
 /// Removes all factors of p from a number, and returns the number of factors removed. The `knownDivides` template
 /// parameter is for performance optimization, skipping the first modulus check if it is known `p` divides `n` in
 /// advance.
-template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int valuationDivide(Tn &n, const Tp &p)
+template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int removeFactors(Tn &n, const Tp &p)
 {
     assert(n != 0);
     assert(p >= 2);
@@ -164,6 +164,12 @@ template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int val
     if constexpr (std::same_as<Tn, mpz_int> && std::same_as<Tp, mpz_int>)
     {
         return mpz_remove((mpz_ptr)n.backend().data(), (mpz_srcptr)n.backend().data(), (mpz_srcptr)p.backend().data());
+    }
+    else if (std::integral<Tn> && p == 2)
+    {
+        int e = std::countr_zero(std::make_unsigned_t<Tn>(n));
+        n >>= e;
+        return e;
     }
     else if constexpr (KnownDivides)
     {
@@ -191,7 +197,7 @@ template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int val
 /// Calculates the valuation of n with respect to a prime p.
 template <typename Tn, typename Tp> constexpr int valuation(Tn n, const Tp &p) // Pass by value intentional
 {
-    return valuationDivide(n, p);
+    return removeFactors(n, p);
 }
 
 /// @brief Calculates the p-adic valuation of n!.
@@ -323,7 +329,7 @@ void sieveSquarePlusOne(Exec &&exec, const T &limit, Fun f)
             y /= p;
             ++e;
         }
-        e += valuationDivide(y, p);
+        e += removeFactors(y, p);
         if (e > 0)
             f(x, p, e);
     };
