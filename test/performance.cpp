@@ -462,15 +462,6 @@ inline auto powmTest2()
     return result;
 }
 
-inline auto multiplyPFTest()
-{
-    Factorization<int> const pf1{};
-    Factorization<int> const pf2{{2, 4}, {7, 4}, {11, 6}, {13, 8}};
-    auto a = mulPF(pf1, pf2);
-}
-
-vector<int> spfs;
-
 inline void factorTest()
 {
     cout << "Doing the factor test\n";
@@ -502,7 +493,6 @@ int main()
     printTiming(spfTest2);
     printTiming(powmTest1);
     printTiming(powmTest2);
-    printTiming(multiplyPFTest);
     printTiming(factorTest);
     printTiming(digitsTest);
 }

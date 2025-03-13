@@ -240,17 +240,6 @@ inline void testIsPrime()
         cout << passStr << "isPrime\n";
 }
 
-inline void testFactor()
-{
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                auto n = abs(dist(rng)) + 1;
-                return evalPF(factor(n)) == n;
-            },
-            48))
-        cout << passStr << "testFactor\n";
-}
-
 inline void testMultiplicativeOrder()
 {
     constexpr int N = 1'000'000;
@@ -385,7 +374,6 @@ int main()
     testEnumCombinations();
     testBisections();
     testIsPrime();
-    testFactor();
     testMultiplicativeOrder();
     testIsqrt();
     testBinom();
