@@ -99,10 +99,63 @@ template <typename T = int64_t> class PF
         return self;
     }
 
-    /// Evaluates the prime factorization to a number.
-    template <typename U = T> constexpr U value() const
+    /// Checks if `this` divides `other`.
+    [[nodiscard]] constexpr bool divides(const PF &other) const
     {
-        return product(_data, [](auto &&t) { return euler::pow(U(t.first), t.second); });
+        auto it1 = begin();
+        auto it2 = other.begin();
+        while (it1 != end() && it2 != other.end())
+        {
+            if (it1->first == it2->first)
+            {
+                if (it1->second > it2->second)
+                    return false;
+                ++it1;
+                ++it2;
+            }
+            else if (it1->first > it2->first)
+                ++it2;
+            else
+                return false;
+        }
+        return it1 == end();
+    }
+
+    /// Evaluates the prime factorization to a number.
+    template <typename Z = T> constexpr Z value() const
+    {
+        return product(_data, [](auto &&pe) { return euler::pow(Z(pe.first), pe.second); });
+    }
+
+    /// Counts the number of divisors from the factorization.
+    template <typename Z = T> [[nodiscard]] constexpr Z countDivisors() const
+    {
+        return product(_data, [](auto &&pe) { return Z(pe.second + 1); });
+    }
+
+    /// Sums the divisors from the factorization.
+    template <typename Z = T> [[nodiscard]] constexpr Z sumDivisors() const
+    {
+        return product(_data,
+                       [](auto &&pe) { return Z(euler::pow(Z(pe.first), pe.second + 1) - 1) / Z(pe.first - 1); });
+    }
+
+    /// Computes Euler's totient function.
+    template <typename Z = T> [[nodiscard]] constexpr Z totient() const
+    {
+        Z n = value<Z>();
+        for (auto &&[p, _] : _data)
+            n = n / p * (p - 1);
+        return n;
+    }
+
+    /// Computes the radical.
+    template <typename Z = T> [[nodiscard]] constexpr Z radical() const
+    {
+        Z rad{1};
+        for (auto &&[p, _] : _data)
+            rad *= p;
+        return rad;
     }
 
     /// Multiplication.

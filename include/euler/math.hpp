@@ -371,22 +371,6 @@ template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
     return phi;
 }
 
-/// Returns (s, t) where d = s²t and t is squarefree.
-template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfreeDecompose(T num, Range &&factorization)
-{
-    T s = 1;
-    for (auto &&[p, e] : std::forward<Range>(factorization))
-    {
-        auto q = pow(p, e / 2);
-        s *= q;
-        num /= q * q;
-    }
-    return {s, num};
-}
-
-/// Returns (s, t) where d = s²t and t is squarefree.
-template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num) { return sqfreeDecompose(num, factor(num)); }
-
 /// Returns a table of binomial coefficients of size `size`.
 template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(size_t size)
 {
@@ -466,33 +450,6 @@ template <typename T> constexpr std::vector<T> powers(T a, int n)
         p *= a;
     }
     return result;
-}
-
-// Function to find smallest primitive root of p
-template <integral2 T, typename SPFSieve = std::vector<int>>
-constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&spfs = {})
-{
-    using Tp = std::common_type_t<int64_t, T>;
-    if (p == 2)
-        return Tp(1);
-    auto phi = p - 1;
-    auto pf = factor(phi, std::forward<SPFSieve>(spfs));
-    for (Tp r = 2; r <= phi; ++r)
-    {
-        bool flag = false;
-        for (const auto &[q, e] : pf)
-        {
-            if (powm(r, phi / q, p) == 1)
-            {
-                flag = true;
-                break;
-            }
-        }
-
-        if (!flag)
-            return r;
-    }
-    assert(false && "primitiveRoot: Should not reach here (maybe p wasn't prime).");
 }
 
 /// @brief Counts the number of integers in a certain residue class.

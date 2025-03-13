@@ -81,15 +81,13 @@ constexpr T totient(T n, SPFSieve &&spfs = {}) // Pass by value intentional
     return n;
 }
 
-/**
- * Calculates the multiplicative order of `a` modulo `modulus` with respect to the given prime factorization of the
- * totient.
- *
- * @param a The base number.
- * @param modulus The modulus.
- * @param totient The totient of `modulus`.
- * @return The multiplicative order of `a` modulo `modulus`.
- */
+/// Calculates the multiplicative order of `a` modulo `modulus` with respect to the given prime factorization of the
+/// totient.
+///
+/// @param a The base number.
+/// @param modulus The modulus.
+/// @param totient The totient of `modulus`.
+/// @return The multiplicative order of `a` modulo `modulus`.
 template <integral2 Ta, integral2 Tp, integral2 Tt, typename SPFSieve = std::vector<int>>
 constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPFSieve &&spfs = {})
 {
@@ -105,13 +103,11 @@ constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPF
     return totient;
 }
 
-/**
- * Calculates the multiplicative order of `a` modulo `modulus`.
- *
- * @param a The base number.
- * @param modulus The modulus.
- * @return The multiplicative order of `a` modulo `modulus`.
- */
+/// Calculates the multiplicative order of `a` modulo `modulus`.
+///
+/// @param a The base number.
+/// @param modulus The modulus.
+/// @return The multiplicative order of `a` modulo `modulus`.
 template <integral2 Ta, integral2 Tp> constexpr Tp multiplicativeOrder(const Ta &a, const Tp &modulus)
 {
     using euler::gcd;
@@ -119,5 +115,48 @@ template <integral2 Ta, integral2 Tp> constexpr Tp multiplicativeOrder(const Ta 
     if (gcd(a, modulus) != 1)
         return 0;
     return multiplicativeOrder(a, modulus, totient(modulus));
+}
+
+/// Returns (s, t) where d = s²t and t is squarefree.
+template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfreeDecompose(T num, Range &&factorization)
+{
+    T s = 1;
+    for (auto &&[p, e] : std::forward<Range>(factorization))
+    {
+        auto q = pow(p, e / 2);
+        s *= q;
+        num /= q * q;
+    }
+    return {s, num};
+}
+
+/// Returns (s, t) where d = s²t and t is squarefree.
+template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num) { return sqfreeDecompose(num, factor(num)); }
+
+/// Function to find smallest primitive root of p.
+template <integral2 T, typename SPFSieve = std::vector<int>>
+constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&spfs = {})
+{
+    using Tp = std::common_type_t<int64_t, T>;
+    if (p == 2)
+        return Tp(1);
+    auto phi = p - 1;
+    auto pf = factor(phi, std::forward<SPFSieve>(spfs));
+    for (Tp r = 2; r <= phi; ++r)
+    {
+        bool flag = false;
+        for (const auto &[q, e] : pf)
+        {
+            if (powm(r, phi / q, p) == 1)
+            {
+                flag = true;
+                break;
+            }
+        }
+
+        if (!flag)
+            return r;
+    }
+    assert(false && "primitiveRoot: Should not reach here (maybe p wasn't prime).");
 }
 } // namespace euler

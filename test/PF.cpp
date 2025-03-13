@@ -1,10 +1,11 @@
 #include "euler/PF.hpp"
 
 #include "common.hpp"
+#include "euler/it/factor.hpp"
 
 using namespace std;
 
-int main()
+void testPF1()
 {
     PF const pf1{{{2, 3}, {3, 7}, {5, 9}}};
     PF const pf2{{{3, 7}, {5, 4}, {7, 11}}};
@@ -22,5 +23,26 @@ int main()
     assertEqual(pf1 & pf2, expectedGCD);
     assertEqual(pf1.value(), 34171875000);
     assertEqual(pf2.value(), 2702758491838125);
+}
+
+void testPF2()
+{
+    for (int i = 1; i <= 1000; ++i)
+    {
+        auto const pfi = factor(i);
+        assertEqual(pfi.value(), i);
+        assertEqual(pfi.totient(), totient(i));
+        for (int j = 1; j <= 1000; ++j)
+        {
+            auto const pfj = factor(j);
+            assertEqual(pfi.divides(pfj), j % i == 0);
+        }
+    }
+}
+
+int main()
+{
+    testPF1();
+    testPF2();
     pass("PF");
 }
