@@ -152,7 +152,7 @@ struct it_base
     /// Appends this enumerable into a container. The enumerable must be finite, or else this may run forever.
     template <typename Cont, typename Self>
         requires(!std::ranges::view<Cont>)
-    constexpr void appendTo(this const Self &self, size_t n, Cont &out)
+    constexpr void appendTo(this const Self &self, Cont &out, size_t n)
     {
         size_t i = 0;
         self([&](auto &&x) -> bool {
