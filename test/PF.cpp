@@ -16,9 +16,11 @@ int main()
 
     assert(pf1 != pf2);
 
-    // assertEqual(pf1 * pf2, expectedMul);
+    assertEqual(pf1 * pf2, expectedMul);
     assertEqual(pf1 / pf2, expectedDiv);
     assertEqual(pf1 | pf2, expectedLCM);
     assertEqual(pf1 & pf2, expectedGCD);
-    pass("dirichlet");
+    assertEqual(pf1.value(), 34171875000);
+    assertEqual(pf2.value(), 2702758491838125);
+    pass("PF");
 }

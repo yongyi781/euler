@@ -1,6 +1,6 @@
 #pragma once
 
-#include "decls.hpp"
+#include "algorithm.hpp"
 
 /// Prime factorization class.
 template <typename T = int64_t> class PF
@@ -100,7 +100,7 @@ template <typename T = int64_t> class PF
     }
 
     /// Evaluates the prime factorization to a number.
-    template <typename U = T> constexpr U value()
+    template <typename U = T> constexpr U value() const
     {
         return product(_data, [](auto &&t) { return euler::pow(U(t.first), t.second); });
     }
