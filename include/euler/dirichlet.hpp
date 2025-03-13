@@ -564,7 +564,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta(size_t n) { return {
 /// ζ(s - 1). f(n) = n. Motive = [p].
 template <typename T = int64_t> constexpr Dirichlet<T> id(size_t n)
 {
-    return {n, [](size_t k) { return k % 2 == 0 ? T(k / 2) * (k + 1) : T((k + 1) / 2) * k; }};
+    return {n, [](size_t k) { return sumId<T>(k); }};
 }
 
 /// ζ(s - 2). f(n) = n^2. If `T = ZMod<M>`, currently requires that neither 2 or 3 divide `M`. Motive = [p^2].
