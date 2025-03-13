@@ -274,7 +274,7 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename Self> [[nodiscard]] constexpr Dirichlet square(this Self self)
+    [[nodiscard]] constexpr Dirichlet square(this Dirichlet self)
     {
         self.squareInPlace();
         return self;
@@ -326,8 +326,8 @@ template <typename T = int64_t> class Dirichlet
 
     /// Division.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <typename Self, typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] constexpr Dirichlet divide(this Self self, const Dirichlet<U> &other, Range &&precomputed = {})
+    template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] constexpr Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
     {
         self.divideInPlace(other, std::forward<Range>(precomputed));
         return self;

@@ -93,7 +93,7 @@ template <typename T = int64_t> class PF
         return *this;
     }
 
-    template <typename Self> [[nodiscard]] constexpr Self pow(this Self self, int n)
+    [[nodiscard]] constexpr PF pow(this PF self, int n)
     {
         self.powInPlace(n);
         return self;
