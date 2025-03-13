@@ -13,33 +13,13 @@ inline namespace euler
 {
 namespace detail
 {
-template <integral2 T> void doSpfSieveParallel(T start, T limit, T sqrtLimit, std::vector<T> &sieve)
-{
-    for (T i = start; i <= sqrtLimit; i += 2)
-        if (sieve[i] == i)
-            it::range(i * i, limit, i * 2)(std::execution::par, [&](T j) {
-                if (sieve[j] == j)
-                    sieve[j] = i;
-            });
-}
-
-template <integral2 T> void doSpfSieveSequential(T start, T limit, T sqrtLimit, std::vector<T> &sieve)
-{
-    for (T i = start; i <= sqrtLimit; i += 2)
-        if (sieve[i] == i)
-            it::range(i * i, limit, i * 2)([&](T j) {
-                if (sieve[j] == j)
-                    sieve[j] = i;
-            });
-}
-
 template <std::ranges::range Range> size_t countSquarefreeHelper(Range &&primes, size_t limit, size_t start)
 {
     size_t result = 0;
     for (size_t i = start; i < primes.size(); ++i)
     {
-        size_t p = primes[i] * primes[i];
-        auto l = limit / p;
+        size_t const p = primes[i] * primes[i];
+        size_t const l = limit / p;
         if (l == 0)
             break;
         result += l;
@@ -166,30 +146,6 @@ template <std::ranges::range Range> [[deprecated("Use PF instead")]] constexpr a
     return product(std::forward<Range>(r), [](auto &&t) { return pow(t.first, t.second); });
 }
 
-/// Returns a sieve containing smallest prime factors up to `limit`. Deprecated, use SPF.
-template <std::integral T>
-[[deprecated("Use SPF instead")]]
-constexpr std::vector<T> spfSieve(T limit)
-{
-    std::vector<T> sieve(limit + 1);
-    for (T i = 2; i <= limit; ++i)
-        if (i % 2 == 0)
-            sieve[i] = 2;
-        else if (i % 3 == 0)
-            sieve[i] = 3;
-        else if (i % 5 == 0)
-            sieve[i] = 5;
-        else
-            sieve[i] = i;
-
-    T sqrtLimit = isqrt(limit);
-    if (limit >= 2'000'000)
-        detail::doSpfSieveParallel(T(7), T(limit), sqrtLimit, sieve);
-    else
-        detail::doSpfSieveSequential(T(7), T(limit), sqrtLimit, sieve);
-    return sieve;
-}
-
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number (>2), the SPF is 2.
 template <std::integral T = int64_t> struct SPF
@@ -312,12 +268,14 @@ template <typename T = int64_t> constexpr std::vector<T> divisorSumSieve(size_t 
 /// Sieve for the ω function, the number of distinct prime factors of a number.
 constexpr std::vector<uint8_t> omegaSieve(size_t limit)
 {
-    std::vector<uint8_t> sieve(limit + 1);
+    std::vector<uint8_t> ω(limit + 1);
+    SPF const spfs{limit};
     for (size_t i = 2; i <= limit; ++i)
-        if (sieve[i] == 0)
-            for (size_t j = i; j <= limit; j += i)
-                ++sieve[j];
-    return sieve;
+    {
+        size_t const j = i / spfs[i];
+        ω[i] = j % spfs[i] == 0 ? ω[j] : ω[j] + 1;
+    }
+    return ω;
 }
 
 /// Generates a sieve of the mobius function, given a SPF sieve.
@@ -328,11 +286,8 @@ template <typename SPFSieve> constexpr std::vector<int8_t> mobiusSieve(size_t li
     μ[1] = 1;
     for (size_t i = 2; i <= limit; ++i)
     {
-        auto k = i / spfs[i];
-        if (spfs[k] == spfs[i])
-            μ[i] = 0;
-        else
-            μ[i] = -μ[k];
+        size_t const k = i / spfs[i];
+        μ[i] = spfs[k] == spfs[i] ? 0 : -μ[k];
     }
     return μ;
 }
@@ -433,16 +388,16 @@ template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfre
 template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num) { return sqfreeDecompose(num, factor(num)); }
 
 /// Returns a table of binomial coefficients of size `size`.
-template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(int size)
+template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(size_t size)
 {
     std::vector<std::vector<T>> table(size + 1);
     table[0] = {1};
-    for (int n = 1; n <= size; ++n)
+    for (size_t n = 1; n <= size; ++n)
     {
         table[n] = std::vector<T>(n + 1);
         table[n][0] = T(1);
         table[n][n] = T(1);
-        for (int r = 1; r < n; ++r)
+        for (size_t r = 1; r < n; ++r)
             table[n][r] = table[n - 1][r - 1] + table[n - 1][r];
     }
     return table;
@@ -792,7 +747,13 @@ template <typename T> std::vector<T> bernoulliPlus(size_t k)
     return B;
 }
 
-/// Sums `1^2 + 2^2 + ... + limit^2`.
+/// Sums `1 + 2 + ... + limit`, maximally avoiding overflow and also avoiding divisions in `T`.
+template <typename T = int64_t> T sumId(size_t limit)
+{
+    return limit % 2 == 0 ? T(limit / 2) * (limit + 1) : T(limit) * ((limit + 1) / 2);
+}
+
+/// Sums `1^2 + 2^2 + ... + limit^2`, maximally avoiding overflow and also avoiding divisions in `T`.
 template <typename T = int64_t> T sumSquares(size_t limit)
 {
     assert(limit >= 0);
