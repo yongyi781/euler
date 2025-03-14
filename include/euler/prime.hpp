@@ -250,14 +250,14 @@ constexpr T totient(T n, Range &&factorization) // Pass by value intentional
 /// @brief Sieves primes up to a limit using the sieve of Eratosthenes.
 /// @param limit Inclusive upper bound.
 /// @return The sieve.
-constexpr std::vector<bool> primeSieve(int64_t limit)
+constexpr std::vector<bool> primeSieve(size_t limit)
 {
     std::vector<bool> sieve(limit + 1, false);
     auto sequentialSievePass = [&](int i) {
         if (sieve[i])
         {
             auto jLimit = limit / i;
-            for (int64_t j = i; j <= jLimit; ++j)
+            for (size_t j = i; j <= jLimit; ++j)
                 sieve[i * j] = false;
         }
     };

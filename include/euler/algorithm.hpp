@@ -207,7 +207,7 @@ constexpr auto sum(T begin, U end, Fun f = {})
 
 template <size_t Threshold = 8192, integral2 T, integral2 U,
           std::invocable<std::common_type_t<T, U>> Fun = std::identity>
-constexpr auto sumMaybeParallel(T begin, U end, Fun f = {})
+auto sumMaybeParallel(T begin, U end, Fun f = {})
 {
     if constexpr (Threshold == 0)
         return sum(begin, end, f);

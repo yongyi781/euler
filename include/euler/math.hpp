@@ -13,7 +13,7 @@ inline namespace euler
 {
 namespace detail
 {
-template <std::ranges::range Range> size_t countSquarefreeHelper(Range &&primes, size_t limit, size_t start)
+template <std::ranges::range Range> constexpr size_t countSquarefreeHelper(Range &&primes, size_t limit, size_t start)
 {
     size_t result = 0;
     for (size_t i = start; i < primes.size(); ++i)
@@ -326,10 +326,10 @@ auto latticePointsInDisk(ExecutionPolicy &&exec, const T &n)
 }
 
 /// Number of integral `(x,y)` satisfying `x^2 + y^2 ≤ n`.
-constexpr auto latticePointsInDisk(const std::integral auto &n) { return latticePointsInDisk(std::execution::seq, n); }
+auto latticePointsInDisk(const std::integral auto &n) { return latticePointsInDisk(std::execution::seq, n); }
 
 /// Number of integral `(x,y)` satisfying `x^2 + y^2 ≤ n`. Somehow faster than hyperbola method.
-constexpr auto latticePointsInDisk2(integral2 auto n)
+auto latticePointsInDisk2(integral2 auto n)
 {
     using T = decltype(n);
     T l = isqrt(n);
@@ -350,7 +350,7 @@ template <execution_policy Exec, integral2 T> auto countSquarefree(Exec &&exec, 
 }
 
 /// Counts squarefree numbers up to `n`. The mobius sieve needs to be filled up to `√n`.
-template <integral2 T> constexpr auto countSquarefree(T n, const std::vector<int8_t> &mobius)
+template <integral2 T> auto countSquarefree(T n, const std::vector<int8_t> &mobius)
 {
     return n < 40'000'000 ? countSquarefree(std::execution::seq, n, mobius)
                           : countSquarefree(std::execution::par, n, mobius);
