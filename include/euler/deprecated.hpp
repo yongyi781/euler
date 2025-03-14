@@ -570,7 +570,7 @@ constexpr auto reduceFactor(const T &num, std::remove_cvref_t<std::invoke_result
 /// Returns the product of the elements in a range modulo a modulus.
 template <execution_policy Exec, std::ranges::range Range,
           std::invocable<std::ranges::range_value_t<Range>> UnaryOp = std::identity>
-constexpr auto modproduct(Exec &&exec, Range &&v, integral2 auto modulus, UnaryOp f = std::identity())
+auto modproduct(Exec &&exec, Range &&v, integral2 auto modulus, UnaryOp f = std::identity())
 {
     using T = std::remove_cvref_t<std::invoke_result_t<UnaryOp, std::ranges::range_value_t<Range>>>;
     return reducev(std::forward<decltype(exec)>(exec), std::forward<Range>(v), T{1}, mod_multiplies(modulus), f);
@@ -587,7 +587,7 @@ constexpr auto modproduct(Range &&v, integral2 auto modulus, UnaryOp f = std::id
 /// Returns the product of the elements in a range modulo a modulus.
 template <execution_policy Exec, integral2 TBegin, integral2 TEnd,
           std::invocable<std::common_type_t<TBegin, TEnd>> UnaryOp = std::identity>
-constexpr auto modproduct(Exec &&exec, TBegin begin, TEnd end, integral2 auto modulus, UnaryOp f = std::identity())
+auto modproduct(Exec &&exec, TBegin begin, TEnd end, integral2 auto modulus, UnaryOp f = std::identity())
 {
     return reduceRange(std::forward<decltype(exec)>(exec), begin, end,
                        std::remove_cvref_t<std::invoke_result_t<UnaryOp, std::common_type_t<TBegin, TEnd>>>{1},
@@ -606,7 +606,7 @@ constexpr auto modproduct(TBegin begin, TEnd end, integral2 auto modulus, UnaryO
 /// Sums a function over a range, modulo a modulus.
 template <execution_policy Exec, std::ranges::range Range,
           std::invocable<std::ranges::range_value_t<Range>> UnaryOp = std::identity>
-constexpr auto modsum(Exec &&exec, Range &&v, integral2 auto modulus, UnaryOp f = std::identity())
+auto modsum(Exec &&exec, Range &&v, integral2 auto modulus, UnaryOp f = std::identity())
 {
     using T = std::remove_cvref_t<std::invoke_result_t<UnaryOp, std::ranges::range_value_t<Range>>>;
     return reducev(std::forward<Exec>(exec), std::forward<Range>(v), T{}, mod_plus(modulus), f);
@@ -623,7 +623,7 @@ constexpr auto modsum(Range &&v, integral2 auto modulus, UnaryOp f = std::identi
 /// Sums a function over a range of values modulo a modulus.
 template <execution_policy Exec, integral2 TBegin, integral2 TEnd,
           std::invocable<std::common_type_t<TBegin, TEnd>> UnaryOp = std::identity>
-constexpr auto modsum(Exec &&exec, TBegin begin, TEnd end, integral2 auto modulus, UnaryOp f = std::identity())
+auto modsum(Exec &&exec, TBegin begin, TEnd end, integral2 auto modulus, UnaryOp f = std::identity())
 {
     return reduceRange(std::forward<Exec>(exec), std::move(begin), std::move(end),
                        std::remove_cvref_t<std::invoke_result_t<UnaryOp, std::common_type_t<TBegin, TEnd>>>{},

@@ -99,7 +99,7 @@ constexpr std::vector<T> unfold(size_t size, T seed, Fun f)
 
 /// Transforms a range.
 template <execution_policy Exec, std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun>
-constexpr auto mapv(Exec &&exec, Range &&r, Fun f)
+auto mapv(Exec &&exec, Range &&r, Fun f)
 {
     using T = std::ranges::range_value_t<Range>;
     using FT = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
@@ -126,7 +126,7 @@ template <execution_policy Exec, std::ranges::range Range, typename T,
           std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
                          std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
               BinaryOp>
-constexpr T reducev(Exec &&exec, Range &&r, T init, BinaryOp op, Fun f = {})
+T reducev(Exec &&exec, Range &&r, T init, BinaryOp op, Fun f = {})
 {
     return std::transform_reduce(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::move(init),
                                  std::move(op), std::move(f));
@@ -149,7 +149,7 @@ template <execution_policy Exec, integral2 T, integral2 U, typename Tp,
           std::invocable<std::invoke_result_t<Fun, std::common_type_t<T, U>>,
                          std::invoke_result_t<Fun, std::common_type_t<T, U>>>
               BinaryOp>
-constexpr Tp reduceRange(Exec &&exec, T begin, U end, Tp init, BinaryOp op, Fun f = {})
+Tp reduceRange(Exec &&exec, T begin, U end, Tp init, BinaryOp op, Fun f = {})
 {
     using V = std::common_type_t<T, U>;
     if (V(end) < V(begin))
@@ -262,7 +262,7 @@ constexpr auto maxBy(Range &&range, std::ranges::range_value_t<Range> init, Key 
 /// Returns the maximum value in a sequence according to a specified key selector function.
 template <execution_policy Exec, std::ranges::range Range,
           std::invocable<std::ranges::range_value_t<Range>> Key = std::identity>
-constexpr auto maxBy(Exec &&exec, Range &&range, std::ranges::range_value_t<Range> init, Key key = {})
+auto maxBy(Exec &&exec, Range &&range, std::ranges::range_value_t<Range> init, Key key = {})
 {
     return reducev(std::forward<Exec>(exec), std::forward<Range>(range), std::move(init), [&](auto &&a, auto &&b) {
         return key(a) < key(b) ? std::forward<decltype(b)>(b) : std::forward<decltype(a)>(a);
@@ -281,7 +281,7 @@ constexpr auto maxRangeBy(T begin, U end, Tp init, Key key = {})
 /// Returns the maximum value in a numeric range according to a specified key selector function.
 template <execution_policy Exec, integral2 TBegin, integral2 TEnd, typename Tp,
           std::invocable<std::common_type_t<TBegin, TEnd>> Key = std::identity>
-constexpr auto maxRangeBy(Exec &&exec, TBegin begin, TEnd end, Tp init, Key key = {})
+auto maxRangeBy(Exec &&exec, TBegin begin, TEnd end, Tp init, Key key = {})
 {
     return reduceRange(std::forward<Exec>(exec), std::move(begin), std::move(end), std::move(init),
                        [&](auto &&a, auto &&b) {
@@ -296,7 +296,7 @@ template <execution_policy Exec, std::ranges::range Range,
                          std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
               BinaryOp = std::plus<>,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
-constexpr auto partialSum(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+auto partialSum(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
     std::vector<T> res(std::ranges::size(r));
     std::transform_inclusive_scan(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(res),
@@ -325,7 +325,7 @@ template <execution_policy Exec, std::ranges::range Range,
                          std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
               BinaryOp = std::plus<>,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
-constexpr void partialSumInPlace(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
+void partialSumInPlace(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
     std::transform_inclusive_scan(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::begin(r),
                                   std::move(op), std::move(f), std::move(init));
@@ -345,7 +345,7 @@ constexpr void partialSumInPlace(Range &&r, T init = {}, BinaryOp op = {}, Fun f
 
 /// Returns a vector of adjacent differences of a function over a range.
 template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::minus<>>
-constexpr auto adjacentDifference(Exec &&exec, Range &&r, BinaryOp op = {})
+auto adjacentDifference(Exec &&exec, Range &&r, BinaryOp op = {})
 {
     std::vector<std::ranges::range_value_t<Range>> res(std::ranges::size(r));
     std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), res.begin(),
@@ -364,7 +364,7 @@ constexpr auto adjacentDifference(Range &&r, BinaryOp op = {})
 
 /// Takes adjacent difference in place.
 template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::minus<>>
-constexpr void adjacentDifferenceInPlace(Exec &&exec, Range &&r, BinaryOp op = {})
+void adjacentDifferenceInPlace(Exec &&exec, Range &&r, BinaryOp op = {})
 {
     std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r),
                              std::ranges::begin(r), std::move(op));

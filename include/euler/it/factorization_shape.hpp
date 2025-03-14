@@ -33,7 +33,7 @@ class nums_with_ordered_factorization_shape : public it_base
 
     /// Reduces numbers with the given factorization shape. Uses std::transform_reduce.
     template <execution_policy Exec, typename U, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         auto its = std::ranges::begin(_shape);
         auto eTotal = std::accumulate(its, std::ranges::end(_shape), 0);
@@ -120,7 +120,7 @@ template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_wi
 
     /// Reduces numbers with the given factorization shape. Uses std::transform_reduce.
     template <execution_policy Exec, typename U, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         U total = init;
         it::permutations(std::ranges::ref_view(_shape), std::ranges::size(_shape))([&](auto &&perm) {
@@ -182,7 +182,7 @@ template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_wi
 
     /// Reduces numbers with the given factorization shape. Uses std::transform_reduce.
     template <execution_policy Exec, typename U, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         if (std::ranges::empty(_shape))
             return U(1);

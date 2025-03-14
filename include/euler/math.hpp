@@ -248,7 +248,7 @@ template <integral2 T, integral2 U> constexpr auto binomial2(T n, U r)
 template <execution_policy ExecutionPolicy, std::integral Tn, std::integral Ta = int, std::integral Tb = int,
           typename Fun = std::identity>
     requires(!std::integral<ExecutionPolicy>)
-constexpr auto sumFloors(ExecutionPolicy &&exec, Tn n, Ta a = 1, Tb b = 1, Fun &&f = {})
+auto sumFloors(ExecutionPolicy &&exec, Tn n, Ta a = 1, Tb b = 1, Fun &&f = {})
 {
     using T = std::common_type_t<Tn, Ta, Tb>;
     assert(a > 0 && b > 0);
@@ -278,7 +278,7 @@ constexpr auto sumFloors(Tn n, Ta a = 1, Tb b = 1, F &&f = {})
 
 /// Calculates `∑ k ∈ [start, stop], f(⌊n / k⌋)`.
 template <execution_policy Exec, std::integral T, typename Fun = std::identity>
-constexpr T sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
+T sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
 {
     stop = std::min(n, stop);
     if (start > stop)
@@ -319,7 +319,7 @@ template <std::integral T, typename Fun = std::identity> constexpr T sumFloorsRa
 
 /// Number of integral `(x,y)` satisfying `x^2 + y^2 ≤ n`.
 template <execution_policy ExecutionPolicy, std::integral T = int64_t>
-constexpr auto latticePointsInDisk(ExecutionPolicy &&exec, const T &n)
+auto latticePointsInDisk(ExecutionPolicy &&exec, const T &n)
 {
     return 1 + 4 * (sumFloors(std::forward<ExecutionPolicy>(exec), n, T(4), T(1)) -
                     sumFloors(std::forward<ExecutionPolicy>(exec), n, T(4), T(3)));

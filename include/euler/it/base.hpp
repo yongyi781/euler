@@ -277,7 +277,7 @@ struct it_base
 
     /// Calculates the sum of the enumerable.
     template <typename Self, execution_policy Exec, typename T = Self::value_type>
-    [[nodiscard]] constexpr T sum(this const Self &self, Exec &&exec, T init = {})
+    [[nodiscard]] T sum(this const Self &self, Exec &&exec, T init = {})
     {
         return self.reduce(std::forward<Exec>(exec), std::move(init), std::plus{});
     }
@@ -292,7 +292,7 @@ struct it_base
 
     /// Calculates the product of the enumerable. Uses std::transform_reduce.
     template <typename Self, execution_policy Exec, typename T = Self::value_type>
-    [[nodiscard]] constexpr T product(this const Self &self, Exec &&exec, T init = T(1))
+    [[nodiscard]] T product(this const Self &self, Exec &&exec, T init = T(1))
     {
         return self.reduce(std::forward<Exec>(exec), std::move(init), std::multiplies{});
     }
@@ -395,7 +395,7 @@ template <enumerable E, std::invocable<typename E::value_type> Fn> class map_t :
 
     /// Reduces the enumerable into a single value. Uses the base enumerable's reduce function.
     template <execution_policy Exec, typename T, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr T reduce(Exec &&exec, T init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] T reduce(Exec &&exec, T init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         return _base.reduce(std::forward<Exec>(exec), std::move(init), std::forward<BinaryOp>(op),
                             [&](auto &&x) { return f(std::invoke(_fn, std::forward<decltype(x)>(x))); });
@@ -666,8 +666,7 @@ template <std::ranges::view V> class wrap : public it_base
 
     /// Invokes f with the specified execution policy. Note that in this variant, the enumeration
     /// cannot be broken out of.
-    template <execution_policy Exec, std::invocable<value_type> Fun>
-    constexpr result_t operator()(Exec &&exec, Fun f) const
+    template <execution_policy Exec, std::invocable<value_type> Fun> result_t operator()(Exec &&exec, Fun f) const
     {
         std::for_each(std::forward<Exec>(exec), std::ranges::begin(_base), std::ranges::end(_base), std::move(f));
         return result_continue;
@@ -683,7 +682,7 @@ template <std::ranges::view V> class wrap : public it_base
 
     /// Reduces the enumerable into a single value. Uses std::transform_reduce.
     template <execution_policy Exec, typename T, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr T reduce(Exec &&exec, T init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] T reduce(Exec &&exec, T init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         return std::transform_reduce(std::forward<Exec>(exec), std::ranges::begin(_base), std::ranges::end(_base),
                                      std::move(init), std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
@@ -718,8 +717,7 @@ template <integral2 T> class range : public it_base
 
     /// Invokes `f` with the specified execution policy. Note that in this variant, the enumeration cannot be broken out
     /// of.
-    template <execution_policy Exec, std::invocable<value_type> Fun>
-    constexpr result_t operator()(Exec &&exec, Fun f) const
+    template <execution_policy Exec, std::invocable<value_type> Fun> result_t operator()(Exec &&exec, Fun f) const
     {
         if (!empty())
         {
@@ -753,7 +751,7 @@ template <integral2 T> class range : public it_base
 
     /// Reduces the enumerable into a single value. Uses `std::transform_reduce`.
     template <execution_policy Exec, typename U, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] constexpr U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         if (empty())
             return init;
