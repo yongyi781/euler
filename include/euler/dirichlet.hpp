@@ -22,7 +22,7 @@ template <typename T = int64_t> class Dirichlet
     static inline double pivotCoefficient = 0.2;
 
     /// Gives the default size of the up vector for a given value of `n`.
-    static constexpr size_t defaultPivot(size_t n)
+    static size_t defaultPivot(size_t n)
     {
         size_t const s = pivotCoefficient * std::pow(n / std::max(1.0, log(n)), pivotExponent);
         // Impose maximum so as to not overwhelm memory.
@@ -31,7 +31,7 @@ template <typename T = int64_t> class Dirichlet
         return n / (n / res);
     }
 
-    constexpr explicit Dirichlet(size_t n)
+    explicit Dirichlet(size_t n)
         : _n(n), _up(defaultPivot(n) + 1), _down(n / (defaultPivot(n) + 1) + 1), _quotients(isqrt(n) + 1)
     {
         for (size_t i = 1; i < _quotients.size(); ++i)
@@ -39,7 +39,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Initialize with the given summatory function.
-    template <typename Fun> constexpr Dirichlet(size_t n, Fun F) : Dirichlet(n)
+    template <typename Fun> Dirichlet(size_t n, Fun F) : Dirichlet(n)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             _up[k] = T(F(k));
@@ -47,45 +47,45 @@ template <typename T = int64_t> class Dirichlet
             _down[i] = T(F(_quotients[i]));
     }
 
-    constexpr T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }
-    constexpr const T &operator[](size_t i) const { return i < _up.size() ? _up[i] : _down[_n / i]; }
+    T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }
+    const T &operator[](size_t i) const { return i < _up.size() ? _up[i] : _down[_n / i]; }
 
     /// The number that this array was designed for, i.e. the top index.
-    [[nodiscard]] constexpr size_t n() const noexcept { return _n; }
+    [[nodiscard]] size_t n() const noexcept { return _n; }
     /// The index of the transition point between up and down vectors.
-    [[nodiscard]] constexpr size_t pivot() const noexcept { return _up.size() - 1; }
+    [[nodiscard]] size_t pivot() const noexcept { return _up.size() - 1; }
     /// Gets the value of `n / i` avoiding a division CPU instruction. `i` must be `≤ √n`.
-    [[nodiscard]] constexpr size_t quotient(uint32_t i) const noexcept { return _quotients[i]; }
+    [[nodiscard]] size_t quotient(uint32_t i) const noexcept { return _quotients[i]; }
 
     /// The up vector, mutable.
-    [[nodiscard]] constexpr std::vector<T> &up() noexcept { return _up; }
+    [[nodiscard]] std::vector<T> &up() noexcept { return _up; }
     /// The up vector.
-    [[nodiscard]] constexpr const std::vector<T> &up() const noexcept { return _up; }
+    [[nodiscard]] const std::vector<T> &up() const noexcept { return _up; }
     /// Element access into the up array, mutable.
-    [[nodiscard]] constexpr T &up(size_t x) noexcept { return _up[x]; }
+    [[nodiscard]] T &up(size_t x) noexcept { return _up[x]; }
     /// Element access into the up array.
-    [[nodiscard]] constexpr const T &up(size_t x) const noexcept { return _up[x]; }
+    [[nodiscard]] const T &up(size_t x) const noexcept { return _up[x]; }
 
     /// The down vector, mutable.
-    [[nodiscard]] constexpr std::vector<T> &down() noexcept { return _down; }
+    [[nodiscard]] std::vector<T> &down() noexcept { return _down; }
     /// The down vector.
-    [[nodiscard]] constexpr const std::vector<T> &down() const noexcept { return _down; }
+    [[nodiscard]] const std::vector<T> &down() const noexcept { return _down; }
     /// Element access into the down array, mutable.
-    [[nodiscard]] constexpr T &down(size_t x) noexcept { return _down[x]; }
+    [[nodiscard]] T &down(size_t x) noexcept { return _down[x]; }
     /// Element access into the down array.
-    [[nodiscard]] constexpr const T &down(size_t x) const noexcept { return _down[x]; }
+    [[nodiscard]] const T &down(size_t x) const noexcept { return _down[x]; }
 
-    [[nodiscard]] constexpr T &front() noexcept { return up(1); }
-    [[nodiscard]] constexpr const T &front() const noexcept { return up(1); }
-    [[nodiscard]] constexpr T &back() noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
-    [[nodiscard]] constexpr const T &back() const noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
+    [[nodiscard]] T &front() noexcept { return up(1); }
+    [[nodiscard]] const T &front() const noexcept { return up(1); }
+    [[nodiscard]] T &back() noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
+    [[nodiscard]] const T &back() const noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
 
     /// Returns a vector of function values from 1 to the size of the up vector. This is the vector of adjacent
     /// differences of `up`.
-    [[nodiscard]] constexpr std::vector<T> upValues() const { return adjacentDifference(_up); }
+    [[nodiscard]] std::vector<T> upValues() const { return adjacentDifference(_up); }
 
     /// Takes a partial sum in place. Useful function to call when building this array from individual values.
-    constexpr Dirichlet &accumulate()
+    Dirichlet &accumulate()
     {
         for (size_t i = 1; i < _up.size(); ++i)
             up(i) += up(i - 1);
@@ -96,7 +96,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Applies a function to each entry of this array.
-    template <std::invocable<T> Fun> constexpr Dirichlet &mapInPlace(Fun f)
+    template <std::invocable<T> Fun> Dirichlet &mapInPlace(Fun f)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             up(k) = f(up(k));
@@ -106,7 +106,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
-    template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
+    template <std::invocable<size_t> Fun> it::result_t ascending(Fun f) const
     {
         for (size_t k = 1; k < _up.size(); ++k)
             if (!it::callbackResult(f, k))
@@ -119,7 +119,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Enumerates (keys, mutable value) pairs of this floors array in ascending order. Breaks if `f` returns
     /// `it::result_break`.
-    template <std::invocable<size_t, T &> Fun> constexpr it::result_t ascendingMut(Fun f)
+    template <std::invocable<size_t, T &> Fun> it::result_t ascendingMut(Fun f)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             if (!it::callbackResult(f, k, up(k)))
@@ -132,7 +132,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Enumerates keys of this floors array in descending order. Breaks if `f` returns
     /// `it::result_break`.
-    template <std::invocable<size_t> Fun> constexpr it::result_t descending(Fun f) const
+    template <std::invocable<size_t> Fun> it::result_t descending(Fun f) const
     {
         for (uint32_t i = 1; i < _down.size(); ++i)
             if (!it::callbackResult(f, quotient(i)))
@@ -145,7 +145,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Enumerates (key, mutable value) pairs of this floors array in descending order. Breaks if `f` returns
     /// `it::result_break`.
-    template <std::invocable<size_t, T &> Fun> constexpr it::result_t descendingMut(Fun f)
+    template <std::invocable<size_t, T &> Fun> it::result_t descendingMut(Fun f)
     {
         for (uint32_t i = 1; i < _down.size(); ++i)
             if (!it::callbackResult(f, quotient(i), down(i)))
@@ -158,7 +158,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Compute a single summatory value of `this * this`.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <size_t ParThreshold = 8192> [[nodiscard]] constexpr T squareValue(size_t k) const
+    template <size_t ParThreshold = 8192> [[nodiscard]] T squareValue(size_t k) const
     {
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
@@ -174,9 +174,9 @@ template <typename T = int64_t> class Dirichlet
     /// Compute a single summatory value of (this * other).
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
     template <size_t ParThreshold = 8192, typename U>
-    [[nodiscard]] constexpr T productValue(const Dirichlet<U> &other, size_t k) const
+    [[nodiscard]] T productValue(const Dirichlet<U> &other, size_t k) const
     {
-        if constexpr (std::is_same_v<T, U>)
+        if (std::is_same_v<T, U>)
             if (this == &other)
                 return squareValue(k);
         uint32_t const s = isqrt(k);
@@ -199,7 +199,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Compute a single summatory value of (this * ζ). About 33% faster than generic.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <size_t ParThreshold = 8192> [[nodiscard]] constexpr T productValueZeta(size_t k) const
+    template <size_t ParThreshold = 8192> [[nodiscard]] T productValueZeta(size_t k) const
     {
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
@@ -217,7 +217,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Squares this Dirichlet series in place.
     template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    constexpr Dirichlet &squareInPlace(Range &&precomputed = {})
+    Dirichlet &squareInPlace(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
@@ -250,7 +250,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Multiplies this Dirichlet series with ζ, in place. About 33% faster than generic.
     template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    constexpr Dirichlet &multiplyInPlaceZeta(Range &&precomputed = {})
+    Dirichlet &multiplyInPlaceZeta(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
@@ -278,7 +278,7 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    [[nodiscard]] constexpr Dirichlet square(this Dirichlet self)
+    [[nodiscard]] Dirichlet square(this Dirichlet self)
     {
         self.squareInPlace();
         return self;
@@ -287,7 +287,7 @@ template <typename T = int64_t> class Dirichlet
     /// Division in place.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    constexpr Dirichlet &divideInPlace(const Dirichlet<U> &other, Range &&precomputed = {})
+    Dirichlet &divideInPlace(const Dirichlet<U> &other, Range &&precomputed = {})
     {
         if (precomputed.empty())
             return *this /= other;
@@ -304,7 +304,7 @@ template <typename T = int64_t> class Dirichlet
     /// Division in place, in the special case that the divisor is ζ(s). 33% speedup compared to generic.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    constexpr Dirichlet &divideInPlaceZeta(Range &&precomputed = {})
+    Dirichlet &divideInPlaceZeta(Range &&precomputed = {})
     {
         uint32_t u = _down.size() - 1;
         if (precomputed.empty())
@@ -331,14 +331,14 @@ template <typename T = int64_t> class Dirichlet
     /// Division.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] constexpr Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
+    [[nodiscard]] Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
     {
         self.divideInPlace(other, std::forward<Range>(precomputed));
         return self;
     }
 
     /// Dirichlet inverse.
-    [[nodiscard]] constexpr Dirichlet inverse() const
+    [[nodiscard]] Dirichlet inverse() const
     {
         Dirichlet res{_n, [](auto &&) { return T(1); }};
         res /= *this;
@@ -346,7 +346,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Returns this raised to a power.
-    [[nodiscard]] constexpr Dirichlet pow(int exponent) const
+    [[nodiscard]] Dirichlet pow(int exponent) const
     {
         Dirichlet x{_n, [](auto &&) { return T(1); }};
         if (exponent == 0)
@@ -372,7 +372,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Addition.
-    template <typename U> constexpr Dirichlet &operator+=(const Dirichlet<U> &other)
+    template <typename U> Dirichlet &operator+=(const Dirichlet<U> &other)
     {
         assert(_n == other.n());
         for (size_t k = 1; k < _up.size(); ++k)
@@ -382,14 +382,14 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Dirichlet operator+(Dirichlet left, const Dirichlet<U> &right)
+    template <typename U> [[nodiscard]] friend Dirichlet operator+(Dirichlet left, const Dirichlet<U> &right)
     {
         left += right;
         return left;
     }
 
     /// Subtraction.
-    template <typename U> constexpr Dirichlet &operator-=(const Dirichlet<U> &other)
+    template <typename U> Dirichlet &operator-=(const Dirichlet<U> &other)
     {
         assert(_n == other.n());
         for (size_t k = 1; k < _up.size(); ++k)
@@ -399,16 +399,16 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Dirichlet operator-(Dirichlet left, const Dirichlet<U> &right)
+    template <typename U> [[nodiscard]] friend Dirichlet operator-(Dirichlet left, const Dirichlet<U> &right)
     {
         left -= right;
         return left;
     }
 
     /// Multiplication.
-    template <typename U> constexpr Dirichlet &operator*=(const Dirichlet<U> &other)
+    template <typename U> Dirichlet &operator*=(const Dirichlet<U> &other)
     {
-        if constexpr (std::is_same_v<T, U>)
+        if (std::is_same_v<T, U>)
             if (this == &other)
                 return squareInPlace();
         assert(_n == other.n());
@@ -428,14 +428,14 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Dirichlet operator*(Dirichlet left, const Dirichlet<U> &right)
+    template <typename U> [[nodiscard]] friend Dirichlet operator*(Dirichlet left, const Dirichlet<U> &right)
     {
         left *= right;
         return left;
     }
 
     /// Division.
-    template <typename U> constexpr Dirichlet &operator/=(const Dirichlet<U> &other)
+    template <typename U> Dirichlet &operator/=(const Dirichlet<U> &other)
     {
         assert(_n == other.n());
         auto const c = other.up(1) - other.up(0);
@@ -457,14 +457,14 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Dirichlet operator/(Dirichlet left, const Dirichlet<U> &right)
+    template <typename U> [[nodiscard]] friend Dirichlet operator/(Dirichlet left, const Dirichlet<U> &right)
     {
         left /= right;
         return left;
     }
 
     /// Multiplication by a scalar.
-    constexpr Dirichlet &operator*=(T value)
+    Dirichlet &operator*=(T value)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             up(k) *= value;
@@ -473,20 +473,20 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Dirichlet operator*(Dirichlet S, T value)
+    [[nodiscard]] friend Dirichlet operator*(Dirichlet S, T value)
     {
         S *= value;
         return S;
     }
 
-    [[nodiscard]] constexpr friend Dirichlet operator*(T value, Dirichlet S)
+    [[nodiscard]] friend Dirichlet operator*(T value, Dirichlet S)
     {
         S *= value;
         return S;
     }
 
     /// Division by a scalar.
-    constexpr Dirichlet &operator/=(T value)
+    Dirichlet &operator/=(T value)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             up(k) /= value;
@@ -495,16 +495,16 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Dirichlet operator/(Dirichlet left, T value)
+    [[nodiscard]] friend Dirichlet operator/(Dirichlet left, T value)
     {
         left /= value;
         return left;
     }
 
     /// Dirichlet inverse.
-    [[nodiscard]] constexpr Dirichlet operator~() const { return inverse(); }
+    [[nodiscard]] Dirichlet operator~() const { return inverse(); }
 
-    template <typename U> constexpr bool operator==(const Dirichlet<U> &other) const
+    template <typename U> bool operator==(const Dirichlet<U> &other) const
     {
         return _n == other.n() && _up == other.up() && _down == other.down();
     }
@@ -522,7 +522,7 @@ template <typename T = int64_t> class Dirichlet
     std::vector<size_t> _quotients;
 
     /// One step of the divison algorithm. Internal use only.
-    template <typename U> constexpr void quotientStep(const Dirichlet<U> &other, uint32_t i)
+    template <typename U> void quotientStep(const Dirichlet<U> &other, uint32_t i)
     {
         size_t const k = quotient(i);
         uint32_t const s = isqrt(k);
@@ -543,7 +543,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// One step of the divison algorithm by ζ(s). Internal use only.
-    constexpr void quotientStepZeta(uint32_t i)
+    void quotientStepZeta(uint32_t i)
     {
         size_t const k = quotient(i);
         uint32_t const s = isqrt(k);
@@ -591,29 +591,29 @@ auto productValue(Tn n, SummatoryFun1 F, SummatoryFun2 G)
 }
 
 /// 1, the multiplicative identity. f(n) = [n = 1]. Motive = 0.
-template <typename T = int64_t> constexpr Dirichlet<T> unit(size_t n)
+template <typename T = int64_t> Dirichlet<T> unit(size_t n)
 {
     return {n, [](size_t) -> T { return 1; }};
 }
 
 /// ζ(s). f(n) = 1. Motive = [1].
-template <typename T = int64_t> constexpr Dirichlet<T> zeta(size_t n) { return {n, std::identity{}}; }
+template <typename T = int64_t> Dirichlet<T> zeta(size_t n) { return {n, std::identity{}}; }
 
 /// ζ(s - 1). f(n) = n. Motive = [p].
-template <typename T = int64_t> constexpr Dirichlet<T> id(size_t n)
+template <typename T = int64_t> Dirichlet<T> id(size_t n)
 {
     return {n, [](size_t k) -> T { return sumId<T>(k); }};
 }
 
 /// ζ(s - 2). f(n) = n^2. If `T = ZMod<M>`, currently requires that neither 2 or 3 divide `M`. Motive = [p^2].
-template <typename T = int64_t> constexpr Dirichlet<T> id2(size_t n)
+template <typename T = int64_t> Dirichlet<T> id2(size_t n)
 {
     // Fancy stuff to avoid overflow or ZMod divisions.
     return {n, [](size_t k) -> T { return sumSquares<T>(k); }};
 }
 
 /// ζ(s - 3). f(n) = n^3. Motive = [p^3].
-template <typename T = int64_t> constexpr Dirichlet<T> id3(size_t n)
+template <typename T = int64_t> Dirichlet<T> id3(size_t n)
 {
     return {n, [](size_t k) -> T {
                 T const s = k % 2 == 0 ? T(k / 2) * (k + 1) : T((k + 1) / 2) * k;
@@ -622,39 +622,39 @@ template <typename T = int64_t> constexpr Dirichlet<T> id3(size_t n)
 }
 
 /// ζ(2s). f(n) = [n is square]. Motive = [1] + [-1].
-template <typename T = int64_t> constexpr Dirichlet<T> zeta_2s(size_t n)
+template <typename T = int64_t> Dirichlet<T> zeta_2s(size_t n)
 {
     return {n, [](size_t k) -> T { return isqrt(k); }};
 }
 
 /// ζ(as). f(n) = [n is a perfect ath power]. Motive = sum([r] for r in ath roots of unity)
-template <typename T = int64_t> constexpr Dirichlet<T> zeta_multiple(int a, size_t n)
+template <typename T = int64_t> Dirichlet<T> zeta_multiple(int a, size_t n)
 {
     return {n, [&](size_t k) -> T { return (T)std::pow(k + 0.5, 1.0 / a); }};
 }
 
 /// χ_(-3)(s). f(n) = (-3|n). 1 if 1 mod 3, -1 if 2 mod 3, 0 otherwise. L-function of the hexagonal lattice and the
 /// Eisenstein integers.
-template <typename T = int64_t> constexpr Dirichlet<T> chi3(size_t n)
+template <typename T = int64_t> Dirichlet<T> chi3(size_t n)
 {
     return {n, [&](size_t k) -> T { return k % 3 == 1; }};
 }
 
 /// χ_(-4)(s). f(n) = (-4|n). 1 if 1 mod 4, -1 if 3 mod 4, 0 otherwise. Also known as the Dirichlet beta function.
 /// Motive = χ_(-4).
-template <typename T = int64_t> constexpr Dirichlet<T> chi4(size_t n)
+template <typename T = int64_t> Dirichlet<T> chi4(size_t n)
 {
     return {n, [&](size_t k) -> T { return k % 4 == 1 || k % 4 == 2; }};
 }
 
 /// χ_5(s). f(n) = (5|n).
-template <typename T = int64_t> constexpr Dirichlet<T> chi5(size_t n)
+template <typename T = int64_t> Dirichlet<T> chi5(size_t n)
 {
     return {n, [&](size_t k) -> T { return std::array{0, 1, 0, -1, 0}[k % 5]; }};
 }
 
 /// 1 / ζ(2s). f(n) = [n is square] * μ(√n). O(n^(1/2)). Motive = -[1] - [-1].
-template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_2s(size_t n)
+template <typename T = int64_t> Dirichlet<T> inv_zeta_2s(size_t n)
 {
     auto const mu = mobiusSieve(isqrt(n));
     auto const mertens = partialSum(mu, T{});
@@ -662,7 +662,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_2s(size_t n)
 }
 
 /// 1 / ζ(as). f(n) = [n is a perfect rth power] * μ(n^(1/a)). O(n^(1/a)). Motive = -∑([r] for r in ath roots of unity).
-template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_multiple(int a, size_t n)
+template <typename T = int64_t> Dirichlet<T> inv_zeta_multiple(int a, size_t n)
 {
     auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
     auto const mertens = partialSum(mu, T{});
@@ -670,7 +670,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_multiple(int a, 
 }
 
 /// ζ(as - b). f(n) = [n = k^a] * k^b. Requires `a > 1`. Motive = ∑([r*p^(b/a)] for r in ath roots of unity).
-template <typename T = int64_t> constexpr Dirichlet<T> zeta_linear(int a, int b, size_t n)
+template <typename T = int64_t> Dirichlet<T> zeta_linear(int a, int b, size_t n)
 {
     assert(a > 1);
     size_t const s = std::pow(n + 0.5, 1.0 / a);
@@ -682,7 +682,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta_linear(int a, int b,
 
 /// 1 / ζ(as - b). f(n) = [n = k^a] * μ(k) * k^b. Requires `a > 1`. Motive = -∑([r*p^(b/a)] for r in ath roots of
 /// unity).
-template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
+template <typename T = int64_t> Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
 {
     assert(a > 1);
     size_t const s = std::pow(n + 0.5, 1.0 / a);
@@ -694,7 +694,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_linear(int a, in
 }
 
 /// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(3/5)). Motive = -[-1].
-template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n, double alpha = 1.25)
+template <typename T = int64_t> Dirichlet<T> squarefree(size_t n, double alpha = 1.25)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6)));
     auto const mu = mobiusSieve(isqrt(n));
@@ -711,7 +711,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n, doub
 }
 
 /// ζ(s)^2. f(n) = number of divisors of n. O(n^(2/3)). Motive = 2[1].
-template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alpha = 0.08)
+template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
@@ -733,34 +733,34 @@ template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alph
 }
 
 /// ζ(s)ζ(s - 1). f(n) = sum of divisors of n. O(n^(2/3)). Motive = [p] + [1].
-template <typename T = int64_t> constexpr Dirichlet<T> sigma(size_t n, double alpha = 0.08)
+template <typename T = int64_t> Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return id<T>(n).multiplyInPlaceZeta(partialSum(divisorSumSieve(s), T{}));
 }
 
 /// ζ(s)ζ(s - 2). f(n) = sum of squares of divisors of n. O(n^(2/3)). Motive = [p^2] + [1].
-template <typename T = int64_t> constexpr Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiplyInPlaceZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiplyInPlaceZeta(); }
 
 /// ζ(s)ζ(s - 3). f(n) = sum of cubes of divisors of n. O(n^(2/3)). Motive = [p^3] + [1].
-template <typename T = int64_t> constexpr Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyInPlaceZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyInPlaceZeta(); }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
-template <typename T = int64_t> constexpr Dirichlet<T> mobius(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return unit<T>(n).divideInPlaceZeta(partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
-template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return id<T>(n).divideInPlaceZeta(partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
-template <typename T = int64_t> constexpr Dirichlet<T> liouville(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return zeta_2s<T>(n).divideInPlaceZeta(partialSum(liouvilleSieve(s), T{}));

@@ -159,10 +159,7 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns the number of integers coprime to the given prime list in the range [1, limit].
-    template <typename Tk> constexpr T countCoprime(Tk k, T limit) const
-    {
-        return sumCoprime(std::identity{}, k, limit);
-    }
+    template <typename Tk> T countCoprime(Tk k, T limit) const { return sumCoprime(std::identity{}, k, limit); }
 
   private:
     // spfOdd[i] holds the smallest prime factor for number (2*i + 1).
@@ -172,7 +169,7 @@ template <std::integral T = int64_t> class SPF
 };
 
 /// Sieve for divisor counts. This is faster than divisorCountSieve2 for limits over 2 million.
-template <typename T = int64_t> constexpr std::vector<T> divisorCountSieve(T limit)
+template <typename T = int64_t> std::vector<T> divisorCountSieve(T limit)
 {
     std::vector<T> sieve(limit + 1, 1);
     sieve[0] = 0;
@@ -200,7 +197,7 @@ template <typename T = int64_t> constexpr std::vector<T> divisorCountSieve(T lim
 }
 
 /// Sieve for the σ₁ function, the divisor sum function.
-template <typename T = int64_t> constexpr std::vector<T> divisorSumSieve(T limit)
+template <typename T = int64_t> std::vector<T> divisorSumSieve(T limit)
 {
     std::vector<T> sieve(limit + 1, 1);
     sieve[0] = 0;
@@ -229,7 +226,7 @@ template <typename T = int64_t> constexpr std::vector<T> divisorSumSieve(T limit
 }
 
 /// Sieve for the ω function, the number of distinct prime factors of a number.
-constexpr std::vector<uint8_t> omegaSieve(size_t limit)
+inline std::vector<uint8_t> omegaSieve(size_t limit)
 {
     std::vector<uint8_t> ω(limit + 1);
     SPF const spfs{limit};
@@ -242,7 +239,7 @@ constexpr std::vector<uint8_t> omegaSieve(size_t limit)
 }
 
 /// Generates a sieve of the mobius function, given a SPF sieve.
-template <typename SPFSieve> constexpr std::vector<int8_t> mobiusSieve(size_t limit, const SPFSieve &spfs)
+template <typename SPFSieve> std::vector<int8_t> mobiusSieve(size_t limit, const SPFSieve &spfs)
 {
     assert(limit <= spfs.size() - 1);
     std::vector<int8_t> μ(limit + 1, 1);
@@ -266,10 +263,10 @@ template <typename SPFSieve> constexpr std::vector<int8_t> mobiusSieve(size_t li
 }
 
 /// Sieve for the Mobius function.
-template <std::integral T> constexpr std::vector<int8_t> mobiusSieve(T limit) { return mobiusSieve(limit, SPF{limit}); }
+template <std::integral T> std::vector<int8_t> mobiusSieve(T limit) { return mobiusSieve(limit, SPF{limit}); }
 
 /// Generates a sieve of squarefree numbers up to a given limit.
-template <typename T = bool> constexpr std::vector<T> squarefreeSieve(size_t limit)
+template <typename T = bool> std::vector<T> squarefreeSieve(size_t limit)
 {
     std::vector<T> sieve(limit + 1, true);
     sieve[0] = false;
@@ -282,7 +279,7 @@ template <typename T = bool> constexpr std::vector<T> squarefreeSieve(size_t lim
 }
 
 /// Generates a sieve of the Liouville function, given an SPF sieve.
-template <typename SPFSieve> constexpr std::vector<int8_t> liouvilleSieve(size_t limit, const SPFSieve &spfs)
+template <typename SPFSieve> std::vector<int8_t> liouvilleSieve(size_t limit, const SPFSieve &spfs)
 {
     assert(limit <= spfs.size() - 1);
     std::vector<int8_t> λ(limit + 1);
@@ -295,13 +292,10 @@ template <typename SPFSieve> constexpr std::vector<int8_t> liouvilleSieve(size_t
 }
 
 /// Sieve for the Liouville function.
-template <std::integral T> constexpr std::vector<int8_t> liouvilleSieve(T limit)
-{
-    return liouvilleSieve(limit, SPF{limit});
-}
+template <std::integral T> std::vector<int8_t> liouvilleSieve(T limit) { return liouvilleSieve(limit, SPF{limit}); }
 
 /// Generates a sieve of the Ω function, given a SPF sieve.
-template <typename SPFSieve> constexpr std::vector<uint8_t> bigOmegaSieve(size_t limit, const SPFSieve &spfs)
+template <typename SPFSieve> std::vector<uint8_t> bigOmegaSieve(size_t limit, const SPFSieve &spfs)
 {
     assert(limit <= spfs.size() - 1);
     std::vector<uint8_t> Ω(limit + 1);
@@ -313,8 +307,5 @@ template <typename SPFSieve> constexpr std::vector<uint8_t> bigOmegaSieve(size_t
 }
 
 /// Sieve for the Ω function.
-template <std::integral T> constexpr std::vector<uint8_t> bigOmegaSieve(T limit)
-{
-    return bigOmegaSieve(limit, SPF{limit});
-}
+template <std::integral T> std::vector<uint8_t> bigOmegaSieve(T limit) { return bigOmegaSieve(limit, SPF{limit}); }
 } // namespace euler
