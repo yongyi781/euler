@@ -302,18 +302,18 @@ template <integral2 T> constexpr T isqrt(T n)
 }
 
 /// Computes the integral nth root of a number.
-template <integral2 T> constexpr T inth_root(T value, int n)
+template <integral2 T> constexpr T inth_root(T x, int n)
 {
     if (n == 1)
-        return value;
+        return x;
     if (n == 2)
-        return isqrt(std::move(value));
+        return isqrt(std::move(x));
     if (n == 4)
-        return isqrt(isqrt(std::move(value)));
-    T x = std::pow(value, (1.0 + DBL_EPSILON) / n);
-    while (std::pow(x, n) > x)
-        --x;
-    return x;
+        return isqrt(isqrt(std::move(x)));
+    T s = std::pow(x, (1.0 + DBL_EPSILON) / n);
+    while (pow(s, n) > x)
+        --s;
+    return s;
 }
 
 /// Returns the square root of an integer, if it is a square. Otherwise, returns none.
