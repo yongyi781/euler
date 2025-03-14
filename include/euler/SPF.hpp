@@ -2,7 +2,7 @@
 
 #include "it/base.hpp"
 #include "it/factor.hpp"
-#include "math.hpp"
+#include "prime.hpp"
 
 inline namespace euler
 {
@@ -67,7 +67,7 @@ template <std::integral T = int64_t> class SPF
     /// Returns the effective size of this SPF sieve, which is 1 more than the max valid input to this sieve.
     [[nodiscard]] size_t size() const noexcept { return spfOdd.size() * 2 + 1; }
 
-    /// Accessor: returns the smallest prime factor for any x (1 <= x <= n).
+    /// Returns the smallest prime factor for any x (1 ≤ x ≤ size()).
     [[nodiscard]] T operator[](T n) const noexcept
     {
         if (n < 2)
@@ -77,10 +77,10 @@ template <std::integral T = int64_t> class SPF
         return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
     }
 
-    /// Returns whether the given number is prime.
+    /// Returns whether the given number is prime. Requires 1 ≤ n ≤ size().
     [[nodiscard]] bool isPrime(T n) const noexcept { return (*this)[n] == n; }
 
-    /// Returns the mobius function for the given number.
+    /// Returns the mobius function for the given number. Requires 1 ≤ n ≤ size().
     [[nodiscard]] int mobius(T n) const noexcept
     {
         int res = 1;
@@ -102,7 +102,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Returns the number of distinct prime factors of the given number.
+    /// Returns the number of distinct prime factors of the given number. Requires 1 ≤ n ≤ size().
     [[nodiscard]] uint32_t omega(T n) const noexcept
     {
         uint32_t res = 0;
@@ -122,7 +122,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Returns the number of prime factors of the given number, with multiplicity.
+    /// Returns the number of prime factors of the given number, with multiplicity. Requires 1 ≤ n ≤ size().
     [[nodiscard]] uint32_t Omega(T n) const noexcept
     {
         uint32_t res = 0;

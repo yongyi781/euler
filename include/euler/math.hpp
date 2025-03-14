@@ -396,29 +396,6 @@ constexpr auto countSquarefree(T n, Range &&primes)
 /// Calculates the nth polygonal number of a given type.
 template <integral2 T> constexpr T polygonalNumber(int p, T n) { return (n * n * (p - 2) - n * (p - 4)) / 2; }
 
-/// Returns the sum of a function `f` over the integers coprime to the given prime list in the range [1, limit]. The
-/// function `f` is passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
-template <typename SummatoryFun, typename It, typename T>
-constexpr auto sumCoprime(SummatoryFun F, It primeBegin, It primeEnd, T limit)
-    -> std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>
-{
-    if (primeBegin == primeEnd)
-        return F(limit);
-    if (primeBegin + 1 == primeEnd)
-        return F(limit) - F(limit / *(primeEnd - 1));
-    auto const p = *(primeEnd - 1);
-    auto res = sumCoprime(F, primeBegin, std::prev(primeEnd), limit);
-    if (limit >= p)
-        res -= sumCoprime(std::move(F), primeBegin, std::prev(primeEnd), limit / p);
-    return res;
-}
-
-/// Returns the number of integers coprime to the given prime list in the range [1, limit].
-template <typename It, typename T> constexpr T countCoprime(It primeBegin, It primeEnd, T limit)
-{
-    return sumCoprime(std::identity{}, primeBegin, primeEnd, limit);
-}
-
 /// Generate the B + 1 numbers (B(1) = 1/2) up to `k`.
 template <typename T> std::vector<T> bernoulliPlus(size_t k)
 {

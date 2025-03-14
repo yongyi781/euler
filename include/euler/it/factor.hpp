@@ -159,4 +159,22 @@ constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&sp
     }
     assert(false && "primitiveRoot: Should not reach here (maybe p wasn't prime).");
 }
+
+/// Returns the number of integers coprime to the given integer in the range [1, limit].
+template <typename SummatoryFun, integral2 Tk, typename T> constexpr auto sumCoprime(SummatoryFun F, Tk k, T limit)
+{
+    thread_local std::vector<Tk> primes;
+    primes.clear();
+    it::factor(k).map([&](auto &&t) { return t.first; }).appendTo(primes);
+    return sumCoprime(std::move(F), primes.begin(), primes.end(), limit);
+}
+
+/// Returns the number of integers coprime to the given integer in the range [1, limit].
+template <integral2 Tk, typename T> constexpr T countCoprime(Tk k, T limit)
+{
+    thread_local std::vector<Tk> primes;
+    primes.clear();
+    it::factor(k).map([&](auto &&t) { return t.first; }).appendTo(primes);
+    return countCoprime(primes.begin(), primes.end(), limit);
+}
 } // namespace euler
