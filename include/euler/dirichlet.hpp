@@ -199,7 +199,7 @@ template <typename T = int64_t> class Dirichlet
 
     /// Compute a single summatory value of (this * ζ). About 33% faster than generic.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <size_t ParThreshold = 8192> [[nodiscard]] T productValueZeta(size_t k) const
+    template <size_t ParThreshold = 8192> [[nodiscard]] T productZetaValue(size_t k) const
     {
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
@@ -248,13 +248,20 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
+    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet square(this Dirichlet self, Range &&precomputed = {})
+    {
+        self.squareInPlace(std::forward<Range>(precomputed));
+        return self;
+    }
+
     /// Multiplies this Dirichlet series with ζ, in place. About 33% faster than generic.
     template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &multiplyInPlaceZeta(Range &&precomputed = {})
+    Dirichlet &multiplyZetaInPlace(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
-                     [&](uint32_t i) { return i == 0 || i > u ? T(0) : productValueZeta<0>(quotient(i)); });
+                     [&](uint32_t i) { return i == 0 || i > u ? T(0) : productZetaValue<0>(quotient(i)); });
         if (precomputed.empty())
         {
             // Sieve for the up values.
@@ -278,9 +285,10 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    [[nodiscard]] Dirichlet square(this Dirichlet self)
+    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet multiplyZeta(this Dirichlet self, Range &&precomputed = {})
     {
-        self.squareInPlace();
+        self.multiplyZetaInPlace(std::forward<Range>(precomputed));
         return self;
     }
 
@@ -297,14 +305,23 @@ template <typename T = int64_t> class Dirichlet
         for (uint32_t i = s + 1; i < _down.size(); ++i)
             down(i) = precomputed[quotient(i)];
         for (uint32_t i = s; i != 0; --i)
-            quotientStep(other, i);
+            divideStep(other, i);
         return *this;
+    }
+
+    /// Division.
+    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
+    template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
+    {
+        self.divideInPlace(other, std::forward<Range>(precomputed));
+        return self;
     }
 
     /// Division in place, in the special case that the divisor is ζ(s). 33% speedup compared to generic.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
     template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &divideInPlaceZeta(Range &&precomputed = {})
+    Dirichlet &divideZetaInPlace(Range &&precomputed = {})
     {
         uint32_t u = _down.size() - 1;
         if (precomputed.empty())
@@ -324,16 +341,16 @@ template <typename T = int64_t> class Dirichlet
                 down(i) = precomputed[quotient(i)];
         }
         for (uint32_t i = u; i != 0; --i)
-            quotientStepZeta(i);
+            divideZetaStep(i);
         return *this;
     }
 
-    /// Division.
+    /// Division, in the special case that the divisor is ζ(s). 33% speedup compared to generic.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
+    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet divideZeta(this Dirichlet self, Range &&precomputed = {})
     {
-        self.divideInPlace(other, std::forward<Range>(precomputed));
+        self.divideZetaInPlace(std::forward<Range>(precomputed));
         return self;
     }
 
@@ -346,27 +363,26 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Returns this raised to a power.
-    [[nodiscard]] Dirichlet pow(int exponent) const
+    [[nodiscard]] Dirichlet pow(this Dirichlet self, int exponent)
     {
-        Dirichlet x{_n, [](auto &&) { return T(1); }};
+        Dirichlet x{self.n(), [](auto &&) { return T(1); }};
         if (exponent == 0)
             return x;
-        Dirichlet y = *this;
         if (exponent < 0)
         {
-            y = ~y;
+            self = ~self;
             exponent = -exponent;
         }
         while (true)
         {
             if (exponent & 1)
             {
-                x *= y;
+                x *= self;
                 if (exponent == 1)
                     break;
             }
             exponent >>= 1;
-            y.squareInPlace();
+            self.squareInPlace();
         }
         return x;
     }
@@ -453,7 +469,7 @@ template <typename T = int64_t> class Dirichlet
                 up(k) /= c;
         partialSumInPlace(_up);
         for (uint32_t i = _down.size() - 1; i != 0; --i)
-            quotientStep(other, i);
+            divideStep(other, i);
         return *this;
     }
 
@@ -522,7 +538,7 @@ template <typename T = int64_t> class Dirichlet
     std::vector<size_t> _quotients;
 
     /// One step of the divison algorithm. Internal use only.
-    template <typename U> void quotientStep(const Dirichlet<U> &other, uint32_t i)
+    template <typename U> void divideStep(const Dirichlet<U> &other, uint32_t i)
     {
         size_t const k = quotient(i);
         uint32_t const s = isqrt(k);
@@ -543,7 +559,7 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// One step of the divison algorithm by ζ(s). Internal use only.
-    void quotientStepZeta(uint32_t i)
+    void divideZetaStep(uint32_t i)
     {
         size_t const k = quotient(i);
         uint32_t const s = isqrt(k);
@@ -736,34 +752,34 @@ template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 template <typename T = int64_t> Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return id<T>(n).multiplyInPlaceZeta(partialSum(divisorSumSieve(s), T{}));
+    return id<T>(n).multiplyZeta(partialSum(divisorSumSieve(s), T{}));
 }
 
 /// ζ(s)ζ(s - 2). f(n) = sum of squares of divisors of n. O(n^(2/3)). Motive = [p^2] + [1].
-template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiplyInPlaceZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiplyZeta(); }
 
 /// ζ(s)ζ(s - 3). f(n) = sum of cubes of divisors of n. O(n^(2/3)). Motive = [p^3] + [1].
-template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyInPlaceZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyZeta(); }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
 template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return unit<T>(n).divideInPlaceZeta(partialSum(mobiusSieve(s), T{}));
+    return unit<T>(n).divideZeta(partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
 template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return id<T>(n).divideInPlaceZeta(partialSum(totientSieve(s), T{}));
+    return id<T>(n).divideZeta(partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
 template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return zeta_2s<T>(n).divideInPlaceZeta(partialSum(liouvilleSieve(s), T{}));
+    return zeta_2s<T>(n).divideZeta(partialSum(liouvilleSieve(s), T{}));
 }
 } // namespace dirichlet
 } // namespace euler
