@@ -244,35 +244,6 @@ template <integral2 T, integral2 U> constexpr auto binomial2(T n, U r)
     return result;
 }
 
-/// Computes `∑ (ab ≤ n), g(a) * h(b)`.
-/// Also known as `∑ (k ≤ n), (g * h)(k)`.
-/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)`.
-/// Requirements:
-/// * `G` and `H` are the summatory functions of `g` and `h`
-/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
-template <execution_policy Exec, std::integral T, std::invocable<T> Fun1, std::invocable<T> SummatoryFun1,
-          std::invocable<T> Fun2, std::invocable<T> SummatoryFun2>
-auto sumConvolution(Exec &&exec, T n, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
-{
-    T const s = isqrt(n);
-    return sum(std::forward<Exec>(exec), T(1), s, [&](auto &&k) { return g(k) * H(n / k) + h(k) * G(n / k); }) -
-           G(s) * H(s);
-}
-
-/// Computes `∑ (ab ≤ n), g(a) * h(b)`.
-/// Also known as `∑ (k ≤ n), (g * h)(k)`.
-/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)`.
-/// Requirements:
-/// * `G` and `H` are the summatory functions of `g` and `h`
-/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
-template <std::integral T, std::invocable<T> Fun1, std::invocable<T> SummatoryFun1, std::invocable<T> Fun2,
-          std::invocable<T> SummatoryFun2>
-auto sumConvolution(T n, Fun1 g, SummatoryFun1 G, Fun2 h, SummatoryFun2 H)
-{
-    return n < 40'000'000 ? sumConvolution(std::execution::seq, n, g, G, h, H)
-                          : sumConvolution(std::execution::par, n, g, G, h, H);
-}
-
 /// Calculates `Σ k ≥ 0, f(⌊n / (a * k + b)⌋)`.
 template <execution_policy ExecutionPolicy, std::integral Tn, std::integral Ta = int, std::integral Tb = int,
           typename Fun = std::identity>
