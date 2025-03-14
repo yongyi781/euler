@@ -310,7 +310,7 @@ template <integral2 T> constexpr T inth_root(T x, int n)
         return isqrt(std::move(x));
     if (n == 4)
         return isqrt(isqrt(std::move(x)));
-    T s = std::pow(x, (1.0 + DBL_EPSILON) / n);
+    T s = (T)std::pow((double)x, (1.0 + DBL_EPSILON) / n);
     while (pow(s, n) > x)
         --s;
     return s;
