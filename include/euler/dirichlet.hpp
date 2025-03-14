@@ -42,9 +42,9 @@ template <typename T = int64_t> class Dirichlet
     template <typename Fun> constexpr Dirichlet(size_t n, Fun F) : Dirichlet(n)
     {
         for (size_t k = 1; k < _up.size(); ++k)
-            _up[k] = F(k);
+            _up[k] = T(F(k));
         for (uint32_t i = _down.size() - 1; i != 0; --i)
-            _down[i] = F(_quotients[i]);
+            _down[i] = T(F(_quotients[i]));
     }
 
     constexpr T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }
@@ -206,11 +206,11 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
         return sumMaybeParallel<ParThreshold>(
-                   1, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * quotient(i * j) + down(i * j); }) +
+                   1, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * T(quotient(i * j)) + down(i * j); }) +
                sumMaybeParallel<ParThreshold>(u + 1, s,
                                               [&](uint32_t j) -> T {
                                                   auto const kdivj = quotient(j) / fasti;
-                                                  return (up(j) - up(j - 1)) * kdivj + up(kdivj);
+                                                  return (up(j) - up(j - 1)) * T(kdivj) + up(kdivj);
                                               }) -
                up(s) * s;
     }
@@ -549,14 +549,14 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const s = isqrt(k);
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        down(i) -= (up(1) - up(0)) * k;
+        down(i) -= (up(1) - up(0)) * T(k);
         down(i) -= sumMaybeParallel(
-                       2, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * quotient(i * j) + down(i * j); }) +
+                       2, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * T(quotient(i * j)) + down(i * j); }) +
                    sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T {
                        size_t const kdivj = quotient(j) / fasti;
-                       return (up(j) - up(j - 1)) * kdivj + up(kdivj);
+                       return (up(j) - up(j - 1)) * T(kdivj) + up(kdivj);
                    });
-        down(i) += up(s) * s;
+        down(i) += up(s) * T(s);
     }
 };
 
@@ -593,7 +593,7 @@ auto productValue(Tn n, SummatoryFun1 F, SummatoryFun2 G)
 /// 1, the multiplicative identity. f(n) = [n = 1]. Motive = 0.
 template <typename T = int64_t> constexpr Dirichlet<T> unit(size_t n)
 {
-    return {n, [](size_t) { return T(1); }};
+    return {n, [](size_t) -> T { return 1; }};
 }
 
 /// ζ(s). f(n) = 1. Motive = [1].
@@ -602,20 +602,20 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta(size_t n) { return {
 /// ζ(s - 1). f(n) = n. Motive = [p].
 template <typename T = int64_t> constexpr Dirichlet<T> id(size_t n)
 {
-    return {n, [](size_t k) { return sumId<T>(k); }};
+    return {n, [](size_t k) -> T { return sumId<T>(k); }};
 }
 
 /// ζ(s - 2). f(n) = n^2. If `T = ZMod<M>`, currently requires that neither 2 or 3 divide `M`. Motive = [p^2].
 template <typename T = int64_t> constexpr Dirichlet<T> id2(size_t n)
 {
     // Fancy stuff to avoid overflow or ZMod divisions.
-    return {n, [](size_t k) { return sumSquares<T>(k); }};
+    return {n, [](size_t k) -> T { return sumSquares<T>(k); }};
 }
 
 /// ζ(s - 3). f(n) = n^3. Motive = [p^3].
 template <typename T = int64_t> constexpr Dirichlet<T> id3(size_t n)
 {
-    return {n, [](size_t k) {
+    return {n, [](size_t k) -> T {
                 T const s = k % 2 == 0 ? T(k / 2) * (k + 1) : T((k + 1) / 2) * k;
                 return s * s;
             }};
@@ -624,33 +624,33 @@ template <typename T = int64_t> constexpr Dirichlet<T> id3(size_t n)
 /// ζ(2s). f(n) = [n is square]. Motive = [1] + [-1].
 template <typename T = int64_t> constexpr Dirichlet<T> zeta_2s(size_t n)
 {
-    return {n, [](size_t k) { return isqrt(k); }};
+    return {n, [](size_t k) -> T { return isqrt(k); }};
 }
 
 /// ζ(as). f(n) = [n is a perfect ath power]. Motive = sum([r] for r in ath roots of unity)
 template <typename T = int64_t> constexpr Dirichlet<T> zeta_multiple(int a, size_t n)
 {
-    return {n, [&](size_t k) { return (T)std::pow(k + 0.5, 1.0 / a); }};
+    return {n, [&](size_t k) -> T { return (T)std::pow(k + 0.5, 1.0 / a); }};
 }
 
 /// χ_(-3)(s). f(n) = (-3|n). 1 if 1 mod 3, -1 if 2 mod 3, 0 otherwise. L-function of the hexagonal lattice and the
 /// Eisenstein integers.
 template <typename T = int64_t> constexpr Dirichlet<T> chi3(size_t n)
 {
-    return {n, [&](size_t k) { return T(k % 3 == 1); }};
+    return {n, [&](size_t k) -> T { return k % 3 == 1; }};
 }
 
 /// χ_(-4)(s). f(n) = (-4|n). 1 if 1 mod 4, -1 if 3 mod 4, 0 otherwise. Also known as the Dirichlet beta function.
 /// Motive = χ_(-4).
 template <typename T = int64_t> constexpr Dirichlet<T> chi4(size_t n)
 {
-    return {n, [&](size_t k) { return T(k % 4 == 1 || k % 4 == 2); }};
+    return {n, [&](size_t k) -> T { return k % 4 == 1 || k % 4 == 2; }};
 }
 
 /// χ_5(s). f(n) = (5|n).
 template <typename T = int64_t> constexpr Dirichlet<T> chi5(size_t n)
 {
-    return {n, [&](size_t k) { return std::array{0, 1, 0, -1, 0}[k % 5]; }};
+    return {n, [&](size_t k) -> T { return std::array{0, 1, 0, -1, 0}[k % 5]; }};
 }
 
 /// 1 / ζ(2s). f(n) = [n is square] * μ(√n). O(n^(1/2)). Motive = -[1] - [-1].
@@ -658,7 +658,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_2s(size_t n)
 {
     auto const mu = mobiusSieve(isqrt(n));
     auto const mertens = partialSum(mu, T{});
-    return {n, [&](size_t k) { return mertens[isqrt(k)]; }};
+    return {n, [&](size_t k) -> T { return mertens[isqrt(k)]; }};
 }
 
 /// 1 / ζ(as). f(n) = [n is a perfect rth power] * μ(n^(1/a)). O(n^(1/a)). Motive = -∑([r] for r in ath roots of unity).
@@ -666,7 +666,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_multiple(int a, 
 {
     auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
     auto const mertens = partialSum(mu, T{});
-    return {n, [&](size_t k) { return mertens[(size_t)std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return mertens[(size_t)std::pow(k + 0.5, 1.0 / a)]; }};
 }
 
 /// ζ(as - b). f(n) = [n = k^a] * k^b. Requires `a > 1`. Motive = ∑([r*p^(b/a)] for r in ath roots of unity).
@@ -677,7 +677,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> zeta_linear(int a, int b,
     auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b); });
     sieve[0] = 0;
     partialSumInPlace(sieve);
-    return {n, [&](size_t k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
 }
 
 /// 1 / ζ(as - b). f(n) = [n = k^a] * μ(k) * k^b. Requires `a > 1`. Motive = -∑([r*p^(b/a)] for r in ath roots of
@@ -690,7 +690,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> inv_zeta_linear(int a, in
     auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
     partialSumInPlace(sieve);
-    return {n, [&](size_t k) { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
 }
 
 /// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(3/5)). Motive = -[-1].
@@ -711,7 +711,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n, doub
 }
 
 /// ζ(s)^2. f(n) = number of divisors of n. O(n^(2/3)). Motive = 2[1].
-template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alpha = 0.05)
+template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
@@ -733,7 +733,7 @@ template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alph
 }
 
 /// ζ(s)ζ(s - 1). f(n) = sum of divisors of n. O(n^(2/3)). Motive = [p] + [1].
-template <typename T = int64_t> constexpr Dirichlet<T> sigma(size_t n, double alpha = 0.38)
+template <typename T = int64_t> constexpr Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return id<T>(n).multiplyInPlaceZeta(partialSum(divisorSumSieve(s), T{}));
@@ -746,21 +746,21 @@ template <typename T = int64_t> constexpr Dirichlet<T> sigma2(size_t n) { return
 template <typename T = int64_t> constexpr Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyInPlaceZeta(); }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
-template <typename T = int64_t> constexpr Dirichlet<T> mobius(size_t n, double alpha = 0.38)
+template <typename T = int64_t> constexpr Dirichlet<T> mobius(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return unit<T>(n).divideInPlaceZeta(partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
-template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n, double alpha = 0.5)
+template <typename T = int64_t> constexpr Dirichlet<T> totient(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return id<T>(n).divideInPlaceZeta(partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
-template <typename T = int64_t> constexpr Dirichlet<T> liouville(size_t n, double alpha = 0.5)
+template <typename T = int64_t> constexpr Dirichlet<T> liouville(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     return zeta_2s<T>(n).divideInPlaceZeta(partialSum(liouvilleSieve(s), T{}));
