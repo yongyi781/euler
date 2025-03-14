@@ -182,8 +182,6 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
-        if (u < 1 || s < u + 1)
-            std::cout << "Help";
         libdivide::divider<size_t> const fasti(i);
         return sumMaybeParallel<ParThreshold>(1, u,
                                               [&](uint32_t j) -> T {
@@ -223,7 +221,7 @@ template <typename T = int64_t> class Dirichlet
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
-                     [&](uint32_t i) { return i == 0 ? T(0) : squareValue<0>(quotient(i)); });
+                     [&](uint32_t i) { return i == 0 || i > u ? T(0) : squareValue<0>(quotient(i)); });
 
         if (precomputed.empty())
         {
@@ -256,7 +254,7 @@ template <typename T = int64_t> class Dirichlet
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
-                     [&](uint32_t i) { return i == 0 ? T(0) : productValueZeta<0>(quotient(i)); });
+                     [&](uint32_t i) { return i == 0 || i > u ? T(0) : productValueZeta<0>(quotient(i)); });
         if (precomputed.empty())
         {
             // Sieve for the up values.
@@ -475,10 +473,16 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Dirichlet operator*(Dirichlet left, T value)
+    [[nodiscard]] constexpr friend Dirichlet operator*(Dirichlet S, T value)
     {
-        left *= value;
-        return left;
+        S *= value;
+        return S;
+    }
+
+    [[nodiscard]] constexpr friend Dirichlet operator*(T value, Dirichlet S)
+    {
+        S *= value;
+        return S;
     }
 
     /// Division by a scalar.
