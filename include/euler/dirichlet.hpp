@@ -15,11 +15,11 @@ template <typename T = int64_t> class Dirichlet
     Dirichlet() = default;
 
     /// Configurable upper bound on the size of the up vector.
-    static inline size_t pivotMax = 1'000'000'000;
+    static inline size_t pivotMax = 1UZ << 31;
     /// Configurable exponent on the size of the up vector.
     static inline double pivotExponent = 2.0 / 3;
-    /// Configurable coefficient on the size of the up vector.
-    static inline double pivotCoefficient = 0.5;
+    /// Configurable coefficient on the size of the up vector. Ideal is 0.2 for multiplication and 0.5 for division.
+    static inline double pivotCoefficient = 0.2;
 
     /// Gives the default size of the up vector for a given value of `n`.
     static constexpr size_t defaultPivot(size_t n)
@@ -158,21 +158,23 @@ template <typename T = int64_t> class Dirichlet
 
     /// Compute a single summatory value of `this * this`.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    [[nodiscard]] constexpr T squareValue(size_t k) const
+    template <size_t ParThreshold = 8192> [[nodiscard]] constexpr T squareValue(size_t k) const
     {
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        return 2 * (sumMaybeParallel(1, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * down(i * j); }) +
-                    sumMaybeParallel(u + 1, s,
-                                     [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * up(quotient(j) / fasti); })) -
+        return 2 * (sumMaybeParallel<ParThreshold>(1, u,
+                                                   [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * down(i * j); }) +
+                    sumMaybeParallel<ParThreshold>(
+                        u + 1, s, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * up(quotient(j) / fasti); })) -
                up(s) * up(s);
     }
 
     /// Compute a single summatory value of (this * other).
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <typename U> [[nodiscard]] constexpr T productValue(const Dirichlet<U> &other, size_t k) const
+    template <size_t ParThreshold = 8192, typename U>
+    [[nodiscard]] constexpr T productValue(const Dirichlet<U> &other, size_t k) const
     {
         if constexpr (std::is_same_v<T, U>)
             if (this == &other)
@@ -180,36 +182,38 @@ template <typename T = int64_t> class Dirichlet
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
+        if (u < 1 || s < u + 1)
+            std::cout << "Help";
         libdivide::divider<size_t> const fasti(i);
-        return sumMaybeParallel(1, u,
-                                [&](uint32_t j) -> T {
-                                    return (up(j) - up(j - 1)) * other.down(i * j) +
-                                           (other.up(j) - other.up(j - 1)) * down(i * j);
-                                }) +
-               sumMaybeParallel(u + 1, s,
-                                [&](uint32_t j) -> T {
-                                    auto const kdivj = quotient(j) / fasti;
-                                    return (up(j) - up(j - 1)) * other.up(kdivj) +
-                                           (other.up(j) - other.up(j - 1)) * up(kdivj);
-                                }) -
+        return sumMaybeParallel<ParThreshold>(1, u,
+                                              [&](uint32_t j) -> T {
+                                                  return (up(j) - up(j - 1)) * other.down(i * j) +
+                                                         (other.up(j) - other.up(j - 1)) * down(i * j);
+                                              }) +
+               sumMaybeParallel<ParThreshold>(u + 1, s,
+                                              [&](uint32_t j) -> T {
+                                                  auto const kdivj = quotient(j) / fasti;
+                                                  return (up(j) - up(j - 1)) * other.up(kdivj) +
+                                                         (other.up(j) - other.up(j - 1)) * up(kdivj);
+                                              }) -
                up(s) * other.up(s);
     }
 
     /// Compute a single summatory value of (this * ζ). About 33% faster than generic.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    [[nodiscard]] constexpr T productValueZeta(size_t k) const
+    template <size_t ParThreshold = 8192> [[nodiscard]] constexpr T productValueZeta(size_t k) const
     {
         uint32_t const s = isqrt(k);
         uint32_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        return sumMaybeParallel(1, u,
-                                [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * quotient(i * j) + down(i * j); }) +
-               sumMaybeParallel(u + 1, s,
-                                [&](uint32_t j) -> T {
-                                    auto const kdivj = quotient(j) / fasti;
-                                    return (up(j) - up(j - 1)) * kdivj + up(kdivj);
-                                }) -
+        return sumMaybeParallel<ParThreshold>(
+                   1, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * quotient(i * j) + down(i * j); }) +
+               sumMaybeParallel<ParThreshold>(u + 1, s,
+                                              [&](uint32_t j) -> T {
+                                                  auto const kdivj = quotient(j) / fasti;
+                                                  return (up(j) - up(j - 1)) * kdivj + up(kdivj);
+                                              }) -
                up(s) * s;
     }
 
@@ -218,8 +222,9 @@ template <typename T = int64_t> class Dirichlet
     constexpr Dirichlet &squareInPlace(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
-        for (uint32_t i = 1; i <= u; ++i)
-            down(i) = squareValue(quotient(i));
+        _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
+                     [&](uint32_t i) { return i == 0 ? T(0) : squareValue<0>(quotient(i)); });
+
         if (precomputed.empty())
         {
             // Sieve for the up values.
@@ -250,8 +255,8 @@ template <typename T = int64_t> class Dirichlet
     constexpr Dirichlet &multiplyInPlaceZeta(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
-        for (uint32_t i = 1; i <= u; ++i)
-            down(i) = productValueZeta(quotient(i));
+        _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
+                     [&](uint32_t i) { return i == 0 ? T(0) : productValueZeta<0>(quotient(i)); });
         if (precomputed.empty())
         {
             // Sieve for the up values.
@@ -409,8 +414,8 @@ template <typename T = int64_t> class Dirichlet
             if (this == &other)
                 return squareInPlace();
         assert(_n == other.n());
-        for (uint32_t i = 1; i < _down.size(); ++i)
-            down(i) = productValue(other, quotient(i));
+        _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
+                     [&](uint32_t i) { return i == 0 ? T(0) : productValue<0>(other, quotient(i)); });
         // Sieve for the up values.
         std::vector<T> sieve(_up.size());
         T a{};
@@ -553,6 +558,34 @@ template <typename T = int64_t> class Dirichlet
 
 namespace dirichlet
 {
+/// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n).
+/// Also known as `∑ (k ≤ n), (g * h)(k)`.
+/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)`.
+/// Requirements:
+/// * `G` and `H` should be the summatory functions of `g` and `h`.
+/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
+template <integral2 T = size_t, typename Fun1, typename SummatoryFun1, typename Fun2, typename SummatoryFun2>
+auto productValue(T n, Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G)
+{
+    using H = half_integer_t<T>;
+    using Tp = std::common_type_t<std::invoke_result_t<SummatoryFun1, T>, std::invoke_result_t<SummatoryFun1, T>>;
+    H const s = isqrt(n);
+    return sumMaybeParallel(H(1), s,
+                            [&](H k) {
+                                T const ndivk = n / k;
+                                return Tp(F(ndivk)) * g(k) + Tp(G(ndivk)) * f(k);
+                            }) -
+           Tp(F(s)) * G(s);
+}
+
+/// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n), given only their summatory functions. Convenience function.
+template <integral2 Tn = size_t, typename SummatoryFun1, typename SummatoryFun2>
+auto productValue(Tn n, SummatoryFun1 F, SummatoryFun2 G)
+{
+    return productValue(
+        std::move(n), [&](auto &&k) { return F(k) - F(k - 1); }, F, [&](auto &&k) { return G(k) - G(k - 1); }, G);
+}
+
 /// 1, the multiplicative identity. f(n) = [n = 1]. Motive = 0.
 template <typename T = int64_t> constexpr Dirichlet<T> unit(size_t n)
 {
@@ -674,25 +707,24 @@ template <typename T = int64_t> constexpr Dirichlet<T> squarefree(size_t n, doub
 }
 
 /// ζ(s)^2. f(n) = number of divisors of n. O(n^(2/3)). Motive = 2[1].
-template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alpha = 0.18)
+template <typename T = int64_t> constexpr Dirichlet<T> tau(size_t n, double alpha = 0.05)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
-    Dirichlet<T> S{n};
+    Dirichlet S{n};
     std::copy(precomputed.begin(), precomputed.begin() + S.up().size(), S.up().begin());
     uint32_t const u = n / precomputed.size();
     for (uint32_t i = u + 1; i < S.down().size(); ++i)
         S.down(i) = precomputed[S.quotient(i)];
-    for (uint32_t i = 1; i <= u; ++i)
-    {
+    std::for_each(std::execution::par, counting_iterator(1_u32), counting_iterator(u + 1), [&](uint32_t i) {
         size_t const k = n / i;
         uint32_t const s = isqrt(k);
         uint32_t const u = (S.down().size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        S.down()[i] = 2 * (sumMaybeParallel(1, u, [&](uint32_t j) -> T { return S.quotient(i * j); }) +
-                           sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T { return S.quotient(j) / fasti; })) -
-                      T(s) * T(s);
-    }
+        S.down(i) = 2 * (sum(1, u, [&](uint32_t j) -> T { return S.quotient(i * j); }) +
+                         sum(u + 1, s, [&](uint32_t j) -> T { return S.quotient(j) / fasti; })) -
+                    T(s) * T(s);
+    });
     return S;
 }
 
