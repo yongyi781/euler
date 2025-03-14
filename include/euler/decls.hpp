@@ -287,10 +287,33 @@ template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b,
 /// Computes the integral square root of a number.
 template <integral2 T> constexpr T isqrt(T n)
 {
-    if (!std::integral<T> || std::is_constant_evaluated())
-        return boost::multiprecision::sqrt(n);
-    T x = (T)sqrt(n);
-    return x * x > n ? x - 1 : x;
+    if constexpr (!std::integral<T>)
+        return sqrt(std::move(n));
+    // boost::multiprecision::sqrt is constexpr, so take advantage of that in a constant-evaluated context.
+    if (std::is_constant_evaluated())
+        return boost::multiprecision::sqrt(std::move(n));
+    // This constant is the first input where floor(sqrt(n)) returns the wrong value.
+    if (n < 4'503'599'761'588'224)
+        return sqrt(std::move(n));
+    T x = sqrt(std::move(n));
+    while (x * x > n)
+        --x;
+    return x;
+}
+
+/// Computes the integral nth root of a number.
+template <integral2 T> constexpr T inth_root(T value, int n)
+{
+    if (n == 1)
+        return value;
+    if (n == 2)
+        return isqrt(std::move(value));
+    if (n == 4)
+        return isqrt(isqrt(std::move(value)));
+    T x = std::pow(value, (1.0 + DBL_EPSILON) / n);
+    while (std::pow(x, n) > x)
+        --x;
+    return x;
 }
 
 /// Returns the square root of an integer, if it is a square. Otherwise, returns none.
