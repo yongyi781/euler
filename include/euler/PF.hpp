@@ -9,6 +9,10 @@ template <typename T = int64_t> class PF
   public:
     using value_type = PrimePower<T>;
     using container_type = std::vector<value_type>;
+    using reference = container_type::reference;
+    using const_reference = container_type::const_reference;
+    using iterator = container_type::iterator;
+    using const_iterator = container_type::const_iterator;
 
     PF() = default;
 
@@ -30,17 +34,23 @@ template <typename T = int64_t> class PF
     /// Mutable end iterator. Make sure invariants are preserved.
     [[nodiscard]] constexpr auto end() noexcept { return _data.end(); }
     [[nodiscard]] constexpr auto end() const noexcept { return _data.end(); }
-    [[nodiscard]] constexpr value_type &front() noexcept { return _data.front(); }
-    [[nodiscard]] constexpr const value_type &front() const noexcept { return _data.front(); }
-    [[nodiscard]] constexpr value_type &back() noexcept { return _data.back(); }
-    [[nodiscard]] constexpr const value_type &back() const noexcept { return _data.back(); }
+    [[nodiscard]] constexpr reference front() noexcept { return _data.front(); }
+    [[nodiscard]] constexpr const_reference front() const noexcept { return _data.front(); }
+    [[nodiscard]] constexpr reference back() noexcept { return _data.back(); }
+    [[nodiscard]] constexpr const_reference back() const noexcept { return _data.back(); }
 
-    [[nodiscard]] constexpr value_type &operator[](size_t i) noexcept { return _data[i]; }
-    [[nodiscard]] constexpr const value_type &operator[](size_t i) const noexcept { return _data[i]; }
+    [[nodiscard]] constexpr reference operator[](size_t i) noexcept { return _data[i]; }
+    [[nodiscard]] constexpr const_reference operator[](size_t i) const noexcept { return _data[i]; }
 
     constexpr void pop_back() noexcept { _data.pop_back(); }
     constexpr void swap(PF &other) noexcept { _data.swap(other._data); }
     constexpr void clear() noexcept { _data.clear(); }
+    /// Dangerous! Make sure you know what you are doing.
+    template <typename... Args> constexpr reference emplace_back(Args &&...args) { return _data.emplace_back(args...); }
+    /// Dangerous! Make sure you know what you are doing.
+    constexpr void push_back(value_type x) { _data.push_back(x); }
+    /// Dangerous! Make sure you know what you are doing.
+    constexpr iterator insert(const_iterator position, value_type x) { _data.insert(position, x); }
 
     /// Combines two prime factorizations using a binary operation `op` on the exponents.
     template <typename U, std::invocable<int, int> BinaryOp>

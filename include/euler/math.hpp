@@ -383,31 +383,29 @@ template <typename T> std::vector<T> bernoulliPlus(size_t k)
 }
 
 /// Sums `1 + 2 + ... + limit`, maximally avoiding overflow and also avoiding divisions in `T`.
-template <typename T = int64_t> constexpr T sumId(size_t limit)
-{
-    return limit % 2 == 0 ? T(limit / 2) * (limit + 1) : T(limit) * ((limit + 1) / 2);
-}
+template <typename T = int64_t> constexpr T sumId(size_t limit) { return T((limit + (limit & 1)) >> 1) * (limit | 1); }
 
-/// Sums `1^2 + 2^2 + ... + limit^2`, maximally avoiding overflow and also avoiding divisions in `T`.
+/// Sums `1^2 + 2^2 + ... + limit^2`.
 template <typename T = int64_t> constexpr T sumSquares(size_t limit)
 {
-    assert(limit >= 0);
-    switch (limit % 6)
-    {
-    case 0:
-        return T(limit / 6) * (limit + 1) * T(2 * limit + 1);
-    case 1:
-        return T(limit) * T((limit + 1) / 2) * T((2 * limit + 1) / 3);
-    case 2:
-        return T(limit / 2) * T((limit + 1) / 3) * T(2 * limit + 1);
-    case 3:
-        return T(limit / 3) * T((limit + 1) / 2) * T(2 * limit + 1);
-    case 4:
-        return T(limit / 2) * T(limit + 1) * T((2 * limit + 1) / 3);
-    case 5:
-        return T(limit) * T((limit + 1) / 6) * T(2 * limit + 1);
-    default:
-        std::unreachable();
-    }
+    return sumId<T>(limit) * (2 * limit + 1) / 3;
+    // Ugly code for maximally avoiding overflow and also avoiding divisions in `T`.
+    // switch (limit % 6)
+    // {
+    // case 0:
+    //     return T(limit / 6) * (limit + 1) * T(2 * limit + 1);
+    // case 1:
+    //     return T(limit) * T((limit + 1) / 2) * T((2 * limit + 1) / 3);
+    // case 2:
+    //     return T(limit / 2) * T((limit + 1) / 3) * T(2 * limit + 1);
+    // case 3:
+    //     return T(limit / 3) * T((limit + 1) / 2) * T(2 * limit + 1);
+    // case 4:
+    //     return T(limit / 2) * T(limit + 1) * T((2 * limit + 1) / 3);
+    // case 5:
+    //     return T(limit) * T((limit + 1) / 6) * T(2 * limit + 1);
+    // default:
+    //     std::unreachable();
+    // }
 }
 } // namespace euler

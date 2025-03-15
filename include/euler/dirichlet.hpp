@@ -544,7 +544,8 @@ template <typename T> class Dirichlet
         down(i) -= sumMaybeParallel(2, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); });
         down(i) -= sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); });
         down(i) += up(s) * T(other.up(s));
-        down(i) /= other.value(1);
+        if (other.value(1) != 1)
+            down(i) /= other.value(1);
     }
 };
 
@@ -710,7 +711,8 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_linear(int a, int b, size_
 /// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(3/5)). Motive = -[-1].
 template <typename T = int64_t> Dirichlet<T> squarefree(size_t n, double alpha = 1.25)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6)));
+    size_t const s =
+        std::min(Dirichlet<T>::pivotMax, std::max(Dirichlet<T>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6))));
     auto const mu = mobiusSieve(isqrt(n));
     auto const mertens = partialSum(mu, T{});
     auto const precomputed = partialSum(squarefreeSieve<uint8_t>(s), T{});
@@ -727,7 +729,8 @@ template <typename T = int64_t> Dirichlet<T> squarefree(size_t n, double alpha =
 /// ζ(s)^2. f(n) = number of divisors of n. O(n^(2/3)). Motive = 2[1].
 template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
+    size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
+                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
     Dirichlet S{n};
     std::copy(precomputed.begin(), precomputed.begin() + S.up().size(), S.up().begin());
@@ -749,7 +752,8 @@ template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 /// ζ(s)ζ(s - 1). f(n) = sum of divisors of n. O(n^(2/3)). Motive = [p] + [1].
 template <typename T = int64_t> Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
+    size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
+                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     return id<T>(n).multiply(zeta<T>(), partialSum(divisorSumSieve(s), T{}));
 }
 
@@ -762,21 +766,24 @@ template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n)
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
 template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.45)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
+    size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
+                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     return unit<T>(n).divide(zeta<T>(), partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
 template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.35)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
+    size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
+                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     return id<T>(n).divide(zeta<T>(), partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
 template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.35)
 {
-    size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
+    size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
+                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     return zeta_2s<T>(n).divide(zeta<T>(), partialSum(liouvilleSieve(s), T{}));
 }
 } // namespace dirichlet

@@ -71,10 +71,10 @@ template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modIn
     if (modulus == 1)
         return 0;
     // make sure a < modulus:
-    Tp aSmall = Tp(mod(a, modulus));
-    if (a == 0)
+    Tp a_small = Tp(mod(a, modulus));
+    if (a_small == 0)
         return 0;
-    euclidean_result_t<Tp> u = xgcd(aSmall, Tp(modulus));
+    euclidean_result_t<Tp> u = xgcd(a_small, Tp(modulus));
     if (u.gcd > 1)
         return 0;
     // x might not be in the range 0 < x < m, let's fix that:
