@@ -383,13 +383,13 @@ template <typename T> std::vector<T> bernoulliPlus(size_t k)
 }
 
 /// Sums `1 + 2 + ... + limit`, maximally avoiding overflow and also avoiding divisions in `T`.
-template <typename T = int64_t> T sumId(size_t limit)
+template <typename T = int64_t> constexpr T sumId(size_t limit)
 {
     return limit % 2 == 0 ? T(limit / 2) * (limit + 1) : T(limit) * ((limit + 1) / 2);
 }
 
 /// Sums `1^2 + 2^2 + ... + limit^2`, maximally avoiding overflow and also avoiding divisions in `T`.
-template <typename T = int64_t> T sumSquares(size_t limit)
+template <typename T = int64_t> constexpr T sumSquares(size_t limit)
 {
     assert(limit >= 0);
     switch (limit % 6)

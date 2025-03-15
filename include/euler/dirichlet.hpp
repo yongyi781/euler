@@ -8,8 +8,59 @@
 
 inline namespace euler
 {
+/// A class representing a special Dirichlet series that does not require any storage.
+template <typename Fun, typename SFun> class SpecialDirichlet
+{
+  public:
+    constexpr SpecialDirichlet(Fun f, SFun F) : m_f(std::move(f)), m_F(std::move(F)) {}
+
+    [[nodiscard]] constexpr auto value(size_t k) const { return m_f(k); }
+    [[nodiscard]] constexpr auto sum(size_t k) const { return m_F(k); }
+    [[nodiscard]] constexpr auto up(size_t k) const { return m_F(k); }
+
+    [[nodiscard]] constexpr auto operator[](size_t k) const { return m_F(k); }
+
+    template <typename Fun2, typename SFun2, integral2 T>
+    [[nodiscard]] auto productValue(const SpecialDirichlet<Fun2, SFun2> &other, T n) const
+    {
+        using H = half_integer_t<T>;
+        using Tp = std::common_type_t<std::invoke_result_t<SFun, T>, std::invoke_result_t<SFun2, T>>;
+        H const s = isqrt(n);
+        return sumMaybeParallel(H(1), s,
+                                [&](H k) {
+                                    T const ndivk = n / k;
+                                    return Tp(sum(ndivk)) * Tp(other.value(k)) + Tp(other.sum(ndivk)) * Tp(value(k));
+                                }) -
+               Tp(sum(s)) * other.sum(s);
+    }
+
+  private:
+    Fun m_f;
+    SFun m_F;
+};
+
+template <typename T = int64_t> class Dirichlet;
+
+// Primary template: defaults to false
+template <typename T> struct is_dirichlet : std::false_type
+{
+};
+
+// Partial specialization for A<T>
+template <typename T> struct is_dirichlet<Dirichlet<T>> : std::true_type
+{
+};
+
+// Partial specialization for A<T>
+template <typename Fun, typename SFun> struct is_dirichlet<SpecialDirichlet<Fun, SFun>> : std::true_type
+{
+};
+
+template <typename T>
+concept dirichlet_type = is_dirichlet<std::decay_t<T>>::value;
+
 /// Class for computing Dirichlet series summatory functions, where `up` has size O((n / log(n))^(2/3)).
-template <typename T = int64_t> class Dirichlet
+template <typename T> class Dirichlet
 {
   public:
     Dirichlet() = default;
@@ -47,9 +98,6 @@ template <typename T = int64_t> class Dirichlet
             _down[i] = T(F(_quotients[i]));
     }
 
-    T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }
-    const T &operator[](size_t i) const { return i < _up.size() ? _up[i] : _down[_n / i]; }
-
     /// The number that this array was designed for, i.e. the top index.
     [[nodiscard]] size_t n() const noexcept { return _n; }
     /// The index of the transition point between up and down vectors.
@@ -80,9 +128,16 @@ template <typename T = int64_t> class Dirichlet
     [[nodiscard]] T &back() noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
     [[nodiscard]] const T &back() const noexcept { return _down.size() > 1 ? down(1) : _up.back(); }
 
-    /// Returns a vector of function values from 1 to the size of the up vector. This is the vector of adjacent
-    /// differences of `up`.
-    [[nodiscard]] std::vector<T> upValues() const { return adjacentDifference(_up); }
+    /// Returns a vector of function values from 1 to the pivot. This is the vector of adjacent differences of `up`.
+    [[nodiscard]] std::vector<T> values() const { return adjacentDifference(_up); }
+    /// Returns a single value. Requires `k ≤ pivot()`.
+    [[nodiscard]] T value(size_t k) const noexcept { return up(k) - up(k - 1); }
+
+    [[nodiscard]] T &operator[](size_t k) noexcept { return k < _up.size() ? _up[k] : _down[_n / k]; }
+    [[nodiscard]] const T &operator[](size_t k) const noexcept { return k < _up.size() ? _up[k] : _down[_n / k]; }
+
+    /// Returns the prefix sum of this series at the given index.
+    [[nodiscard]] const T &sum(size_t k) const noexcept { return (*this)[k]; }
 
     /// Takes a partial sum in place. Useful function to call when building this array from individual values.
     Dirichlet &accumulate()
@@ -161,63 +216,34 @@ template <typename T = int64_t> class Dirichlet
     template <size_t ParThreshold = 8192> [[nodiscard]] T squareValue(size_t k) const
     {
         uint32_t const s = isqrt(k);
-        uint32_t const i = _n / k;
+        size_t const i = _n / k;
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        return 2 * (sumMaybeParallel<ParThreshold>(1, u,
-                                                   [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * down(i * j); }) +
+        return 2 * (sumMaybeParallel<ParThreshold>(1, u, [&](uint32_t j) -> T { return value(j) * down(i * j); }) +
                     sumMaybeParallel<ParThreshold>(
-                        u + 1, s, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * up(quotient(j) / fasti); })) -
+                        u + 1, s, [&](uint32_t j) -> T { return value(j) * up(quotient(j) / fasti); })) -
                up(s) * up(s);
     }
 
-    /// Compute a single summatory value of (this * other).
+    /// Compute a single summatory value of (this * other), where `other` is a `SpecialDirichlet`.
     /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <size_t ParThreshold = 8192, typename U>
-    [[nodiscard]] T productValue(const Dirichlet<U> &other, size_t k) const
+    template <size_t ParThreshold = 8192, dirichlet_type Dir>
+    [[nodiscard]] T productValue(const Dir &other, size_t k) const
     {
-        if (std::is_same_v<T, U>)
+        if constexpr (std::is_same_v<Dir, Dirichlet>)
             if (this == &other)
                 return squareValue(k);
         uint32_t const s = isqrt(k);
-        uint32_t const i = _n / k;
-        uint32_t const u = (_down.size() - 1) / i;
+        size_t const i = _n / k;
+        uint32_t const u = (down().size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        return sumMaybeParallel<ParThreshold>(1, u,
-                                              [&](uint32_t j) -> T {
-                                                  return (up(j) - up(j - 1)) * other.down(i * j) +
-                                                         (other.up(j) - other.up(j - 1)) * down(i * j);
-                                              }) +
-               sumMaybeParallel<ParThreshold>(u + 1, s,
-                                              [&](uint32_t j) -> T {
-                                                  auto const kdivj = quotient(j) / fasti;
-                                                  return (up(j) - up(j - 1)) * other.up(kdivj) +
-                                                         (other.up(j) - other.up(j - 1)) * up(kdivj);
-                                              }) -
+        return sumMaybeParallel<ParThreshold>(1, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); }) +
+               sumMaybeParallel<ParThreshold>(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); }) -
                up(s) * other.up(s);
     }
 
-    /// Compute a single summatory value of (this * ζ). About 33% faster than generic.
-    /// Precondition: `k` must be of the form `⌊n / i⌋` for some `i`.
-    template <size_t ParThreshold = 8192> [[nodiscard]] T productZetaValue(size_t k) const
-    {
-        uint32_t const s = isqrt(k);
-        uint32_t const i = _n / k;
-        uint32_t const u = (_down.size() - 1) / i;
-        libdivide::divider<size_t> const fasti(i);
-        return sumMaybeParallel<ParThreshold>(
-                   1, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * T(quotient(i * j)) + down(i * j); }) +
-               sumMaybeParallel<ParThreshold>(u + 1, s,
-                                              [&](uint32_t j) -> T {
-                                                  auto const kdivj = quotient(j) / fasti;
-                                                  return (up(j) - up(j - 1)) * T(kdivj) + up(kdivj);
-                                              }) -
-               up(s) * s;
-    }
-
     /// Squares this Dirichlet series in place.
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &squareInPlace(Range &&precomputed = {})
+    template <std::ranges::range Range = std::ranges::empty_view<T>> Dirichlet &squareInPlace(Range &&precomputed = {})
     {
         uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
@@ -226,17 +252,15 @@ template <typename T = int64_t> class Dirichlet
         if (precomputed.empty())
         {
             // Sieve for the up values.
-            std::vector<T> sieve(_up.size());
+            auto const old = values();
+            std::ranges::fill(_up, T(0));
             uint32_t const s = isqrt(_up.size() - 1);
-            T a{};
             for (size_t i = 1; i <= s; ++i)
             {
-                a = up(i) - up(i - 1);
-                sieve[i * i] += a * a;
+                up(i * i) += old[i] * old[i];
                 for (size_t j = i + 1; i * j < _up.size(); ++j)
-                    sieve[i * j] += 2 * a * (up(j) - up(j - 1));
+                    up(i * j) += 2 * old[i] * old[j];
             }
-            _up = sieve;
             partialSumInPlace(_up);
         }
         else
@@ -248,58 +272,47 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
+    template <std::ranges::range Range = std::ranges::empty_view<T>>
     [[nodiscard]] Dirichlet square(this Dirichlet self, Range &&precomputed = {})
     {
         self.squareInPlace(std::forward<Range>(precomputed));
         return self;
     }
 
-    /// Multiplies this Dirichlet series with ζ, in place. About 33% faster than generic.
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &multiplyZetaInPlace(Range &&precomputed = {})
+    /// Multiplication.
+    template <dirichlet_type Dir, std::ranges::range Range = std::ranges::empty_view<T>>
+    Dirichlet &multiplyInPlace(const Dir &other, Range &&precomputed = {})
     {
-        uint32_t const u = precomputed.empty() ? _down.size() - 1 : _n / precomputed.size();
-        _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
-                     [&](uint32_t i) { return i == 0 || i > u ? T(0) : productZetaValue<0>(quotient(i)); });
         if (precomputed.empty())
-        {
-            // Sieve for the up values.
-            std::vector<T> sieve(_up.size());
-            T a{};
-            for (size_t i = 1; i < _up.size(); ++i)
-            {
-                a = up(i) - up(i - 1);
-                for (size_t j = 1; i * j < _up.size(); ++j)
-                    sieve[i * j] += a;
-            }
-            _up = sieve;
-            partialSumInPlace(_up);
-        }
-        else
-        {
-            for (uint32_t i = u + 1; i < _down.size(); ++i)
-                down(i) = precomputed[quotient(i)];
-            std::copy(precomputed.begin(), precomputed.begin() + _up.size(), _up.begin());
-        }
+            return *this *= other;
+        uint32_t const s = _n / precomputed.size();
+        _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1), [&](uint32_t i) -> T {
+            if (i == 0)
+                return T(0);
+            if (i > s)
+                return precomputed[quotient(i)];
+            return productValue<0>(other, quotient(i));
+        });
+        std::copy(precomputed.begin(), precomputed.begin() + _up.size(), _up.begin());
         return *this;
     }
 
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] Dirichlet multiplyZeta(this Dirichlet self, Range &&precomputed = {})
+    /// Division.
+    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
+    template <dirichlet_type Dir, std::ranges::range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet multiply(this Dirichlet self, const Dir &other, Range &&precomputed = {})
     {
-        self.multiplyZetaInPlace(std::forward<Range>(precomputed));
+        self.multiplyInPlace(other, std::forward<Range>(precomputed));
         return self;
     }
 
     /// Division in place.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &divideInPlace(const Dirichlet<U> &other, Range &&precomputed = {})
+    template <dirichlet_type Dir, std::ranges::range Range = std::ranges::empty_view<T>>
+    Dirichlet &divideInPlace(const Dir &other, Range &&precomputed = {})
     {
         if (precomputed.empty())
             return *this /= other;
-        assert(_n == other.n());
         std::copy(precomputed.begin(), precomputed.begin() + _up.size(), _up.begin());
         uint32_t const s = _n / precomputed.size();
         for (uint32_t i = s + 1; i < _down.size(); ++i)
@@ -311,46 +324,10 @@ template <typename T = int64_t> class Dirichlet
 
     /// Division.
     /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <typename U, std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] Dirichlet divide(this Dirichlet self, const Dirichlet<U> &other, Range &&precomputed = {})
+    template <dirichlet_type Dir, std::ranges::range Range = std::ranges::empty_view<T>>
+    [[nodiscard]] Dirichlet divide(this Dirichlet self, const Dir &other, Range &&precomputed = {})
     {
         self.divideInPlace(other, std::forward<Range>(precomputed));
-        return self;
-    }
-
-    /// Division in place, in the special case that the divisor is ζ(s). 33% speedup compared to generic.
-    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    Dirichlet &divideZetaInPlace(Range &&precomputed = {})
-    {
-        uint32_t u = _down.size() - 1;
-        if (precomputed.empty())
-        {
-            // Sieve for the up values.
-            adjacentDifferenceInPlace(_up);
-            for (size_t i = 1; i <= (_up.size() - 1) / 2; ++i)
-                for (size_t j = 2; i * j < _up.size(); ++j)
-                    up(i * j) -= up(i);
-            partialSumInPlace(_up);
-        }
-        else
-        {
-            std::copy(precomputed.begin(), precomputed.begin() + _up.size(), _up.begin());
-            u = _n / precomputed.size();
-            for (uint32_t i = u + 1; i < _down.size(); ++i)
-                down(i) = precomputed[quotient(i)];
-        }
-        for (uint32_t i = u; i != 0; --i)
-            divideZetaStep(i);
-        return *this;
-    }
-
-    /// Division, in the special case that the divisor is ζ(s). 33% speedup compared to generic.
-    /// Precondition: `precomputed` must be at least as large as the up vector, or be empty.
-    template <std::ranges::sized_range Range = std::ranges::empty_view<T>>
-    [[nodiscard]] Dirichlet divideZeta(this Dirichlet self, Range &&precomputed = {})
-    {
-        self.divideZetaInPlace(std::forward<Range>(precomputed));
         return self;
     }
 
@@ -422,39 +399,45 @@ template <typename T = int64_t> class Dirichlet
     }
 
     /// Multiplication.
-    template <typename U> Dirichlet &operator*=(const Dirichlet<U> &other)
+    template <dirichlet_type Dir> Dirichlet &operator*=(const Dir &other)
     {
-        if (std::is_same_v<T, U>)
+        if constexpr (std::is_same_v<Dir, Dirichlet>)
             if (this == &other)
                 return squareInPlace();
-        assert(_n == other.n());
         _down = mapv(std::execution::par, range(0_u32, (uint32_t)_down.size() - 1),
                      [&](uint32_t i) { return i == 0 ? T(0) : productValue<0>(other, quotient(i)); });
         // Sieve for the up values.
-        std::vector<T> sieve(_up.size());
+        T const c = other.value(1);
+        adjacentDifferenceInPlace(_up);
         T a{};
-        for (size_t i = 1; i < _up.size(); ++i)
+        for (size_t i = _up.size() - 1; i != 0; --i)
         {
-            a = up(i) - up(i - 1);
-            for (size_t j = 1; i * j < _up.size(); ++j)
-                sieve[i * j] += a * (other.up(j) - other.up(j - 1));
+            a = up(i);
+            up(i) *= c;
+            for (size_t j = 2; i * j < _up.size(); ++j)
+                up(i * j) += a * other.value(j);
         }
-        _up = sieve;
         partialSumInPlace(_up);
         return *this;
     }
 
-    template <typename U> [[nodiscard]] friend Dirichlet operator*(Dirichlet left, const Dirichlet<U> &right)
+    template <dirichlet_type Dir> [[nodiscard]] friend Dirichlet operator*(Dirichlet left, const Dir &right)
     {
         left *= right;
         return left;
     }
 
-    /// Division.
-    template <typename U> Dirichlet &operator/=(const Dirichlet<U> &other)
+    template <typename Fun, typename SFun>
+    [[nodiscard]] friend Dirichlet operator*(const SpecialDirichlet<Fun, SFun> &left, Dirichlet right)
     {
-        assert(_n == other.n());
-        auto const c = other.up(1) - other.up(0);
+        right *= left;
+        return right;
+    }
+
+    /// Division.
+    template <dirichlet_type Dir> Dirichlet &operator/=(const Dir &other)
+    {
+        auto const c = other.value(1);
         // Sieve for the up values.
         adjacentDifferenceInPlace(_up);
         for (size_t i = 1; i <= (_up.size() - 1) / 2; ++i)
@@ -462,7 +445,7 @@ template <typename T = int64_t> class Dirichlet
             if (c != 1)
                 up(i) /= c;
             for (size_t j = 2; i * j < _up.size(); ++j)
-                up(i * j) -= up(i) * (other.up(j) - other.up(j - 1));
+                up(i * j) -= up(i) * other.value(j);
         }
         if (c != 1)
             for (size_t k = (_up.size() + 1) / 2; k < _up.size(); ++k)
@@ -473,7 +456,7 @@ template <typename T = int64_t> class Dirichlet
         return *this;
     }
 
-    template <typename U> [[nodiscard]] friend Dirichlet operator/(Dirichlet left, const Dirichlet<U> &right)
+    template <dirichlet_type Dir> [[nodiscard]] friend Dirichlet operator/(Dirichlet left, const Dir &right)
     {
         left /= right;
         return left;
@@ -537,42 +520,31 @@ template <typename T = int64_t> class Dirichlet
     std::vector<T> _down;
     std::vector<size_t> _quotients;
 
-    /// One step of the divison algorithm. Internal use only.
-    template <typename U> void divideStep(const Dirichlet<U> &other, uint32_t i)
+    template <dirichlet_type Dir> T sumTerm1(const Dir &other, size_t i, uint32_t j) const
     {
-        size_t const k = quotient(i);
-        uint32_t const s = isqrt(k);
-        uint32_t const u = (_down.size() - 1) / i;
-        libdivide::divider<size_t> const fasti(i);
-        down(i) -= (up(1) - up(0)) * other[k];
-        down(i) -= sumMaybeParallel(2, u,
-                                    [&](uint32_t j) -> T {
-                                        return (up(j) - up(j - 1)) * other.down(i * j) +
-                                               (other.up(j) - other.up(j - 1)) * down(i * j);
-                                    }) +
-                   sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T {
-                       size_t const kdivj = quotient(j) / fasti;
-                       return (up(j) - up(j - 1)) * other.up(kdivj) + (other.up(j) - other.up(j - 1)) * up(kdivj);
-                   });
-        down(i) += up(s) * other.up(s);
-        down(i) /= other.up(1) - other.up(0);
+        if constexpr (requires { other.down(i * j); })
+            return value(j) * other.down(i * j) + down(i * j) * other.value(j);
+        return value(j) * other.sum(quotient(i * j)) + down(i * j) * other.value(j);
+    }
+
+    template <dirichlet_type Dir> T sumTerm2(const Dir &other, const libdivide::divider<size_t> &i, uint32_t j) const
+    {
+        size_t const kdivj = quotient(j) / i;
+        return value(j) * other.up(kdivj) + up(kdivj) * other.value(j);
     }
 
     /// One step of the divison algorithm by ζ(s). Internal use only.
-    void divideZetaStep(uint32_t i)
+    template <dirichlet_type Dir> void divideStep(const Dir &other, uint32_t i)
     {
         size_t const k = quotient(i);
         uint32_t const s = isqrt(k);
         uint32_t const u = (_down.size() - 1) / i;
         libdivide::divider<size_t> const fasti(i);
-        down(i) -= (up(1) - up(0)) * T(k);
-        down(i) -= sumMaybeParallel(
-                       2, u, [&](uint32_t j) -> T { return (up(j) - up(j - 1)) * T(quotient(i * j)) + down(i * j); }) +
-                   sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T {
-                       size_t const kdivj = quotient(j) / fasti;
-                       return (up(j) - up(j - 1)) * T(kdivj) + up(kdivj);
-                   });
-        down(i) += up(s) * T(s);
+        down(i) -= (up(1) - up(0)) * T(other.sum(k));
+        down(i) -= sumMaybeParallel(2, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); });
+        down(i) -= sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); });
+        down(i) += up(s) * T(other.up(s));
+        down(i) /= other.value(1);
     }
 };
 
@@ -585,25 +557,25 @@ namespace dirichlet
 /// * `G` and `H` should be the summatory functions of `g` and `h`.
 /// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
 template <integral2 T = size_t, typename Fun1, typename SummatoryFun1, typename Fun2, typename SummatoryFun2>
-auto productValue(T n, Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G)
+auto productValue(Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G, T n)
 {
-    using H = half_integer_t<T>;
-    using Tp = std::common_type_t<std::invoke_result_t<SummatoryFun1, T>, std::invoke_result_t<SummatoryFun1, T>>;
-    H const s = isqrt(n);
-    return sumMaybeParallel(H(1), s,
-                            [&](H k) {
-                                T const ndivk = n / k;
-                                return Tp(F(ndivk)) * g(k) + Tp(G(ndivk)) * f(k);
-                            }) -
-           Tp(F(s)) * G(s);
+    return SpecialDirichlet{std::move(f), std::move(F)}.productValue(SpecialDirichlet{std::move(g), std::move(G)}, n);
 }
 
 /// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n), given only their summatory functions. Convenience function.
-template <integral2 Tn = size_t, typename SummatoryFun1, typename SummatoryFun2>
-auto productValue(Tn n, SummatoryFun1 F, SummatoryFun2 G)
+template <integral2 T = size_t, typename SummatoryFun1, typename SummatoryFun2>
+auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
 {
-    return productValue(
-        std::move(n), [&](auto &&k) { return F(k) - F(k - 1); }, F, [&](auto &&k) { return G(k) - G(k - 1); }, G);
+    return SpecialDirichlet{[&](auto &&k) { return F(k) - F(k - 1); }, std::move(F)}.productValue(
+        SpecialDirichlet{[&](auto &&k) { return G(k) - G(k - 1); }, std::move(G)}, n);
+}
+
+// O(1) Dirichlet series come in two flavors, one is a SpecialDirichlet (recommended) and the other is a Dirichlet.
+
+/// 1, the multiplicative identity. f(n) = [n = 1]. Motive = 0.
+template <typename T = int64_t> constexpr auto unit()
+{
+    return SpecialDirichlet{[](size_t k) -> T { return k == 1; }, [](size_t) -> T { return 1; }};
 }
 
 /// 1, the multiplicative identity. f(n) = [n = 1]. Motive = 0.
@@ -613,12 +585,30 @@ template <typename T = int64_t> Dirichlet<T> unit(size_t n)
 }
 
 /// ζ(s). f(n) = 1. Motive = [1].
+template <typename T = int64_t> constexpr auto zeta()
+{
+    return SpecialDirichlet{[](size_t) -> T { return 1; }, [](size_t k) -> T { return k; }};
+}
+
+/// ζ(s). f(n) = 1. Motive = [1].
 template <typename T = int64_t> Dirichlet<T> zeta(size_t n) { return {n, std::identity{}}; }
+
+/// ζ(s - 1). f(n) = n. Motive = [p].
+template <typename T = int64_t> constexpr auto id()
+{
+    return SpecialDirichlet{[](size_t k) -> T { return k; }, [](size_t k) -> T { return sumId<T>(k); }};
+}
 
 /// ζ(s - 1). f(n) = n. Motive = [p].
 template <typename T = int64_t> Dirichlet<T> id(size_t n)
 {
     return {n, [](size_t k) -> T { return sumId<T>(k); }};
+}
+
+/// ζ(s - 2). f(n) = n^2. If `T = ZMod<M>`, currently requires that neither 2 or 3 divide `M`. Motive = [p^2].
+template <typename T = int64_t> constexpr auto id2()
+{
+    return SpecialDirichlet{[](size_t k) -> T { return T(k) * T(k); }, [](size_t k) -> T { return sumSquares<T>(k); }};
 }
 
 /// ζ(s - 2). f(n) = n^2. If `T = ZMod<M>`, currently requires that neither 2 or 3 divide `M`. Motive = [p^2].
@@ -628,13 +618,10 @@ template <typename T = int64_t> Dirichlet<T> id2(size_t n)
     return {n, [](size_t k) -> T { return sumSquares<T>(k); }};
 }
 
-/// ζ(s - 3). f(n) = n^3. Motive = [p^3].
-template <typename T = int64_t> Dirichlet<T> id3(size_t n)
+/// ζ(2s). f(n) = [n is square]. Motive = [1] + [-1].
+template <typename T = int64_t> constexpr auto zeta_2s()
 {
-    return {n, [](size_t k) -> T {
-                T const s = k % 2 == 0 ? T(k / 2) * (k + 1) : T((k + 1) / 2) * k;
-                return s * s;
-            }};
+    return SpecialDirichlet{[](size_t k) -> T { return isSquare(k); }, [](size_t k) -> T { return isqrt(k); }};
 }
 
 /// ζ(2s). f(n) = [n is square]. Motive = [1] + [-1].
@@ -643,10 +630,21 @@ template <typename T = int64_t> Dirichlet<T> zeta_2s(size_t n)
     return {n, [](size_t k) -> T { return isqrt(k); }};
 }
 
+// TODO: Add SpecialDirichlets for these at some point.
+
+/// ζ(s - 3). f(n) = n^3. Motive = [p^3].
+template <typename T = int64_t> Dirichlet<T> id3(size_t n)
+{
+    return {n, [](size_t k) -> T {
+                T const s = sumId<T>(k);
+                return s * s;
+            }};
+}
+
 /// ζ(as). f(n) = [n is a perfect ath power]. Motive = sum([r] for r in ath roots of unity)
 template <typename T = int64_t> Dirichlet<T> zeta_multiple(int a, size_t n)
 {
-    return {n, [&](size_t k) -> T { return (T)std::pow(k + 0.5, 1.0 / a); }};
+    return {n, [&](size_t k) -> T { return inth_root(k, a); }};
 }
 
 /// χ_(-3)(s). f(n) = (-3|n). 1 if 1 mod 3, -1 if 2 mod 3, 0 otherwise. L-function of the hexagonal lattice and the
@@ -682,7 +680,7 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_multiple(int a, size_t n)
 {
     auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
     auto const mertens = partialSum(mu, T{});
-    return {n, [&](size_t k) -> T { return mertens[(size_t)std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return mertens[inth_root(k, a)]; }};
 }
 
 /// ζ(as - b). f(n) = [n = k^a] * k^b. Requires `a > 1`. Motive = ∑([r*p^(b/a)] for r in ath roots of unity).
@@ -752,34 +750,34 @@ template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 template <typename T = int64_t> Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return id<T>(n).multiplyZeta(partialSum(divisorSumSieve(s), T{}));
+    return id<T>(n).multiply(zeta<T>(), partialSum(divisorSumSieve(s), T{}));
 }
 
 /// ζ(s)ζ(s - 2). f(n) = sum of squares of divisors of n. O(n^(2/3)). Motive = [p^2] + [1].
-template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiplyZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n).multiply(zeta<T>()); }
 
 /// ζ(s)ζ(s - 3). f(n) = sum of cubes of divisors of n. O(n^(2/3)). Motive = [p^3] + [1].
-template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiplyZeta(); }
+template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiply(zeta<T>()); }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
-template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.45)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return unit<T>(n).divideZeta(partialSum(mobiusSieve(s), T{}));
+    return unit<T>(n).divide(zeta<T>(), partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
 template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return id<T>(n).divideZeta(partialSum(totientSieve(s), T{}));
+    return id<T>(n).divide(zeta<T>(), partialSum(totientSieve(s), T{}));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
 template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.35)
 {
     size_t const s = std::max(Dirichlet<>::defaultPivot(n), (size_t)(alpha * std::pow(n, 2.0 / 3)));
-    return zeta_2s<T>(n).divideZeta(partialSum(liouvilleSieve(s), T{}));
+    return zeta_2s<T>(n).divide(zeta<T>(), partialSum(liouvilleSieve(s), T{}));
 }
 } // namespace dirichlet
 } // namespace euler
