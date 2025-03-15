@@ -88,6 +88,12 @@ template <typename T = int64_t> class floors_array
         return it::result_continue;
     }
 
+    template <typename CharT, typename Traits>
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const floors_array &S)
+    {
+        return o << "{\n  n: " << S._n << "\n  up: " << S._up << "\n  down: " << S._down << "\n}";
+    }
+
   private:
     size_t _n = 0;
     std::vector<T> _up;
