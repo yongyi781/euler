@@ -8,6 +8,24 @@
 
 inline namespace euler
 {
+template <typename T = int64_t> class Dirichlet;
+template <typename Fun, typename SFun> class SpecialDirichlet;
+
+template <typename T> struct is_dirichlet : std::false_type
+{
+};
+
+template <typename T> struct is_dirichlet<Dirichlet<T>> : std::true_type
+{
+};
+
+template <typename Fun, typename SFun> struct is_dirichlet<SpecialDirichlet<Fun, SFun>> : std::true_type
+{
+};
+
+template <typename T>
+concept dirichlet_type = is_dirichlet<std::decay_t<T>>::value;
+
 /// A class representing a special Dirichlet series that does not require any storage.
 template <typename Fun, typename SFun> class SpecialDirichlet
 {
@@ -39,34 +57,16 @@ template <typename Fun, typename SFun> class SpecialDirichlet
     SFun m_F;
 };
 
-template <typename T = int64_t> class Dirichlet;
-
-// Primary template: defaults to false
-template <typename T> struct is_dirichlet : std::false_type
-{
-};
-
-// Partial specialization for A<T>
-template <typename T> struct is_dirichlet<Dirichlet<T>> : std::true_type
-{
-};
-
-// Partial specialization for A<T>
-template <typename Fun, typename SFun> struct is_dirichlet<SpecialDirichlet<Fun, SFun>> : std::true_type
-{
-};
-
-template <typename T>
-concept dirichlet_type = is_dirichlet<std::decay_t<T>>::value;
-
 /// Class for computing Dirichlet series summatory functions, where `up` has size O((n / log(n))^(2/3)).
 template <typename T> class Dirichlet
 {
   public:
     Dirichlet() = default;
 
+    /// Default max memory usage = 16 GB.
+    static constexpr size_t DefaultMaxMemoryUsage = 1UZ << 34;
     /// Configurable upper bound on the size of the up vector.
-    static inline size_t pivotMax = 1UZ << 31;
+    static inline size_t pivotMax = DefaultMaxMemoryUsage / sizeof(T);
     /// Configurable exponent on the size of the up vector.
     static inline double pivotExponent = 2.0 / 3;
     /// Configurable coefficient on the size of the up vector. Ideal is 0.2 for multiplication and 0.5 for division.
