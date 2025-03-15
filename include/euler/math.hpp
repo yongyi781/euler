@@ -214,9 +214,11 @@ template <typename T = int64_t> constexpr T factorial(int n)
 /// Calculates the binomial coefficient for given values of `n` and `k`.
 template <typename T = int64_t> constexpr T binomial(int n, int r)
 {
-    if (r == 0)
-        return 1;
-    if (n < 0 || r < 0 || r > n)
+    if (r <= 0 || n == 0)
+        return T(r == 0);
+    if (n < 0)
+        return pow(-1, r) * binomial<T>(r - n - 1, r);
+    if (r > n)
         return 0;
     if constexpr (std::same_as<T, mpz_int>)
     {
@@ -240,9 +242,11 @@ template <typename T = int64_t> constexpr T binomial(int n, int r)
 /// Calculates the binomial coefficient for given values of `n` and `k` using GMP.
 inline mpz_int binomial(const mpz_int &n, int r)
 {
-    if (r == 0)
-        return 1;
-    if (n < 0 || r < 0 || r > n)
+    if (r <= 0 || n == 0)
+        return {r == 0};
+    if (n < 0)
+        return pow(-1, r) * binomial(r - n - 1, r);
+    if (r > n)
         return 0;
     mpz_int result;
     mpz_bin_ui((mpz_ptr)result.backend().data(), (mpz_srcptr)n.backend().data(), r);
