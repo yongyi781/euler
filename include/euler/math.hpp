@@ -5,6 +5,7 @@
 #include "it/primes.hpp"
 #include "modular_arithmetic.hpp"
 #include "prime.hpp"
+#include <algorithm>
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <numeric>
 #include <primesieve.hpp>
@@ -169,6 +170,7 @@ constexpr auto crt(Range1 &&remainders, Range2 &&moduli)
     return crtlcm(std::forward<Range1>(remainders), std::forward<Range2>(moduli)).first;
 }
 
+/// Convenience method to return a list of powers of `a` from 0 to `n`.
 template <typename T> constexpr std::vector<T> powers(T a, int n)
 {
     std::vector<T> result(n + 1);
@@ -193,24 +195,46 @@ constexpr auto countResidueClass(integral2 auto a, integral2 auto modulus, integ
     return floorDiv(high - a, modulus) - floorDiv(low - a - 1, modulus);
 }
 
-inline mpz_int factorial(int n)
+/// Returns `n!`.
+template <typename T = int64_t> constexpr T factorial(int n)
 {
     assert(n >= 0);
-    mpz_int result;
-    mpz_fac_ui((mpz_ptr)result.backend().data(), n);
-    return result;
+    if constexpr (std::same_as<T, mpz_int>)
+    {
+        mpz_int result;
+        mpz_fac_ui((mpz_ptr)result.backend().data(), n);
+        return result;
+    }
+    else
+    {
+        return product(1, n, [](int i) { return T(i); });
+    }
 }
 
-/// Calculates the binomial coefficient for given values of `n` and `k` using GMP.
-inline mpz_int binomial(int n, int r)
+/// Calculates the binomial coefficient for given values of `n` and `k`.
+template <typename T = int64_t> constexpr T binomial(int n, int r)
 {
     if (r == 0)
         return 1;
     if (n < 0 || r < 0 || r > n)
         return 0;
-    mpz_int result;
-    mpz_bin_uiui((mpz_ptr)result.backend().data(), n, r);
-    return result;
+    if constexpr (std::same_as<T, mpz_int>)
+    {
+        mpz_int result;
+        mpz_bin_uiui((mpz_ptr)result.backend().data(), n, r);
+        return result;
+    }
+    else
+    {
+        r = std::min(r, n - r); // Take advantage of symmetry
+        T result{1};
+        for (int i = 1; i <= r; ++i)
+        {
+            result *= n - r + i;
+            result /= i;
+        }
+        return result;
+    }
 }
 
 /// Calculates the binomial coefficient for given values of `n` and `k` using GMP.
@@ -222,25 +246,6 @@ inline mpz_int binomial(const mpz_int &n, int r)
         return 0;
     mpz_int result;
     mpz_bin_ui((mpz_ptr)result.backend().data(), (mpz_srcptr)n.backend().data(), r);
-    return result;
-}
-
-/// Calculates the binomial coefficient for given values of n and k using a naive iterative approach.
-template <integral2 T, integral2 U> constexpr auto binomial2(T n, U r)
-{
-    using Tp = std::common_type_t<T, U>;
-    if (r > n)
-        return Tp(0);
-    if (r == 0 || r == n)
-        return Tp(1);
-    if (r > n - r)
-        r = U(n - r); // Take advantage of symmetry
-    Tp result{1};
-    for (U i = 1; i <= r; ++i)
-    {
-        result *= n - r + i;
-        result /= i;
-    }
     return result;
 }
 

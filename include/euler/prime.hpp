@@ -3,6 +3,7 @@
 /// Constexpr replacement of boost's is_small_prime function.
 #include "algorithm.hpp"
 #include "modular_arithmetic.hpp"
+#include <algorithm>
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/multiprecision/miller_rabin.hpp>
 #include <execution>
@@ -29,7 +30,7 @@ constexpr bool isSmallPrime(size_t n)
         3U,   5U,   7U,   11U,  13U,  17U,  19U,  23U,  29U,  31U,  37U,  41U,  43U,  47U,  53U,  59U,
         61U,  67U,  71U,  73U,  79U,  83U,  89U,  97U,  101U, 103U, 107U, 109U, 113U, 127U, 131U, 137U,
         139U, 149U, 151U, 157U, 163U, 167U, 173U, 179U, 181U, 191U, 193U, 197U, 199U, 211U, 223U, 227U};
-    return std::find(primesTo227.begin(), primesTo227.end(), n) != primesTo227.end();
+    return std::ranges::find(primesTo227, n) != primesTo227.end();
 }
 
 template <integral2 T> constexpr bool checkSmallFactors(const T &n)
