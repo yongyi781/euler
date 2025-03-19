@@ -340,7 +340,7 @@ template <typename T> class Dirichlet
     }
 
     /// Returns this raised to a power.
-    [[nodiscard]] Dirichlet pow(this Dirichlet self, int exponent)
+    template <integral2 E> [[nodiscard]] Dirichlet pow(this Dirichlet self, E exponent)
     {
         Dirichlet x{self.n(), [](auto &&) { return T(1); }};
         if (exponent == 0)

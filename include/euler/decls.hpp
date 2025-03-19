@@ -27,6 +27,7 @@ using int8192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
     8192, 8192, boost::multiprecision::signed_magnitude, boost::multiprecision::unchecked, void>>;
 using boost::container::static_vector;
 using boost::multiprecision::cpp_int;
+using boost::multiprecision::cpp_rational;
 using boost::multiprecision::mpf_float;
 using boost::multiprecision::mpq_rational;
 using boost::multiprecision::mpz_int;
@@ -422,20 +423,6 @@ template <std::ranges::range Range> std::ranges::range_value_t<Range> lcm(Range 
     return l;
 }
 
-/// Fast binomial coefficient for small values. Guaranteed correct for `T = int64_t` only for `n` up to 60, and for
-/// `T = uint64_t` only for `n` up to 62.
-constexpr uint64_t binom(int n, int k)
-{
-    using std::min;
-    if (k < 0 || k > n)
-        return 0;
-    k = min(k, n - k);
-    uint64_t result = 1;
-    for (int i = 0; i < k; ++i)
-        result = result * (n - i) / (i + 1);
-    return result;
-}
-
 /// A replacement for integer floor division.
 template <typename T, typename U> constexpr auto fastDiv(T n, U d)
 {
@@ -455,6 +442,20 @@ template <typename T, typename U> constexpr auto fastDiv(T n, U d)
         return res;
     }
     return res;
+}
+
+/// Wrapper for `mpz_divexact`.
+inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, const mpz_int &b)
+{
+    mpz_divexact(dest.backend().data(), a.backend().data(), b.backend().data());
+    return dest;
+}
+
+/// Wrapper for `mpz_divexact_ui`.
+inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, uint32_t b)
+{
+    mpz_divexact_ui(dest.backend().data(), a.backend().data(), b);
+    return dest;
 }
 
 // Function to check if a character is the start of a UTF-8 sequence
