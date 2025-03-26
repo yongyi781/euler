@@ -1,5 +1,6 @@
 #pragma once
 
+#include "counting_iterator.hpp"
 #include "decls.hpp"
 #include <map>
 #include <random>
@@ -474,21 +475,33 @@ template <std::ranges::sized_range Range> constexpr size_t totalSize(Range &&v)
 /// Flattens a range of ranges into a single vector.
 template <typename T, std::ranges::range Range> constexpr std::vector<T> flatten(Range &&v)
 {
-    std::vector<T> result;
-    result.reserve(totalSize(v));
+    std::vector<T> res;
+    res.reserve(totalSize(v));
     for (const auto &e : std::forward<Range>(v))
-        flatten(e, result);
-    return result;
+        flatten(e, res);
+    return res;
 }
 
 /// Same as `collections.Counter` in Python.
 template <template <typename...> typename Map = std::map, std::ranges::range Range> auto counter(Range &&r)
 {
     using T = std::ranges::range_value_t<Range>;
-    Map<T, size_t> result;
+    Map<T, size_t> res;
     for (auto &&i : std::forward<Range>(r))
-        ++result[i];
-    return result;
+        ++res[i];
+    return res;
+}
+
+/// Creates a histogram (frequency count) of elements in the range `v`.
+template <std::ranges::range Range>
+    requires std::integral<std::ranges::range_value_t<Range>>
+auto histogram(const Range &v, size_t maxItem)
+{
+    std::vector<size_t> res(maxItem + 1, 0);
+    for (const auto &i : v)
+        if (i <= maxItem)
+            ++res[i];
+    return res;
 }
 
 // Period finding

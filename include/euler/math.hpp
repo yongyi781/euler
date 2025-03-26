@@ -207,6 +207,15 @@ template <typename T = int64_t> constexpr T factorial(int n)
     }
     else
     {
+        // If T is std::integral, do assertions to fail if the result overflows.
+        if constexpr (std::integral<T> && sizeof(T) <= 4)
+            assert(n <= 12);
+        else if constexpr (std::integral<T> && sizeof(T) <= 8)
+            assert(n <= 20);
+        else if constexpr (std::same_as<T, int128_t>)
+            assert(n <= 33);
+        else if constexpr (std::same_as<T, uint128_t>)
+            assert(n <= 34);
         return product(1, n, [](int i) { return T(i); });
     }
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../concepts.hpp"
+#include "../counting_iterator.hpp"
 #include "../decls.hpp"
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <cstdint>

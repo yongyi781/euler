@@ -357,6 +357,14 @@ inline void testFloorsArray()
     cout << passStr << "floors_array\n";
 }
 
+inline void testModInverseUnsigned()
+{
+    uint64_t const a = 235098327;
+    uint64_t const b = 1'000'000'007;
+    uint64_t const res = modInverse(a, b);
+    assertEqual(res * a % b, 1);
+}
+
 int main()
 {
     auto t1 = now();
@@ -377,5 +385,6 @@ int main()
     testMultiplicativeOrder();
     testIsqrt();
     testBinom();
+    testModInverseUnsigned();
     println(now() - t1);
 }

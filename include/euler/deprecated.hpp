@@ -1,7 +1,6 @@
 #pragma once
 
 #include "algorithm.hpp"
-#include "concepts.hpp"
 #include "it/digits.hpp"
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <ranges>
@@ -12,7 +11,7 @@ constexpr int64_t primePiUpperBound(int64_t n)
 {
     if (n <= 20)
         return 8;
-    int64_t result = (int64_t)((double)n / log(n) * (1.0 + 1.0 / log(n) + 2.51 / log(n) / log(n)));
+    auto const result = (int64_t)((double)n / log(n) * (1.0 + 1.0 / log(n) + 2.51 / log(n) / log(n)));
     if (n <= 355990)
         return result + 5;
     return result;
@@ -265,7 +264,7 @@ constexpr auto cartesianFold(Range1 &&r1, Range2 &&r2, BinaryOp op)
 {
     using T = std::remove_cvref_t<
         std::invoke_result_t<BinaryOp, std::ranges::range_value_t<Range1>, std::ranges::range_value_t<Range2>>>;
-    size_t size = r1.size() * r2.size();
+    size_t const size = r1.size() * r2.size();
     std::vector<T> result(size);
     auto it = result.begin();
     for (auto &&x : r1)
@@ -466,7 +465,7 @@ constexpr bool enumPowerset(Range &&v, std::invocable<std::vector<std::ranges::r
  */
 template <std::ranges::range Range> constexpr auto powerset(Range &&v)
 {
-    std::vector<std::vector<std::ranges::range_value_t<Range>>> result(pow(2uz, v.size()));
+    std::vector<std::vector<std::ranges::range_value_t<Range>>> result(pow(2UZ, v.size()));
     auto it = result.begin();
     enumPowerset(v, [&](auto &&comb) { *it++ = comb; });
     return result;
@@ -642,7 +641,7 @@ constexpr auto modsum(TBegin begin, TEnd end, integral2 auto modulus, UnaryOp f 
 auto _inverseConvolveSumHelper(std::ranges::range auto &&m, int64_t n, std::invocable<int64_t> auto H,
                                std::invocable<int64_t> auto g, std::invocable<int64_t> auto G)
 {
-    int64_t sqrtn = isqrt(n);
+    int64_t const sqrtn = isqrt(n);
     if (sqrtn > 200)
         return H(n) - sum(std::execution::par, 2LL, sqrtn, [&](int64_t i) { return g(i) * m[n / i]; }) -
                sum(std::execution::par, 1, n / sqrtn - 1,
@@ -659,7 +658,7 @@ auto inverseConvolveSumTable(int64_t limit, std::invocable<int64_t> auto H, std:
                              std::invocable<int64_t> auto G)
 {
     using TResult = std::remove_reference_t<std::invoke_result_t<decltype(H), int64_t>>;
-    int64_t sqrtn = isqrt(limit);
+    int64_t const sqrtn = isqrt(limit);
     boost::unordered_flat_map<int64_t, TResult> result;
     for (int64_t i = 1; i <= sqrtn; ++i)
         result[i] = _inverseConvolveSumHelper(result, i, H, g, G);
@@ -673,7 +672,7 @@ template <integral2 T>
 auto mobiusSumTable(int64_t limit, const std::vector<T> &smallValues, std::invocable<int64_t> auto H)
 {
     using TResult = std::remove_reference_t<std::invoke_result_t<decltype(H), int64_t>>;
-    int64_t cutoff = std::min(std::max((int64_t)5e6, isqrt(limit)), (int64_t)smallValues.size() - 1);
+    int64_t const cutoff = std::min(std::max((int64_t)5e6, isqrt(limit)), (int64_t)smallValues.size() - 1);
     boost::unordered_flat_map<int64_t, TResult> result;
     for (int64_t i = 1; i <= cutoff; ++i)
         result[i] = result[i - 1] + smallValues[i];
@@ -720,7 +719,7 @@ auto mobiusModsumTable(int64_t limit, const std::vector<T> &table, integral2 aut
 template <integral2 T>
 auto reducePythagoreanTriples(auto &&exec, int64_t limit, const T &identity, auto binaryOp, auto f)
 {
-    int64_t hu = isqrt(limit);
+    int64_t const hu = isqrt(limit);
     return transform_reduce(std::forward<decltype(exec)>(exec), counting_iterator((int64_t)1),
                             counting_iterator(hu + 1), identity, binaryOp, [&](auto &&u) {
                                 T result = identity;

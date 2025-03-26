@@ -24,7 +24,7 @@ class powerful_numbers_factored : public it_base
         PF<int64_t> fac{};
         fac.data().reserve(4);
         return it::tree_preorder(
-            std::tuple<int64_t, PF<int64_t> &, It>{1_i64, fac, _primes.begin()},
+            std::tuple<int64_t, PF<int64_t> &, It>{(int64_t)1, fac, _primes.begin()},
             [&](auto &&x, auto f) {
                 auto &&[n, fac, i] = x;
                 bool currPrimeInFac = !fac.empty();

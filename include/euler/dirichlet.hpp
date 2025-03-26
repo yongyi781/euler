@@ -5,6 +5,7 @@
 #include "euler/math.hpp"
 #include "it/base.hpp"
 #include "libdivide.h"
+#include "literals.hpp"
 
 inline namespace euler
 {

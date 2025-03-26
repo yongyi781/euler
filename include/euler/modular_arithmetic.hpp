@@ -10,6 +10,7 @@ template <typename T> struct euclidean_result_t
 };
 
 /// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
+/// Requirement: T is signed.
 template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
 {
     if (m < 1 || n < 1)
@@ -64,23 +65,23 @@ template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
 /// @param a A number.
 /// @param modulus The modulus.
 /// @return number^-1 mod modulus.
-template <integral2 Ta, integral2 Tm> constexpr std::common_type_t<Ta, Tm> modInverse(const Ta &a, const Tm &modulus)
+template <integral2 Ta, integral2 Tm> constexpr Tm modInverse(const Ta &a, const Tm &modulus)
 {
-    using Tp = std::common_type_t<Ta, Tm>;
+    using Ts = std::make_signed_t<std::common_type_t<Ta, Tm>>;
     assert(modulus > 0);
     if (modulus == 1)
         return 0;
     // make sure a < modulus:
-    Tp a_small = Tp(mod(a, modulus));
+    Ts a_small = Ts(mod(a, modulus));
     if (a_small == 0)
         return 0;
-    euclidean_result_t<Tp> u = xgcd(a_small, Tp(modulus));
+    euclidean_result_t<Ts> u = xgcd(a_small, Ts(modulus));
     if (u.gcd > 1)
         return 0;
-    // x might not be in the range 0 < x < m, let's fix that:
-    while (u.x <= 0)
+    // x might not be in the range 0 ≤ x < m, let's fix that:
+    if (u.x < 0)
         u.x += modulus;
-    return u.x;
+    return Tm(u.x);
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
