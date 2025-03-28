@@ -41,6 +41,9 @@ template <typename T> class vector2d
     [[nodiscard]] constexpr iterator end() noexcept { return _data.end(); }
     [[nodiscard]] constexpr const_iterator end() const noexcept { return _data.end(); }
 
+    [[nodiscard]] constexpr std::vector<T> &data() noexcept { return _data; }
+    [[nodiscard]] constexpr const std::vector<T> &data() const noexcept { return _data; }
+
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 

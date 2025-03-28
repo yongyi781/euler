@@ -15,8 +15,7 @@ template <std::integral T = int64_t> class SPF
     using half_integer_type = std::make_unsigned_t<half_integer_t<T>>;
 
     SPF() = default;
-    explicit SPF(T n)
-        : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange(half_integer_type(3), half_integer_type(isqrt(n))))
+    explicit SPF(T n) : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange<half_integer_type>(3, isqrt(n)))
     {
         T const m = (n + 1) / 2; // covers numbers 1,3,5,... up to n
         // We ignore index 0 (number 1) and process indices [1, m).

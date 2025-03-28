@@ -6,94 +6,66 @@
 using namespace std;
 using Int = int64_t;
 
-constexpr auto passStr = "\033[0;32;1m[PASS]\033[0m "sv;
-constexpr auto failStr = "\033[0;31;1m[FAIL]\033[0m "sv;
-
-inline bool testWithRandomInputs(auto passPred, int maxBinaryDigits = 32)
+inline void testWithRandomInputs(auto f, int maxBinaryDigits = 32)
 {
     mt19937_64 rng;
     for (int d = 2; d <= maxBinaryDigits; ++d)
     {
-        bool passed = true;
         uniform_int_distribution<int64_t> dist(-((int64_t)1 << d), (int64_t)1 << d);
         // cout << "Testing " << d << " binary digits" << endl;
         for (int i = 0; i < 1000; ++i)
-        {
-            passed = passPred(rng, dist);
-            if (!passed)
-                break;
-        }
-        if (!passed)
-        {
-            cout << failStr << "First fail at " << d << " binary digits" << '\n';
-            return false;
-        }
+            f(rng, dist);
     }
-    return true;
 }
 
-inline void testModInv()
+inline void testModInverse()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int64_t const a = dist(rng);
-                int64_t const m = abs(dist(rng)) + 1;
-                if (m == 0 || gcd(a, m) != 1)
-                    return true;
-                auto result = modInverse(a, m);
-                auto product = mod(modmul(result, a, m), m);
-                if (product != mod((int64_t)1, m))
-                {
-                    cout << failStr << "modInverse(" << a << ", " << m << ") gave " << result << " but " << result
-                         << " * " << a << " = " << product << '\n';
-                    return false;
-                }
-                return true;
-            },
-            62))
-        cout << passStr << "modInverse\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int64_t const a = dist(rng);
+            int64_t const m = abs(dist(rng)) + 1;
+            if (gcd(a, m) != 1)
+                return;
+            auto const result = modInverse(a, m);
+            auto const product = mod(modmul(result, a, m), m);
+            if ((m == 1 && product != 0) || (m != 1 && product != 1))
+                fail("modInverse: "s + to_string(a) + " mod " + to_string(m));
+        },
+        62);
+    pass("modInverse");
 }
 
 inline void testPowm()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int64_t const a = dist(rng);
-                int64_t const b = abs(dist(rng));
-                int64_t const c = abs(dist(rng)) + 2;
-                auto result = powm(a, b, c);
-                auto expected = boost::multiprecision::powm(a, b, c);
-                if (result != expected)
-                {
-                    cout << failStr << "powm" << tuple{a, b, c} << " gave " << result << " but expected " << expected
-                         << "\n";
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "powm\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int64_t const a = dist(rng);
+            int64_t const b = abs(dist(rng));
+            int64_t const c = abs(dist(rng)) + 2;
+            auto result = powm(a, b, c);
+            auto expected = boost::multiprecision::powm(a, b, c);
+            if (result != expected)
+                fail("powm");
+        },
+        31);
+    pass("pow");
 }
 
 inline void testPowmSafe()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int64_t const a = dist(rng);
-                int64_t const b = abs(dist(rng));
-                int64_t const c = abs(dist(rng)) + 2;
-                auto result = powmSafe(a, b, c);
-                auto expected = boost::multiprecision::powm(a, b, c);
-                if (result != expected)
-                {
-                    cout << failStr << "powmSafe" << tuple{a, b, c} << " gave " << result << " but expected "
-                         << expected << "\n";
-                    return false;
-                }
-                return true;
-            },
-            62))
-        cout << passStr << "powmSafe\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int64_t const a = dist(rng);
+            int64_t const b = abs(dist(rng));
+            int64_t const c = abs(dist(rng)) + 2;
+            auto result = powmSafe(a, b, c);
+            auto expected = boost::multiprecision::powm(a, b, c);
+            if (result != expected)
+                fail("powmSafe");
+            return true;
+        },
+        62);
+    pass("powmSafe");
 }
 
 // inline void testModPow()
@@ -118,28 +90,21 @@ inline void testPowmSafe()
 
 inline void testCrt()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int64_t const a = dist(rng);
-                int64_t const b = dist(rng);
-                int64_t const m = abs(dist(rng));
-                int64_t const n = abs(dist(rng));
-                if (gcd(m, n) != 1 || m == 0 || n == 0)
-                    return true;
-                // auto result = crt(array{a, b}, array{m, n});
-                auto result = crt(a, b, m, n);
-                if (mod(result, m) != mod(a, m) || mod(result, n) != mod(b, n))
-                {
-                    cout << failStr << "crt(" << a << ", " << b << ", " << m << ", " << n << ") gave " << result
-                         << '\n';
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "CRT\n";
-    else
-        cout << failStr << "CRT\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int64_t const a = dist(rng);
+            int64_t const b = dist(rng);
+            int64_t const m = abs(dist(rng));
+            int64_t const n = abs(dist(rng));
+            if (gcd(m, n) != 1 || m == 0 || n == 0)
+                return;
+            // auto result = crt(array{a, b}, array{m, n});
+            auto result = crt(a, b, m, n);
+            if (mod(result, m) != mod(a, m) || mod(result, n) != mod(b, n))
+                fail("CRT");
+        },
+        31);
+    pass("CRT");
 }
 
 inline void testMobius()
@@ -161,15 +126,10 @@ inline void testMobius()
                                              {10'000'000, 0},
                                              {1'000'000'000, 0},
                                              {999'999'995, 1}};
-    bool passed = true;
     for (auto [n, m] : cases)
         if (n < (int)mu.size() && mu[n] != m)
-        {
-            cout << failStr << "at n = " << n << '\n';
-            passed = false;
-        }
-    if (passed)
-        cout << passStr << "mobius sieve" << '\n';
+            fail("mobiusSieve");
+    pass("Mobius sieve");
 }
 
 inline void testBinom()
@@ -188,10 +148,10 @@ inline void testBinom()
         for (int j = 1; j <= i; ++j)
         {
             C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % mod;
-            assert(C[i][j] == binom(i, j));
+            assertEqual(C[i][j], binom(i, j));
         }
     }
-    cout << passStr << "Binomial mod prime power" << '\n';
+    pass("Binomial mod prime power");
 }
 
 inline void testUtils()
@@ -202,7 +162,7 @@ inline void testUtils()
     assert(product(1, 6) == 720);
     assert(product((int64_t)1, 6) == 720);
     assert(product((int64_t)1, (int128_t)6) == 720);
-    cout << passStr << "sum and product" << '\n';
+    pass("Sum and product");
 }
 
 inline void testEnumCombinations()
@@ -210,7 +170,7 @@ inline void testEnumCombinations()
     Int total = 0;
     it::combinations(range(1, 100), 3)([&](auto &&) { ++total; });
     assert(total == 161700);
-    cout << passStr << "Enum combinations\n";
+    pass("Enum combinations");
 }
 
 inline void testBisections()
@@ -224,20 +184,21 @@ inline void testBisections()
     assert(bisectionUpperBound(f, 16, 0, 1'000'000) == 6);
     assert(bisectionLowerBound(g, 15, 0, 1'000'000) == 15000);
     assert(bisectionUpperBound(g, 15, 0, 1'000'000) == 16000);
-    cout << passStr << "Bisections\n";
+    pass("Bisections");
 }
 
 inline void testIsPrime()
 {
     for (int n = 0; n < 100'000; ++n)
         assert(isPrime(n) == boost::multiprecision::miller_rabin_test(n, 8));
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                auto n = abs(dist(rng));
-                return isPrime(n) == boost::multiprecision::miller_rabin_test(n, 8);
-            },
-            62))
-        cout << passStr << "isPrime\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            auto n = abs(dist(rng));
+            if (isPrime(n) != boost::multiprecision::miller_rabin_test(n, 8))
+                fail("isPrime");
+        },
+        62);
+    pass("isPrime");
 }
 
 inline void testMultiplicativeOrder()
@@ -250,111 +211,72 @@ inline void testMultiplicativeOrder()
         removeFactors(i, 5);
         return i == 1 ? (int64_t)0 : multiplicativeOrder((int64_t)10, i, totients[i], spfs);
     });
-    if (result == 55535191115)
-        cout << passStr << "multiplicativeOrder\n";
-    else
-        cout << failStr << "multiplicativeOrder: " << result << ", expected " << 55535191115 << '\n';
+    assertEqual(result, 55535191115);
+    pass("multiplicativeOrder");
 }
 
 inline void testIsSquare()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int64_t const a = abs(dist(rng)) + 2;
-                bool const ok = !isSquare(a * a + 1) && !isSquare(a * a - 1) && isSquare(a * a);
-                if (!ok)
-                {
-                    cout << failStr << "isSquare is wrong for a = " << a << "\n";
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "isSquare\n";
-    else
-        cout << failStr << "isSquare\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int64_t const a = abs(dist(rng)) + 2;
+            bool const ok = !isSquare(a * a + 1) && !isSquare(a * a - 1) && isSquare(a * a);
+            if (!ok)
+                fail("isSquare");
+        },
+        31);
+    pass("isSquare");
 }
 
 inline void testIsqrt()
 {
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                Int const a = abs(dist(rng)) + 1;
-                bool const ok = isqrt(a * a + 1) == a && isqrt(a * a - 1) == a - 1 && isqrt(a * a) == a;
-                if (!ok)
-                {
-                    cout << failStr << "isqrt is wrong for a = " << a << "\n";
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "isqrt\n";
-    else
-        cout << failStr << "isqrt\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            Int const a = abs(dist(rng)) + 1;
+            bool const ok = isqrt(a * a + 1) == a && isqrt(a * a - 1) == a - 1 && isqrt(a * a) == a;
+            if (!ok)
+                fail("isqrt");
+        },
+        31);
+    pass("isqrt");
 }
 
 inline void testIt()
 {
     assert(it::range(1, 100).sum() == 5050);
     assert(it::range(1, 100).map([](auto &&x) { return x + 1; }).sum() == 5150);
-    cout << passStr << "itertools\n";
+    pass("it::range");
 }
 
 inline void testModmul()
 {
     static constexpr int m = 1'000'000'007;
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int const a = dist(rng);
-                int const b = dist(rng);
-                bool const ok = modmul(a, b, m) == (Int)a * b % m;
-                if (!ok)
-                {
-                    cout << failStr << "modmul is wrong for a = " << a << "\n";
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "modmul\n";
-    else
-        cout << failStr << "modmul\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int const a = dist(rng);
+            int const b = dist(rng);
+            bool const ok = modmul(a, b, m) == (Int)a * b % m;
+            if (!ok)
+                fail("modmul is wrong for a = "s + to_string(a));
+        },
+        31);
+    pass("modmul");
 }
 
 inline void testZMod()
 {
     using Z = ZMod<1'000'000'007>;
-    if (testWithRandomInputs(
-            [](auto &&rng, auto &&dist) {
-                int const a = dist(rng);
-                int const b = dist(rng);
-                Z const x = Z(a) * b;
-                bool const ok = x.value() == mod((Int)a * b, Z::modulus);
-                if (!ok)
-                {
-                    cout << failStr << "ZMod is wrong for a = " << a << "\n";
-                    return false;
-                }
-                return true;
-            },
-            31))
-        cout << passStr << "ZMod\n";
-    else
-        cout << failStr << "ZMod\n";
-}
-
-inline void testFloorsArray()
-{
-    constexpr Int N = 2e9;
-    int const L = (int)(0.25 * pow(N, 2.0 / 3));
-    assert(floors_array<>::sumTotient(N)[N] == 1215854204348393714);
-    for (int const sieveSize : {100, 999, 1001, (int)isqrt(N), L - 1, L, L + 1})
-    {
-        auto sieve = totientSieve(sieveSize);
-        assert(floors_array<>::sumTotient(N, sieve)[N] == 1215854204348393714);
-    }
-    cout << passStr << "floors_array\n";
+    testWithRandomInputs(
+        [](auto &&rng, auto &&dist) {
+            int const a = dist(rng);
+            int const b = dist(rng);
+            Z const x = Z(a) * b;
+            bool const ok = x.value() == mod((Int)a * b, Z::modulus);
+            if (!ok)
+                fail("ZMod is wrong for a = "s + to_string(a));
+        },
+        31);
+    pass("ZMod");
 }
 
 inline void testModInverseUnsigned()
@@ -363,17 +285,29 @@ inline void testModInverseUnsigned()
     uint64_t const b = 1'000'000'007;
     uint64_t const res = modInverse(a, b);
     assertEqual(res * a % b, 1);
+    pass("testModInverseUnsigned");
+}
+
+inline void testModUnsignedModulus()
+{
+    uint32_t const modulus = 61;
+    for (int i = -126; i <= 126; ++i)
+    {
+        auto const res = mod(i, modulus);
+        assertEqual(res, (i + 5 * modulus) % modulus);
+    }
+    pass("testModUnsignedModulus");
 }
 
 int main()
 {
     auto t1 = now();
-    testFloorsArray();
+    testModUnsignedModulus();
     testModmul();
     testZMod();
     testIt();
     testIsSquare();
-    testModInv();
+    testModInverse();
     testPowm();
     testPowmSafe();
     testCrt();

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "decls.hpp"
-#include "it/base.hpp"
+#include "it/primes.hpp"
 #include "libdivide.h"
+#include "prime.hpp"
 #include <ranges>
 
 inline namespace euler
@@ -110,7 +111,7 @@ constexpr auto sumPrimeRangeLucyHedgehogExt(int64_t limit, Fun f, SummatoryFun F
     using FT = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, int64_t>>;
     size_t const r = isqrt(limit);
     floors_array<FT> S(limit);
-    auto invs = range(0UZ, r, [&](size_t i) { return i == 0 ? 0 : limit / i; });
+    auto const invs = range(0UZ, r, [&](size_t i) { return i == 0 ? 0 : limit / i; });
     S.ascendingMut([&](size_t i, FT &value) { value = F(i) - F(1); });
     for (size_t p = 2; p <= r; ++p)
     {
@@ -150,5 +151,21 @@ constexpr auto sumPrimeRangeLucyHedgehog(int64_t limit, Fun f, SummatoryFun F)
 template <typename T = int64_t> constexpr T sumPrimeRangeLucyHedgehog(int64_t limit)
 {
     return sumPrimeRangeLucyHedgehog(limit, std::identity{}, [](auto &&n) { return T(n) * (n + 1) / 2; });
+}
+
+/// Returns a list of pairs (exp, c) indicating that c primes have exponent exp in the factorization of n!. O(n^(3/4)).
+inline std::vector<std::pair<int64_t, int64_t>> factorialExponents(int64_t n)
+{
+    uint32_t const s = isqrt(n);
+    std::vector<std::pair<int64_t, int64_t>> res;
+    it::primes(2, s)([&](auto p) { res.emplace_back(factorialValuation(n, p), 1); });
+    auto const S = sumPrimeRangeLucyHedgehogExt(n, [](auto &&) { return 1; }, std::identity{});
+    for (int64_t i = n / (s + 1); i >= 1; --i)
+    {
+        int64_t const c = S[n / i] - S[n / (i + 1)];
+        if (c > 0)
+            res.emplace_back(i, c);
+    }
+    return res;
 }
 } // namespace euler

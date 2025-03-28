@@ -72,7 +72,7 @@ constexpr std::common_type_t<T, Tm> mod(const T &a, Tm modulus)
     using Tp = std::common_type_t<T, Tm>;
     if (a >= 0)
         return Tp(a) < Tp(modulus) ? Tp(a) : Tp(a % modulus);
-    return Tp((a + 1) % modulus + modulus - 1);
+    return Tp(modulus - 1 - (-a - 1) % modulus);
 }
 
 // template <typename T, size_t M, size_t N>

@@ -100,7 +100,7 @@ template <integral2 T> constexpr bool millerRabinDeterministic(const T &n, std::
 
     T nm1 = n - 1;
     T q = n - 1;
-    std::size_t k = boost::multiprecision::lsb(q);
+    size_t const k = boost::multiprecision::lsb(q);
     q >>= k;
 
     // Execute the trials:
@@ -262,13 +262,13 @@ constexpr std::vector<bool> primeSieve(size_t limit)
                 sieve[i * j] = false;
         }
     };
-    for (auto p : detail::primesTo59)
+    for (auto const p : detail::primesTo59)
     {
         if (limit < p)
             return sieve;
         sieve[p] = true;
     }
-    for (int64_t i = 11, c = 1; i <= limit;
+    for (size_t i = 11, c = 1; i <= limit;
          i += detail::primeWheel[c], c = (c + 1 == detail::primeWheelSize ? 0 : c + 1))
         sieve[i] = true;
     int const sqrtLimit = (int)isqrt(limit);
@@ -297,12 +297,12 @@ constexpr std::vector<bool> primeSieve(size_t limit)
 /// @param start Inclusive lower bound.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <integral2 T> constexpr std::vector<T> primeRange(T start, T stop)
+template <typename T = int64_t> constexpr std::vector<T> primeRange(int64_t start, int64_t stop)
 {
     std::vector<T> result;
     if (std::is_constant_evaluated() && stop - start < 7000)
     {
-        for (T i = start; i <= stop; ++i)
+        for (int64_t i = start; i <= stop; ++i)
             if (isPrime(i))
                 result.push_back(i);
     }
@@ -316,7 +316,7 @@ template <integral2 T> constexpr std::vector<T> primeRange(T start, T stop)
 /// @brief Generates primes within a range, starting at 2.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <integral2 T> constexpr std::vector<T> primeRange(T stop) { return primeRange(T(2), stop); }
+template <typename T = int64_t> constexpr std::vector<T> primeRange(int64_t stop) { return primeRange<T>(2, stop); }
 
 /// Sieves numbers of the form n² + 1. Sends triples (n, p, e) to f, over all primes p ^ e
 /// exactly dividing n² + 1 for n between 1 and limit. For some reason, calling this function with

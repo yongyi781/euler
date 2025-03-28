@@ -14,6 +14,7 @@ inline void pass(std::string_view message)
 inline void fail(std::string_view message)
 {
     std::cerr << ansi::brightRed << ansi::bold << "[FAIL] " << ansi::reset << message << '\n';
+    throw std::logic_error(std::string{message});
 }
 
 template <typename T, typename U> void assertEqual(const T &actual, const U &expected)
@@ -30,6 +31,5 @@ template <typename T, typename U> void assertEqual(const T &actual, const U &exp
         else
             ostr << expected << ", got " << actual;
         fail(ostr.view());
-        throw std::logic_error("Test failed");
     }
 }
