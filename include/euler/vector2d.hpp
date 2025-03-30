@@ -25,11 +25,6 @@ template <typename T> class vector2d
         std::ranges::fill(_data, value);
     }
 
-    /// `i`th row, `j`th column.
-    constexpr const_reference operator[](size_t i, size_t j) const noexcept { return _data[toIndex(i, j)]; }
-    /// `i`th row, `j`th column.
-    constexpr reference operator[](size_t i, size_t j) noexcept { return _data[toIndex(i, j)]; }
-
     [[nodiscard]] constexpr size_t rows() const noexcept { return _rows; }
     [[nodiscard]] constexpr size_t columns() const noexcept { return _columns; }
 
@@ -43,6 +38,16 @@ template <typename T> class vector2d
 
     [[nodiscard]] constexpr std::vector<T> &data() noexcept { return _data; }
     [[nodiscard]] constexpr const std::vector<T> &data() const noexcept { return _data; }
+
+    /// `i`th row, `j`th column.
+    constexpr const_reference operator[](size_t i, size_t j) const noexcept { return _data[toIndex(i, j)]; }
+    /// `i`th row, `j`th column.
+    constexpr reference operator[](size_t i, size_t j) noexcept { return _data[toIndex(i, j)]; }
+
+    /// `i`th row.
+    constexpr std::span<T> operator[](size_t i) noexcept { return {_data.data() + i * _columns, _columns}; }
+    /// `i`th row.
+    constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * _columns, _columns}; }
 
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }

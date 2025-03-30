@@ -220,6 +220,22 @@ template <typename T = int64_t> constexpr T factorial(int n)
     }
 }
 
+/// Returns `n!!`.
+template <typename T = int64_t> constexpr T doubleFactorial(int n)
+{
+    assert(n >= 0);
+    if constexpr (std::same_as<T, mpz_int>)
+    {
+        mpz_int result;
+        mpz_2fac_ui((mpz_ptr)result.backend().data(), n);
+        return result;
+    }
+    else
+    {
+        return product(1, n / 2, [&](int i) { return T(n - 2 * i); });
+    }
+}
+
 /// Calculates the binomial coefficient for given values of `n` and `k`.
 template <typename T = int64_t> constexpr T binomial(int n, int r)
 {
@@ -384,21 +400,6 @@ constexpr auto countSquarefree(T n, Range &&primes)
 
 /// Calculates the nth polygonal number of a given type.
 template <integral2 T> constexpr T polygonalNumber(int p, T n) { return (n * n * (p - 2) - n * (p - 4)) / 2; }
-
-/// Generate the B + 1 numbers (B(1) = 1/2) up to `k`.
-template <typename T> std::vector<T> bernoulliPlus(size_t k)
-{
-    std::vector<T> A(k + 1), B(k + 1);
-    for (size_t m = 0; m <= k; m++)
-    {
-        A[m] = T(1) / T(m + 1);
-        for (int j = m; j >= 1; j--)
-            A[j - 1] = j * (A[j - 1] - A[j]);
-        if (m == 1 || m % 2 == 0)
-            B[m] = A[0];
-    }
-    return B;
-}
 
 /// Sums `1 + 2 + ... + limit`, maximally avoiding overflow and also avoiding divisions in `T`.
 template <typename T = int64_t> constexpr T sumId(size_t limit) { return T((limit + (limit & 1)) >> 1) * (limit | 1); }

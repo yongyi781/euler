@@ -2,6 +2,7 @@
 
 #include "it/base.hpp"
 #include "it/combinatorics.hpp"
+#include "it/dfinite.hpp"
 #include "it/digits.hpp"
 #include "it/divisors.hpp"
 #include "it/factor.hpp"

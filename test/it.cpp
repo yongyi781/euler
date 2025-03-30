@@ -1,6 +1,7 @@
 #include "euler/it.hpp"
 
 #include "common.hpp"
+#include "euler/ZMod.hpp"
 
 using namespace std;
 
@@ -28,10 +29,22 @@ void testDigits()
     pass("it/digits");
 }
 
+void testDFinite()
+{
+    using Z = ZMod<(int64_t)1'234'567'891>;
+    assertEqual(
+        827177246,
+        it::dfinite(
+            {{160, 464, 480, 208, 32}, {-88, -364, -432, -200, -32}, {-108, -181, -110, -27, -2}, {36, 81, 62, 19, 2}},
+            vector<Z>{0, 2, 6}, 1)[10000]);
+    pass("it/dfinite");
+}
+
 int main()
 {
     testRange();
     testCombinatorics();
     testDigits();
+    testDFinite();
     pass("it");
 }

@@ -217,7 +217,11 @@ template <typename T = int64_t> class PF
         {
             if (i != pf.begin())
                 o << " * ";
-            o << i->first;
+            // Add parentheses if our type isn't integral, just to be safe
+            if constexpr (integral2<T>)
+                o << i->first;
+            else
+                o << '(' << i->first << ')';
             if (i->second != 1)
                 o << '^' << i->second;
         }
