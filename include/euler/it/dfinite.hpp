@@ -25,7 +25,7 @@ template <typename T = int64_t> class dfinite : public it_base
             if (!callbackResult(f, c))
                 return result_break;
         int64_t const order = _coeffPolys.size() - 1;
-        auto y = _init;
+        std::vector<T> y = _init;
         std::vector<T> z(order);
         for (int64_t n = _firstIndex + order;; ++n)
         {
