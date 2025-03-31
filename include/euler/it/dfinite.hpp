@@ -16,7 +16,7 @@ template <typename T = int64_t> class dfinite : public it_base
         : _coeffPolys(std::move(coeffPolys)), _init(std::move(init)), _firstIndex(firstIndex)
     {
         assert(_coeffPolys.size() - 1 == _init.size() &&
-               "There must be the same number of coefficients and initial values.");
+               "The number of initial values must be the order, which is one less than the number of coefficients.");
     }
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
@@ -32,8 +32,8 @@ template <typename T = int64_t> class dfinite : public it_base
             std::copy(y.begin() + 1, y.end(), z.begin());
             z.back() = 0;
             for (size_t k = 0; k < y.size(); ++k)
-                z.back() -= evalPoly(_coeffPolys[k], n - order) * y[k];
-            z.back() /= evalPoly(_coeffPolys.back(), n - order);
+                z.back() += evalPoly(_coeffPolys[k], n - order) * y[k];
+            z.back() /= -evalPoly(_coeffPolys.back(), n - order);
             if (!callbackResult(f, z.back()))
                 return result_break;
             swap(y, z);
