@@ -189,7 +189,8 @@ template <typename T> constexpr std::vector<T> powers(T a, int n)
 /// @param low The lower bound (inclusive).
 /// @param high The upper bound (inclusive).
 /// @return The number of elements in the residue class given by a.
-constexpr auto countResidueClass(integral2 auto a, integral2 auto modulus, integral2 auto low, integral2 auto high)
+template <integral2 Ta, integral2 Tm, integral2 Tl, integral2 Th>
+constexpr auto countResidueClass(Ta a, Tm modulus, Tl low, Th high)
 {
     // Alternative formula: floorDiv(high - a, modulus) + floorDiv(a - low, modulus) + 1;
     return floorDiv(high - a, modulus) - floorDiv(low - a - 1, modulus);
@@ -232,7 +233,7 @@ template <typename T = int64_t> constexpr T doubleFactorial(int n)
     }
     else
     {
-        return product(1, n / 2, [&](int i) { return T(n - 2 * i); });
+        return product(0, floorDiv(n - 1, 2), [&](int i) { return T(n - 2 * i); });
     }
 }
 

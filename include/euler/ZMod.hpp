@@ -214,13 +214,13 @@ class ZMod
         return r._value <= M / 2 ? r : M - r;
     }
 
-    /// Calculates factorial coefficient (n choose r) mod M.
+    /// Calculates factorial of n mod M.
     template <execution_policy Exec, integral2 T> static ZMod factorial(Exec &&exec, T n)
     {
         return it::range(T(1), n).map([](T k) { return ZMod{k}; }).product(std::forward<Exec>(exec));
     }
 
-    /// Calculates factorial coefficient (n choose r) mod M.
+    /// Calculates factorial of n mod M.
     template <integral2 T> static constexpr ZMod factorial(T n)
     {
         return it::range(T(1), n).map([](T k) { return ZMod{k}; }).product();
@@ -229,10 +229,12 @@ class ZMod
     /// Calculates binomial coefficient (n choose r) mod M.
     template <execution_policy Exec, integral2 T> static ZMod binomial(Exec &&exec, T n, T r)
     {
-        if (r < 0 || r > n)
+        if (r <= 0 || n == 0)
+            return ZMod(r == 0);
+        if (n < 0)
+            return ::pow(-1, r) * binomial(exec, r - n - 1, r);
+        if (r > n)
             return 0;
-        if (r == 0 || r == n)
-            return 1;
         r = std::min(r, n - r);
         return it::range(T(0), r - 1).map([&](auto k) { return ZMod{n - k}; }).product(std::forward<Exec>(exec)) /
                it::range(T(0), r - 1).map([&](auto k) { return ZMod{k + 1}; }).product(std::forward<Exec>(exec));
@@ -241,10 +243,12 @@ class ZMod
     /// Calculates binomial coefficient (n choose r) mod M.
     template <integral2 T> static constexpr ZMod binomial(T n, T r)
     {
-        if (r < 0 || r > n)
+        if (r <= 0 || n == 0)
+            return ZMod(r == 0);
+        if (n < 0)
+            return ::pow(-1, r) * binomial(r - n - 1, r);
+        if (r > n)
             return 0;
-        if (r == 0 || r == n)
-            return 1;
         r = std::min(r, n - r);
         return it::range(T(0), r - 1).map([&](auto k) { return ZMod{n - k}; }).product() /
                it::range(T(0), r - 1).map([&](auto k) { return ZMod{k + 1}; }).product();
