@@ -111,7 +111,7 @@ inline void testMobius()
 {
     int const limit = 1e7;
     SPF const spfs(limit);
-    auto mu = mobiusSieve(limit, spfs);
+    auto mu = spfs.mobiusSieve(limit);
     vector<pair<int, int8_t>> const cases = {{1, 1},
                                              {2, -1},
                                              {3, -1},
