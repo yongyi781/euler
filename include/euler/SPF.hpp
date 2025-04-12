@@ -67,7 +67,7 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] size_t size() const noexcept { return spfOdd.size() * 2 + 1; }
 
     /// Returns the smallest prime factor for any x (1 ≤ x ≤ size()).
-    [[nodiscard]] T operator[](T n) const noexcept
+    [[nodiscard]] T operator[](T n) const
     {
         if (n < 2)
             return 0;
@@ -77,10 +77,10 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns whether the given number is prime. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] bool isPrime(T n) const noexcept { return (*this)[n] == n; }
+    [[nodiscard]] bool isPrime(T n) const { return (*this)[n] == n; }
 
     /// Returns the mobius function for the given number. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] int mobius(T n) const noexcept
+    [[nodiscard]] int mobius(T n) const
     {
         int res = 1;
         if (n % 4 == 0)
@@ -101,8 +101,44 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
+    [[nodiscard]] T totient(T n) const
+    {
+        T res = n;
+        if (n % 2 == 0)
+        {
+            res >>= 1;
+            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
+        }
+        while (n != 1)
+        {
+            T const p = (*this)[n];
+            res -= res / p;
+            while ((*this)[n] == p)
+                n /= p;
+        }
+        return res;
+    }
+
+    [[nodiscard]] T countDivisors(T n) const
+    {
+        T res = 1;
+        if (n % 2 == 0)
+        {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
+            res *= e + 1;
+            n >>= e;
+        }
+        while (n != 1)
+        {
+            T const p = (*this)[n];
+            int const e = removeFactors<true>(n, p);
+            res *= e + 1;
+        }
+        return res;
+    }
+
     /// Returns the number of distinct prime factors of the given number. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] uint32_t omega(T n) const noexcept
+    [[nodiscard]] uint32_t omega(T n) const
     {
         uint32_t res = 0;
         if (n % 2 == 0)
@@ -122,7 +158,7 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns the number of prime factors of the given number, with multiplicity. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] uint32_t Omega(T n) const noexcept
+    [[nodiscard]] uint32_t Omega(T n) const
     {
         uint32_t res = 0;
         if (n % 2 == 0)
@@ -158,7 +194,164 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns the number of integers coprime to the given prime list in the range [1, limit].
-    template <typename Tk> T countCoprime(Tk k, T limit) const { return sumCoprime(std::identity{}, k, limit); }
+    template <typename Tk> [[nodiscard]] T countCoprime(Tk k, T limit) const
+    {
+        return sumCoprime(std::identity{}, k, limit);
+    }
+
+    /// Creates a sieve from a multiplicative function.
+    template <typename Fun> [[nodiscard]] auto sieve(Fun f, T limit) const
+    {
+        using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
+        assert(limit < size());
+        std::vector<Tp> res(limit + 1, 1);
+        res[0] = 0;
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1 && res[i] != 0)
+            {
+                T const p = (*this)[n];
+                int const e = removeFactors<true>(n, p);
+                res[i] *= f(p, e);
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            res[i] = res[i >> e] * f(2, e);
+        });
+        return res;
+    }
+
+    /// Creates a sieve from an additive function.
+    template <typename Fun> [[nodiscard]] auto sieveAdditive(Fun f, T limit) const
+    {
+        using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
+        assert(limit < size());
+        std::vector<Tp> res(limit + 1);
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1)
+            {
+                T const p = (*this)[n];
+                int const e = removeFactors<true>(n, p);
+                res[i] += f(p, e);
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            res[i] = res[i >> e] + f(2, e);
+        });
+        return res;
+    }
+
+    /// Creates a sieve from a completely multiplicative function.
+    template <typename Fun> [[nodiscard]] auto sieveCompletelyMultiplicative(Fun f, T limit) const
+    {
+        using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
+        assert(limit < size());
+        std::vector<Tp> res(limit + 1);
+        res[1] = 1;
+        for (T i = 3; i <= limit; i += 2)
+        {
+            T const p = (*this)[i];
+            res[i] = res[i / p] * f(p);
+        }
+        for (T i = 2; i <= limit; i += 2)
+            res[i] = res[i / 2] * f(2);
+        return res;
+    }
+
+    /// Creates a sieve from a completely additive function.
+    template <typename Fun> [[nodiscard]] auto sieveCompletelyAdditive(Fun f, T limit) const
+    {
+        using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
+        assert(limit < size());
+        std::vector<Tp> res(limit + 1);
+        for (T i = 3; i <= limit; i += 2)
+        {
+            T const p = (*this)[i];
+            res[i] = res[i / p] + f(p);
+        }
+        for (T i = 2; i <= limit; i += 2)
+            res[i] = res[i / 2] + f(2);
+        return res;
+    }
+
+    /// Sieve for the divisor counting function.
+    template <typename U = T> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
+    {
+        return sieve([&](T, int e) -> U { return e + 1; }, limit);
+    }
+
+    /// Sieve for the σ₁ function, the divisor sum function.
+    template <typename U = T> [[nodiscard]] std::vector<U> divisorSumSieve(T limit) const
+    {
+        std::vector<U> sieve(limit + 1, 1);
+        sieve[0] = 0;
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1)
+            {
+                T const p = (*this)[n];
+                n /= p;
+                T q = p, S = 1 + p;
+                while ((*this)[n] == p)
+                {
+                    q *= p;
+                    n /= p;
+                    S += q;
+                }
+                sieve[i] *= S;
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) {
+            auto e = std::countr_zero(std::make_unsigned_t<T>(i));
+            sieve[i] = ((T(1) << (e + 1)) - 1) * sieve[i >> e];
+        });
+        return sieve;
+    }
+
+    /// Sieve for the Möbius function.
+    [[nodiscard]] std::vector<int8_t> mobiusSieve(T limit) const
+    {
+        assert(limit < size());
+        std::vector<int8_t> res(limit + 1, 1);
+        res[0] = 0;
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1)
+            {
+                T const p = (*this)[n];
+                n /= p;
+                if ((*this)[n] == p)
+                {
+                    res[i] = 0;
+                    break;
+                }
+                res[i] = -res[i];
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) { res[i] = i % 4 == 0 ? 0 : -res[i / 2]; });
+        return res;
+    }
+
+    /// Sieve for the Liouville λ function.
+    [[nodiscard]] std::vector<int8_t> liouvilleSieve(T limit) const
+    {
+        return sieveCompletelyMultiplicative([](T) -> int8_t { return -1; }, limit);
+    }
+
+    /// Sieve for the ω function, the number of distinct prime factors of a number.
+    [[nodiscard]] std::vector<uint8_t> omegaSieve(T limit) const
+    {
+        return sieveAdditive([](T, int) -> uint8_t { return 1; }, limit);
+    }
+
+    /// Sieve for the Ω function, the number of prime factors of a number.
+    [[nodiscard]] std::vector<uint8_t> OmegaSieve(T limit) const
+    {
+        return sieveCompletelyAdditive([](T) -> uint8_t { return 1; }, limit);
+    }
 
   private:
     // spfOdd[i] holds the smallest prime factor for number (2*i + 1).
@@ -167,102 +360,55 @@ template <std::integral T = int64_t> class SPF
     std::vector<half_integer_type> smallPrimes; // Odd primes up to sqrt(n).
 };
 
-/// Sieve for divisor counts. This is faster than divisorCountSieve2 for limits over 2 million.
-template <typename T = int64_t> std::vector<T> divisorCountSieve(T limit)
-{
-    std::vector<T> sieve(limit + 1, 1);
-    sieve[0] = 0;
-    SPF const spfs{T(limit)};
-    it::range(3, limit, 2)(std::execution::par, [&](T i) {
-        T n = i;
-        while (n != 1)
-        {
-            auto const p = spfs[n];
-            int e = 1;
-            n /= p;
-            while (spfs[n] == p)
-            {
-                ++e;
-                n /= p;
-            }
-            sieve[i] *= 1 + e;
-        }
-    });
-    it::range(2, limit, 2)(std::execution::par, [&](T i) {
-        auto e = std::countr_zero(std::make_unsigned_t<T>(i));
-        sieve[i] = (1 + e) * sieve[i >> e];
-    });
-    return sieve;
-}
+/// Sieve for the divisor counting function.
+template <std::integral T> std::vector<T> divisorCountSieve(T limit) { return SPF{limit}.divisorCountSieve(limit); }
 
 /// Sieve for the σ₁ function, the divisor sum function.
-template <typename T = int64_t> std::vector<T> divisorSumSieve(T limit)
-{
-    std::vector<T> sieve(limit + 1, 1);
-    sieve[0] = 0;
-    SPF const spfs{T(limit)};
-    it::range(3, limit, 2)(std::execution::par, [&](T i) {
-        T n = i;
-        while (n != 1)
-        {
-            auto const p = spfs[n];
-            n /= p;
-            T q = p, S = 1 + p;
-            while (spfs[n] == p)
-            {
-                q *= p;
-                n /= p;
-                S += q;
-            }
-            sieve[i] *= S;
-        }
-    });
-    it::range(2, limit, 2)(std::execution::par, [&](T i) {
-        auto e = std::countr_zero(std::make_unsigned_t<T>(i));
-        sieve[i] = ((T(1) << (e + 1)) - 1) * sieve[i >> e];
-    });
-    return sieve;
-}
+template <std::integral T> std::vector<T> divisorSumSieve(T limit) { return SPF{limit}.divisorSumSieve(limit); }
 
 /// Sieve for the ω function, the number of distinct prime factors of a number.
-inline std::vector<uint8_t> omegaSieve(size_t limit)
-{
-    std::vector<uint8_t> ω(limit + 1);
-    SPF const spfs{limit};
-    for (size_t i = 2; i <= limit; ++i)
-    {
-        size_t const j = i / spfs[i];
-        ω[i] = j % spfs[i] == 0 ? ω[j] : ω[j] + 1;
-    }
-    return ω;
-}
+template <std::integral T> std::vector<uint8_t> omegaSieve(T limit) { return SPF{limit}.omegaSieve(limit); }
 
-/// Generates a sieve of the mobius function, given a SPF sieve.
-template <typename SPFSieve> std::vector<int8_t> mobiusSieve(size_t limit, const SPFSieve &spfs)
+/// Sieve for the Möbius function.
+template <std::integral T> std::vector<int8_t> mobiusSieve(T limit) { return SPF{limit}.mobiusSieve(limit); }
+
+/// Sieve for the Liouville λ function.
+template <std::integral T> std::vector<int8_t> liouvilleSieve(T limit) { return SPF{limit}.liouvilleSieve(limit); }
+
+/// Sieve for the Ω function.
+template <std::integral T> std::vector<uint8_t> OmegaSieve(T limit) { return SPF{limit}.OmegaSieve(limit); }
+
+// ==== Sieves that don't use SPF ====
+
+/// Sieve for the totient function. O(n).
+template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
 {
-    assert(limit <= spfs.size() - 1);
-    std::vector<int8_t> μ(limit + 1, 1);
-    μ[0] = 0;
-    it::range(3, limit, 2)(std::execution::par, [&](size_t i) {
-        size_t n = i;
-        while (n != 1)
+    std::vector<T> phi(limit + 1);
+    std::vector<T> primes;
+    phi[1] = 1;
+    primes.reserve(limit / std::max(1.0, log(limit)));
+
+    for (T i = 2; i <= limit; i++)
+    {
+        if (phi[i] == 0)
         {
-            auto const p = spfs[n];
-            n /= p;
-            if (spfs[n] == p)
+            phi[i] = i - 1;
+            primes.push_back(i);
+        }
+        for (T p : primes)
+        {
+            if (!mulLeq(i, p, limit))
+                break;
+            if (i % p == 0)
             {
-                μ[i] = 0;
+                phi[i * p] = phi[i] * p;
                 break;
             }
-            μ[i] = -μ[i];
+            phi[i * p] = phi[i] * (p - 1);
         }
-    });
-    it::range(2, limit, 2)(std::execution::par, [&](size_t i) { μ[i] = i % 4 == 0 ? 0 : -μ[i / 2]; });
-    return μ;
+    }
+    return phi;
 }
-
-/// Sieve for the Mobius function.
-template <std::integral T> std::vector<int8_t> mobiusSieve(T limit) { return mobiusSieve(limit, SPF{limit}); }
 
 /// Generates a sieve of squarefree numbers up to a given limit.
 template <typename T = bool> std::vector<T> squarefreeSieve(size_t limit)
@@ -276,35 +422,4 @@ template <typename T = bool> std::vector<T> squarefreeSieve(size_t limit)
                 sieve[j] = false;
     return sieve;
 }
-
-/// Generates a sieve of the Liouville function, given an SPF sieve.
-template <typename SPFSieve> std::vector<int8_t> liouvilleSieve(size_t limit, const SPFSieve &spfs)
-{
-    assert(limit <= spfs.size() - 1);
-    std::vector<int8_t> λ(limit + 1);
-    λ[1] = 1;
-    for (size_t i = 3; i <= limit; i += 2)
-        λ[i] = -λ[i / spfs[i]];
-    for (size_t i = 2; i <= limit; i += 2)
-        λ[i] = -λ[i / 2];
-    return λ;
-}
-
-/// Sieve for the Liouville function.
-template <std::integral T> std::vector<int8_t> liouvilleSieve(T limit) { return liouvilleSieve(limit, SPF{limit}); }
-
-/// Generates a sieve of the Ω function, given a SPF sieve.
-template <typename SPFSieve> std::vector<uint8_t> bigOmegaSieve(size_t limit, const SPFSieve &spfs)
-{
-    assert(limit <= spfs.size() - 1);
-    std::vector<uint8_t> Ω(limit + 1);
-    for (size_t i = 3; i <= limit; i += 2)
-        Ω[i] = Ω[i / spfs[i]] + 1;
-    for (size_t i = 2; i <= limit; i += 2)
-        Ω[i] = Ω[i / 2] + 1;
-    return Ω;
-}
-
-/// Sieve for the Ω function.
-template <std::integral T> std::vector<uint8_t> bigOmegaSieve(T limit) { return bigOmegaSieve(limit, SPF{limit}); }
 } // namespace euler

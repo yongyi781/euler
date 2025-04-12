@@ -88,8 +88,8 @@ template <integral2 T> class periodic : public cfrac_base
     using value_type = T;
 
     periodic() = default;
-    constexpr periodic(const std::vector<T> &leadingTerms, const std::vector<T> &periodicTerms)
-        : _leadingTerms(leadingTerms), _periodicTerms(periodicTerms)
+    constexpr periodic(std::vector<T> leadingTerms, std::vector<T> periodicTerms)
+        : _leadingTerms(std::move(leadingTerms)), _periodicTerms(std::move(periodicTerms))
     {
     }
     [[nodiscard]] constexpr const std::vector<T> &leadingTerms() const { return _leadingTerms; }

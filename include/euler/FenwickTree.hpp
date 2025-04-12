@@ -18,8 +18,8 @@ template <typename T> class FenwickTree
         for (size_t i = 1; i <= n; i++)
         {
             _data[i] += value;
-            if (getNext(i) <= n)
-                _data[getNext(i)] += _data[i];
+            if (next(i) <= n)
+                _data[next(i)] += _data[i];
         }
     }
 
@@ -29,8 +29,8 @@ template <typename T> class FenwickTree
         for (size_t i = 1; i <= n; i++)
         {
             _data[i] += fn(i - 1);
-            if (getNext(i) <= n)
-                _data[getNext(i)] += _data[i];
+            if (next(i) <= n)
+                _data[next(i)] += _data[i];
         }
     }
 
@@ -41,8 +41,8 @@ template <typename T> class FenwickTree
         for (size_t i = 1; i <= n; i++)
         {
             _data[i] += *first++;
-            if (getNext(i) <= n)
-                _data[getNext(i)] += _data[i];
+            if (next(i) <= n)
+                _data[next(i)] += _data[i];
         }
     }
 
@@ -55,7 +55,7 @@ template <typename T> class FenwickTree
     /// Returns the sum of the elements up to the given index in the Fenwick tree.
     ///
     /// @param i the index up to which the sum should be calculated.
-    [[nodiscard]] constexpr T getSum(size_t i) const
+    [[nodiscard]] constexpr T sum(size_t i) const
     {
         assert(i < size());
         ++i;
@@ -63,7 +63,7 @@ template <typename T> class FenwickTree
         while (i > 0)
         {
             res += _data[i];
-            i = getParent(i);
+            i = parent(i);
         }
         return res;
     }
@@ -74,10 +74,10 @@ template <typename T> class FenwickTree
     /// @param j The ending index of the range.
     ///
     /// @return The sum of elements in the range [i, j].
-    [[nodiscard]] constexpr T getSum(size_t i, size_t j) const
+    [[nodiscard]] constexpr T sum(size_t i, size_t j) const
     {
         assert(i <= j && j < size());
-        return getSum(j) - (i == 0 ? T{} : getSum(i - 1));
+        return sum(j) - (i == 0 ? T{} : sum(i - 1));
     }
 
     /// Updates the Fenwick tree by adding the value `v` to position `i`.
@@ -90,7 +90,7 @@ template <typename T> class FenwickTree
         while (i < _data.size())
         {
             _data[i] += v;
-            i = getNext(i);
+            i = next(i);
         }
     }
 
@@ -98,18 +98,18 @@ template <typename T> class FenwickTree
     ///
     /// @param i the index to access.
     /// @return the value at the specified index.
-    constexpr T operator[](size_t i) const { return getSum(i, i); }
+    constexpr T operator[](size_t i) const { return sum(i, i); }
 
     template <typename CharT, typename Traits>
-    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const FenwickTree<T> &ft)
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const FenwickTree<T> &t)
     {
-        return o << ft.data();
+        return o << t.data();
     }
 
   private:
     std::vector<T> _data;
 
-    [[nodiscard]] static constexpr size_t getParent(size_t i) { return i - (i & (-i)); }
-    [[nodiscard]] static constexpr size_t getNext(size_t i) { return i + (i & (-i)); }
+    [[nodiscard]] static constexpr size_t parent(size_t i) { return i - (i & (-i)); }
+    [[nodiscard]] static constexpr size_t next(size_t i) { return i + (i & (-i)); }
 };
 } // namespace euler

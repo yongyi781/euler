@@ -60,7 +60,7 @@ template <typename T> class vector2d
     }
 
     template <typename CharT, typename Traits>
-    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const vector2d<T> &v)
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const vector2d &v)
     {
         int maxWidth = o.width();
         for (auto &&x : v._data)

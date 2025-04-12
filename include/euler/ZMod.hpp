@@ -214,19 +214,19 @@ class ZMod
         return r._value <= M / 2 ? r : M - r;
     }
 
-    /// Calculates factorial of n mod M.
+    /// Calculates factorial of n mod M. Does not use Wilson's theorem.
     template <execution_policy Exec, integral2 T> static ZMod factorial(Exec &&exec, T n)
     {
         return it::range(T(1), n).map([](T k) { return ZMod{k}; }).product(std::forward<Exec>(exec));
     }
 
-    /// Calculates factorial of n mod M.
+    /// Calculates factorial of n mod M. Does not use Wilson's theorem.
     template <integral2 T> static constexpr ZMod factorial(T n)
     {
         return it::range(T(1), n).map([](T k) { return ZMod{k}; }).product();
     }
 
-    /// Calculates binomial coefficient (n choose r) mod M.
+    /// Calculates binomial coefficient (n choose r) mod M. Does not use Lucas's theorem.
     template <execution_policy Exec, integral2 T> static ZMod binomial(Exec &&exec, T n, T r)
     {
         if (r <= 0 || n == 0)
@@ -240,7 +240,7 @@ class ZMod
                it::range(T(0), r - 1).map([&](auto k) { return ZMod{k + 1}; }).product(std::forward<Exec>(exec));
     }
 
-    /// Calculates binomial coefficient (n choose r) mod M.
+    /// Calculates binomial coefficient (n choose r) mod M. Does not use Lucas's theorem.
     template <integral2 T> static constexpr ZMod binomial(T n, T r)
     {
         if (r <= 0 || n == 0)

@@ -71,36 +71,6 @@ template <integral2 T = int> constexpr PF<T> factorBinomial(int n, int r)
         .to();
 }
 
-/// Sieve for the totient function.
-template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
-{
-    std::vector<T> phi(limit + 1);
-    std::vector<T> primes;
-    phi[1] = 1;
-    primes.reserve(limit / std::max(1.0, log(limit)));
-
-    for (T i = 2; i <= limit; i++)
-    {
-        if (phi[i] == 0)
-        {
-            phi[i] = i - 1;
-            primes.push_back(i);
-        }
-        for (T p : primes)
-        {
-            if (!mulLeq(i, p, limit))
-                break;
-            if (i % p == 0)
-            {
-                phi[i * p] = phi[i] * p;
-                break;
-            }
-            phi[i * p] = phi[i] * (p - 1);
-        }
-    }
-    return phi;
-}
-
 /// Returns a table of binomial coefficients of size `size`.
 template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(size_t size)
 {
@@ -277,6 +247,29 @@ inline mpz_int binomial(const mpz_int &n, int r)
     mpz_int result;
     mpz_bin_ui((mpz_ptr)result.backend().data(), (mpz_srcptr)n.backend().data(), r);
     return result;
+}
+
+/// Calculates modular binomial coefficient using Lucas's theorem.
+template <integral2 Tn, integral2 Tr, integral2 Tp> auto binomialMod(Tn n, Tr r, Tp p)
+{
+    using T = std::common_type_t<Tn, Tr, Tp>;
+    T num = 1, denom = 1;
+    while (n != 0 && r != 0)
+    {
+        auto const nmodp = n % p;
+        auto rmodp = r % p;
+        if (nmodp < rmodp)
+            return T{};
+        rmodp = std::min(rmodp, nmodp - rmodp);
+        for (T i = 1; i <= rmodp; ++i)
+        {
+            num = num * (nmodp - rmodp + i) % p;
+            denom = denom * i % p;
+        }
+        n /= p;
+        r /= p;
+    }
+    return T(num * modInverse(denom, p) % p);
 }
 
 /// Calculates `Σ k ≥ 0, f(⌊n / (a * k + b)⌋)`.
