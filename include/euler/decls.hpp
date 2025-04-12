@@ -121,6 +121,10 @@ template <integral2 T> constexpr T isqrt(T n)
     T x = sqrt(std::move(n));
     while (x * x > n)
         --x;
+    // double sqrt will underestimate starting from 2^106.
+    if constexpr (sizeof(T) > 8)
+        while ((x + 1) * (x + 1) <= n)
+            ++x;
     return x;
 }
 
