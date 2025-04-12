@@ -33,11 +33,12 @@ template <typename Fun, typename SFun> class SpecialDirichlet
   public:
     constexpr SpecialDirichlet(Fun f, SFun F) : m_f(std::move(f)), m_F(std::move(F)) {}
 
-    [[nodiscard]] constexpr auto value(size_t k) const { return m_f(k); }
-    [[nodiscard]] constexpr auto sum(size_t k) const { return m_F(k); }
-    [[nodiscard]] constexpr auto up(size_t k) const { return m_F(k); }
+    [[nodiscard]] constexpr auto value(size_t k) const noexcept { return m_f(k); }
+    [[nodiscard]] constexpr auto sum(size_t k) const noexcept { return m_F(k); }
+    [[nodiscard]] constexpr auto up(size_t k) const noexcept { return m_F(k); }
 
-    [[nodiscard]] constexpr auto operator[](size_t k) const { return m_F(k); }
+    [[nodiscard]] constexpr auto operator[](size_t k) const noexcept { return m_F(k); }
+    [[nodiscard]] constexpr auto operator()(size_t k) const noexcept { return m_F(k); }
 
     template <typename Fun2, typename SFun2, integral2 T>
     [[nodiscard]] auto productValue(const SpecialDirichlet<Fun2, SFun2> &other, T n) const
@@ -136,6 +137,8 @@ template <typename T> class Dirichlet
 
     [[nodiscard]] T &operator[](size_t k) noexcept { return k < _up.size() ? _up[k] : _down[_n / k]; }
     [[nodiscard]] const T &operator[](size_t k) const noexcept { return k < _up.size() ? _up[k] : _down[_n / k]; }
+    [[nodiscard]] T &operator()(size_t k) noexcept { return (*this)[k]; }
+    [[nodiscard]] const T &operator()(size_t k) const noexcept { return (*this)[k]; }
 
     /// Returns the prefix sum of this series at the given index.
     [[nodiscard]] const T &sum(size_t k) const noexcept { return (*this)[k]; }
@@ -241,6 +244,20 @@ template <typename T> class Dirichlet
         return sumMaybeParallel<ParThreshold>(1, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); }) +
                sumMaybeParallel<ParThreshold>(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); }) -
                up(s) * other.up(s);
+    }
+
+    /// Computes `∑ (p^e * b ≤ n), f(e) * self(b)`.
+    template <typename Fun> [[nodiscard]] T localProductValue(size_t p, Fun f, size_t k) const
+    {
+        assert(p >= 2);
+        T res = 0;
+        for (int e = 0; k != 0; ++e, k /= p)
+        {
+            auto const c = f(e);
+            if (c != 0)
+                res += c * (*this)[k];
+        }
+        return res;
     }
 
     /// Squares this Dirichlet series in place.
@@ -509,6 +526,27 @@ template <typename T> class Dirichlet
         return _n == other.n() && _up == other.up() && _down == other.down();
     }
 
+    /// Performs multiplication of S by (f(0) + f(1) * p^-s + ...).
+    template <typename Fun> Dirichlet multiplyLocal(this Dirichlet self, size_t p, Fun f)
+    {
+        self.down() = mapv(std::execution::par, range(0_u32, (uint32_t)self.down().size() - 1),
+                           [&](uint32_t i) { return i == 0 ? T(0) : self.localProductValue(p, f, self.quotient(i)); });
+        // Sieve for the up values.
+        T const c = f(0);
+        adjacentDifferenceInPlace(self.up());
+        T a{};
+        for (size_t i = self.up().size() - 1; i != 0; --i)
+        {
+            a = self.up(i);
+            self.up(i) *= c;
+            int e = 1;
+            for (size_t j = p; i * j < self.up().size(); ++e, j *= p)
+                self.up(i * j) += a * f(e);
+        }
+        partialSumInPlace(self.up());
+        return self;
+    }
+
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Dirichlet &S)
     {
@@ -568,8 +606,30 @@ auto productValue(Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G, T n)
 template <integral2 T = size_t, typename SummatoryFun1, typename SummatoryFun2>
 auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
 {
-    return SpecialDirichlet{[&](auto &&k) { return F(k) - F(k - 1); }, std::move(F)}.productValue(
-        SpecialDirichlet{[&](auto &&k) { return G(k) - G(k - 1); }, std::move(G)}, n);
+    return SpecialDirichlet{[&](auto &&k) { return F(k) - F(k - 1); }, F}.productValue(
+        SpecialDirichlet{[&](auto &&k) { return G(k) - G(k - 1); }, G}, n);
+}
+
+/// Computes `∑ (p^e * b ≤ n), f(e) * G(b)`.
+template <typename Fun, typename SummatoryFun> auto localProductValue(size_t p, Fun f, SummatoryFun G, size_t n)
+{
+    using T = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, size_t>>;
+    assert(p >= 2);
+    T res = 0;
+    for (int e = 0; n != 0; ++e, n /= p)
+    {
+        auto const c = f(e);
+        if (c != 0)
+            res += c * G(n);
+    }
+    return res;
+}
+
+/// Computes `∑ (p1^e1 * p2^e2 * b ≤ n), f1(e1) * f2(e2) * G(b)`.
+template <typename Fun1, typename Fun2, typename SummatoryFun>
+auto localProductValue(size_t p1, Fun1 f1, size_t p2, Fun2 f2, SummatoryFun G, size_t n)
+{
+    return localProductValue(p1, f1, [&](size_t k) { return localProductValue(p2, f2, G, k); }, n);
 }
 
 // O(1) Dirichlet series come in two flavors, one is a SpecialDirichlet (recommended) and the other is a Dirichlet.
