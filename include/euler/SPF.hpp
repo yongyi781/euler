@@ -199,7 +199,7 @@ template <std::integral T = int64_t> class SPF
         return sumCoprime(std::identity{}, k, limit);
     }
 
-    /// Creates a sieve from a multiplicative function.
+    /// Creates a sieve from a multiplicative function in O(n log log n) time.
     template <typename Fun> [[nodiscard]] auto sieve(Fun f, T limit) const
     {
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
@@ -222,7 +222,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Creates a sieve from an additive function.
+    /// Creates a sieve from an additive function in O(n log log n) time.
     template <typename Fun> [[nodiscard]] auto sieveAdditive(Fun f, T limit) const
     {
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
@@ -244,7 +244,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Creates a sieve from a completely multiplicative function.
+    /// Creates a sieve from a completely multiplicative function in O(n) time.
     template <typename Fun> [[nodiscard]] auto sieveCompletelyMultiplicative(Fun f, T limit) const
     {
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
@@ -261,7 +261,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Creates a sieve from a completely additive function.
+    /// Creates a sieve from a completely additive function in O(n) time.
     template <typename Fun> [[nodiscard]] auto sieveCompletelyAdditive(Fun f, T limit) const
     {
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
@@ -277,13 +277,13 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Sieve for the divisor counting function.
+    /// Sieve for the divisor counting function in O(n log log n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
     {
         return sieve([&](T, int e) -> U { return e + 1; }, limit);
     }
 
-    /// Sieve for the σ₁ function, the divisor sum function.
+    /// Sieve for the σ₁ function, the divisor sum function in O(n log log n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorSumSieve(T limit) const
     {
         std::vector<U> sieve(limit + 1, 1);
@@ -311,7 +311,7 @@ template <std::integral T = int64_t> class SPF
         return sieve;
     }
 
-    /// Sieve for the Möbius function.
+    /// Sieve for the Möbius function in O(n log log n) time.
     [[nodiscard]] std::vector<int8_t> mobiusSieve(T limit) const
     {
         assert(limit < size());
@@ -335,19 +335,19 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Sieve for the Liouville λ function.
+    /// Sieve for the Liouville λ function in O(n) time.
     [[nodiscard]] std::vector<int8_t> liouvilleSieve(T limit) const
     {
         return sieveCompletelyMultiplicative([](T) -> int8_t { return -1; }, limit);
     }
 
-    /// Sieve for the ω function, the number of distinct prime factors of a number.
+    /// Sieve for the ω function, the number of distinct prime factors of a number in O(n log log n) time.
     [[nodiscard]] std::vector<uint8_t> omegaSieve(T limit) const
     {
         return sieveAdditive([](T, int) -> uint8_t { return 1; }, limit);
     }
 
-    /// Sieve for the Ω function, the number of prime factors of a number.
+    /// Sieve for the Ω function, the number of prime factors of a number in O(n) time.
     [[nodiscard]] std::vector<uint8_t> OmegaSieve(T limit) const
     {
         return sieveCompletelyAdditive([](T) -> uint8_t { return 1; }, limit);

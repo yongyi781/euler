@@ -13,6 +13,7 @@
 #include "euler/dirichlet.hpp"
 #include "euler/find_recurrence.hpp"
 #include "euler/floors_array.hpp"
+#include "euler/fwht.hpp"
 #include "euler/hash.hpp"
 #include "euler/io.hpp"
 #include "euler/it.hpp"
