@@ -3,8 +3,11 @@
 #include "algorithm.hpp"
 #include "modular_arithmetic.hpp"
 
-/// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm.
-template <integral2 T> std::vector<T> findRecurrence(const std::vector<T> &v, T modulus)
+inline namespace euler
+{
+/// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm. Returns the characteristic polynomial as a
+/// list.
+template <std::ranges::random_access_range Range, integral2 T> std::vector<T> findRecurrence(Range &&v, T modulus)
 {
     size_t n = v.size();
     size_t L = 0;
@@ -41,13 +44,15 @@ template <integral2 T> std::vector<T> findRecurrence(const std::vector<T> &v, T 
         if (x > modulus / 2 + 1)
             x -= modulus;
     }
+    std::ranges::reverse(C);
+    C.push_back(-1);
     return C;
 }
 
-/// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm. Returns a list `[c1, ..., ck]` such that
-/// the charpoly of the recurrence is `x^k - c1 * x^(k-1) + ... + ck`.
-/// Note: It is not recommended to call this function with vectors of integral types.
-template <std::ranges::range Range> std::vector<std::ranges::range_value_t<Range>> findRecurrence(Range &&v)
+/// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm. Returns the characteristic polynomial as a
+/// list. Note: It is not recommended to call this function with vectors of integral types.
+template <std::ranges::random_access_range Range>
+std::vector<std::ranges::range_value_t<Range>> findRecurrence(Range &&v)
 {
     using T = std::ranges::range_value_t<Range>;
 
@@ -79,5 +84,8 @@ template <std::ranges::range Range> std::vector<std::ranges::range_value_t<Range
     C.erase(C.begin());
     for (T &x : C)
         x = -x;
+    std::ranges::reverse(C);
+    C.emplace_back(-1);
     return C;
 }
+} // namespace euler
