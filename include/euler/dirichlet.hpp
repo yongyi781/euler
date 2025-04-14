@@ -3,7 +3,7 @@
 #include "SPF.hpp"
 #include "decls.hpp"
 #include "euler/math.hpp"
-#include "it/base.hpp"
+#include "it/tree.hpp"
 #include "libdivide.h"
 #include "literals.hpp"
 
@@ -596,14 +596,14 @@ namespace dirichlet
 /// Requirements:
 /// * `G` and `H` should be the summatory functions of `g` and `h`.
 /// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
-template <integral2 T = size_t, typename Fun1, typename SummatoryFun1, typename Fun2, typename SummatoryFun2>
+template <typename Fun1, typename SummatoryFun1, typename Fun2, typename SummatoryFun2, integral2 T>
 auto productValue(Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G, T n)
 {
     return SpecialDirichlet{std::move(f), std::move(F)}.productValue(SpecialDirichlet{std::move(g), std::move(G)}, n);
 }
 
 /// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n), given only their summatory functions. Convenience function.
-template <integral2 T = size_t, typename SummatoryFun1, typename SummatoryFun2>
+template <typename SummatoryFun1, typename SummatoryFun2, integral2 T>
 auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
 {
     return SpecialDirichlet{[&](auto &&k) { return F(k) - F(k - 1); }, F}.productValue(
@@ -611,11 +611,11 @@ auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
 }
 
 /// Computes `∑ (p^e * b ≤ n), f(e) * G(b)`.
-template <typename Fun, typename SummatoryFun> auto localProductValue(size_t p, Fun f, SummatoryFun G, size_t n)
+template <typename Fun, typename SummatoryFun, integral2 T> auto localProductValue(size_t p, Fun f, SummatoryFun G, T n)
 {
-    using T = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, size_t>>;
+    using Tp = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, size_t>>;
     assert(p >= 2);
-    T res = 0;
+    Tp res = 0;
     for (int e = 0; n != 0; ++e, n /= p)
     {
         auto const c = f(e);
@@ -626,10 +626,112 @@ template <typename Fun, typename SummatoryFun> auto localProductValue(size_t p, 
 }
 
 /// Computes `∑ (p1^e1 * p2^e2 * b ≤ n), f1(e1) * f2(e2) * G(b)`.
-template <typename Fun1, typename Fun2, typename SummatoryFun>
-auto localProductValue(size_t p1, Fun1 f1, size_t p2, Fun2 f2, SummatoryFun G, size_t n)
+template <typename Fun1, typename Fun2, typename SummatoryFun, integral2 T>
+auto localProductValue(size_t p1, Fun1 f1, size_t p2, Fun2 f2, SummatoryFun G, T n)
 {
     return localProductValue(p1, f1, [&](size_t k) { return localProductValue(p2, f2, G, k); }, n);
+}
+
+/// Computes `∑ (k powerful), f(k) * G(n / k)` in O(√n) evaluations of G.
+/// f is given as a multiplicative function: (p, e) ↦ f(p^e).
+template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n)
+{
+    using H = half_integer_t<T>;
+    using Tp = std::common_type_t<std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>,
+                                  std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>>;
+    auto const ps = primeRange<H>(isqrt(n));
+    return it::tree(
+               std::tuple{T(1), 0UZ, Tp(1)},
+               [&](auto &&t, auto rec) {
+                   auto &&[k, i, acc] = t;
+                   T const hq = fastDiv(n, k);
+                   for (size_t j = i; j < ps.size(); ++j)
+                   {
+                       H const p = ps[j];
+                       T const pp = T(p) * p;
+                       if (pp > hq)
+                           break;
+                       int e = 2;
+                       for (T q = 1; mulLeq(pp, q, hq); q *= p, ++e)
+                       {
+                           Tp const value = f(p, e);
+                           if (value != 0)
+                               rec({k * pp * q, j + 1, acc * value});
+                       }
+                   }
+               },
+               [&](auto &&t) {
+                   auto &&[k, i, acc] = t;
+                   return mulLeq(k, T(ps[i]) * ps[i], n);
+               })
+        .map([&](auto &&t) {
+            auto &&[k, i, acc] = t;
+            return acc * G(fastDiv(n, k));
+        })
+        .sum();
+}
+
+/// Computes `∑ (k r-powerful), f(k) * G(n / k)` in O(n^(1/r)) evaluations of G.
+/// f is given as a multiplicative function: (p, e) ↦ f(p^e).
+template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n, int r)
+{
+    using H = half_integer_t<T>;
+    using Tp = std::common_type_t<std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>,
+                                  std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>>;
+    auto const ps = primeRange<H>(inth_root(n, r));
+    return it::tree(
+               std::tuple{T(1), 0UZ, Tp(1)},
+               [&](auto &&t, auto rec) {
+                   auto &&[k, i, acc] = t;
+                   T const hq = fastDiv(n, k);
+                   for (size_t j = i; j < ps.size(); ++j)
+                   {
+                       H const p = ps[j];
+                       T const pp = pow(T(p), r);
+                       if (pp > hq)
+                           break;
+                       int e = r;
+                       for (T q = 1; mulLeq(pp, q, hq); q *= p, ++e)
+                       {
+                           Tp const value = f(p, e);
+                           if (value != 0)
+                               rec({k * pp * q, j + 1, acc * value});
+                       }
+                   }
+               },
+               [&](auto &&t) {
+                   auto &&[k, i, acc] = t;
+                   return mulLeq(k, pow(T(ps[i]), r), n);
+               })
+        .map([&](auto &&t) {
+            auto &&[k, i, acc] = t;
+            return acc * G(fastDiv(n, k));
+        })
+        .sum();
+}
+
+template <typename Fun, integral2 T> inline auto productZeta_2s(Fun &&F, T n)
+{
+    T const c = inth_root(n, 3);
+    return sumMaybeParallel(1, c,
+                            [&](T k) { return F(fastDiv(n, k * k)) + isqrt(fastDiv(n, k)) * (F(k) - F(k - 1)); }) -
+           c * F(c);
+}
+
+template <typename Fun, integral2 T> inline auto productZeta_multiple(int a, Fun &&F, T n)
+{
+    T const c = inth_root(n, a + 1);
+    return sumMaybeParallel(
+               1, c, [&](T k) { return F(fastDiv(n, pow(k, a))) + inth_root(fastDiv(n, k), a) * (F(k) - F(k - 1)); }) -
+           c * F(c);
+}
+
+template <typename Fun, integral2 T> inline auto quotientZeta_multiple(int a, Fun &&F, T n)
+{
+    assert(a > 1);
+    T const c = inth_root(n, a);
+    auto const mu = mobiusSieve(c);
+    return sumMaybeParallel(1, c, [&](T k) { return mu[k] * F(fastDiv(n, pow(k, a))); });
 }
 
 // O(1) Dirichlet series come in two flavors, one is a SpecialDirichlet (recommended) and the other is a Dirichlet.
@@ -740,7 +842,7 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_2s(size_t n)
 /// 1 / ζ(as). f(n) = [n is a perfect rth power] * μ(n^(1/a)). O(n^(1/a)). Motive = -∑([r] for r in ath roots of unity).
 template <typename T = int64_t> Dirichlet<T> inv_zeta_multiple(int a, size_t n)
 {
-    auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
+    auto const mu = mobiusSieve(inth_root(n, a));
     auto const mertens = partialSum(mu, T{});
     return {n, [&](size_t k) -> T { return mertens[inth_root(k, a)]; }};
 }
@@ -749,11 +851,11 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_multiple(int a, size_t n)
 template <typename T = int64_t> Dirichlet<T> zeta_linear(int a, int b, size_t n)
 {
     assert(a > 1);
-    size_t const s = std::pow(n + 0.5, 1.0 / a);
+    size_t const s = inth_root(n, a);
     auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b); });
     sieve[0] = 0;
     partialSumInPlace(sieve);
-    return {n, [&](size_t k) -> T { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return sieve[inth_root(k, a)]; }};
 }
 
 /// 1 / ζ(as - b). f(n) = [n = k^a] * μ(k) * k^b. Requires `a > 1`. Motive = -∑([r*p^(b/a)] for r in ath roots of
@@ -761,12 +863,12 @@ template <typename T = int64_t> Dirichlet<T> zeta_linear(int a, int b, size_t n)
 template <typename T = int64_t> Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
 {
     assert(a > 1);
-    size_t const s = std::pow(n + 0.5, 1.0 / a);
-    auto const mu = mobiusSieve((size_t)std::pow(n + 0.5, 1.0 / a));
+    size_t const s = inth_root(n, a);
+    auto const mu = mobiusSieve(inth_root(n, a));
     auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
     partialSumInPlace(sieve);
-    return {n, [&](size_t k) -> T { return sieve[std::pow(k + 0.5, 1.0 / a)]; }};
+    return {n, [&](size_t k) -> T { return sieve[inth_root(k, a)]; }};
 }
 
 /// ζ(s) / ζ(2s). f(n) = |μ(n)| = [n is squarefree]. O(n^(3/5)). Motive = -[-1].
@@ -793,7 +895,7 @@ template <typename T = int64_t> Dirichlet<T> tau(size_t n, double alpha = 0.08)
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
     auto const precomputed = partialSum(divisorCountSieve(s), T{});
-    Dirichlet S{n};
+    Dirichlet<T> S{n};
     std::copy(precomputed.begin(), precomputed.begin() + S.up().size(), S.up().begin());
     uint32_t const u = n / precomputed.size();
     for (uint32_t i = u + 1; i < S.down().size(); ++i)
