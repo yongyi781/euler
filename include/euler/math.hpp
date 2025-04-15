@@ -170,25 +170,25 @@ constexpr auto countResidueClass(Ta a, Tm modulus, Tl low, Th high)
 template <typename T = int64_t> constexpr T factorial(int n)
 {
     assert(n >= 0);
-    if constexpr (std::same_as<T, mpz_int>)
-    {
-        mpz_int result;
-        mpz_fac_ui((mpz_ptr)result.backend().data(), n);
-        return result;
-    }
-    else
-    {
-        // If T is std::integral, do assertions to fail if the result overflows.
-        if constexpr (std::integral<T> && sizeof(T) <= 4)
-            assert(n <= 12);
-        else if constexpr (std::integral<T> && sizeof(T) <= 8)
-            assert(n <= 20);
-        else if constexpr (std::same_as<T, int128_t>)
-            assert(n <= 33);
-        else if constexpr (std::same_as<T, uint128_t>)
-            assert(n <= 34);
-        return product(1, n, [](int i) { return T(i); });
-    }
+    // If T is std::integral, do assertions to fail if the result overflows.
+    if constexpr (std::integral<T> && sizeof(T) <= 4)
+        assert(n <= 12);
+    else if constexpr (std::integral<T> && sizeof(T) <= 8)
+        assert(n <= 20);
+    else if constexpr (std::same_as<T, int128_t>)
+        assert(n <= 33);
+    else if constexpr (std::same_as<T, uint128_t>)
+        assert(n <= 34);
+    return product(1, n, [](int i) { return T(i); });
+}
+
+/// Returns `n!`.
+template <> inline mpz_int factorial(int n)
+{
+    assert(n >= 0);
+    mpz_int result;
+    mpz_fac_ui((mpz_ptr)result.backend().data(), n);
+    return result;
 }
 
 /// Returns `n!!`.

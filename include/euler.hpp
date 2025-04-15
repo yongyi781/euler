@@ -3,6 +3,7 @@
 #include "euler/FactorialMod.hpp"
 #include "euler/FenwickTree.hpp"
 #include "euler/PF.hpp"
+#include "euler/Quadratic.hpp"
 #include "euler/SPF.hpp"
 #include "euler/ZMod.hpp"
 #include "euler/ZModpp.hpp"
