@@ -160,7 +160,7 @@ struct QD
         auto sols = solve();
         auto const rec = recurrence();
         if (sols.size() == 1 && sols[0][0] == 0 && sols[0][1] == 0 && rec.k == 0 && rec.l == 0)
-            return sols;
+            return {{}};
         auto const inv = rec.inverse();
         T const xlimit = std::max({abs(xmin), abs(xmax)});
         T const ylimit = std::max({abs(ymin), abs(ymax)});
@@ -254,24 +254,25 @@ struct QD
             if (t > n / 2)
                 t -= n;
             i64 const p = (a * t * t + b * t + c) / n;
-            if (p == 1)
+            i64 const q = -(2 * a * t + b);
+            i64 const r = a * n;
+            if (r == 1)
             {
+                // We have 1/0 as a solution.
                 bool found = false;
-                if (pred(t, 1))
+                if (pred(1, t))
                 {
                     found = true;
-                    res.emplace_back(t, 1);
+                    res.emplace_back(1, t);
                 }
-                if (pred(-t, -1))
+                if (pred(-1, -t))
                 {
                     found = true;
-                    res.emplace_back(-t, -1);
+                    res.emplace_back(-1, -t);
                 }
                 if (found)
                     continue;
             }
-            i64 const q = -(2 * a * t + b);
-            i64 const r = a * n;
             if (gcd({p, q, r}) != 1)
                 continue;
 

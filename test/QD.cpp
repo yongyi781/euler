@@ -51,6 +51,10 @@ int main()
     test({42, 62, 21, 0, 0, -585});
 
     test({3, 13, 5, -11, -7, -92});
+    // Pell equations
+    for (i64 n = 1; n <= 100; ++n)
+        if (!isSquare(n))
+            test({1, 0, -n, 0, 0, -1});
     for (i64 n = -20; n <= 20; ++n)
         test({5, -2, -1, 0, 0, -n});
     for (i64 n = -20; n <= 20; ++n)
