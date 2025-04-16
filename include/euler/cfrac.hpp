@@ -31,7 +31,7 @@ template <std::ranges::view V> class from_terms : public cfrac_base
     from_terms() = default;
     constexpr explicit from_terms(V base) : _terms(std::move(base)) {}
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> constexpr it::result_t operator()(Fun f) const
     {
         for (auto &&x : _terms)
             if (!it::callbackResult(f, x))
@@ -58,7 +58,7 @@ template <integral2 T> class sqrt : public cfrac_base
     constexpr sqrt(T radicand) : radicand(std::move(radicand)) { assert(this->radicand >= 0); }
 
     /// Enumerates the terms in the square root continued fraction.
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> it::result_t operator()(Fun f) const
     {
         T const fl = isqrt(radicand);
         T x = 0;
@@ -81,7 +81,7 @@ template <integral2 T> class sqrt : public cfrac_base
     }
 };
 
-/// The continued fraction for `(a + √b) / c`.
+/// The continued fraction for `(a + √b) / c`. If you want `(a - √b) / c`, negate `a` and `c`.
 template <integral2 T> class quadratic : public cfrac_base
 {
   public:
@@ -93,14 +93,14 @@ template <integral2 T> class quadratic : public cfrac_base
     constexpr quadratic(T a, T b, T c) : a(std::move(a)), b(std::move(b)), c(std::move(c)) { assert(this->b >= 0); }
 
     /// Enumerates the terms in the square root continued fraction.
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> it::result_t operator()(Fun f) const
     {
         // Idea: each remainder is of the form (x + c√b) / d, starting with x = a*c and d = c².
-        T const fl = isqrt(c * c * b);
+        T const fl = isqrt(c * c * b) * (c > 0 ? 1 : -1);
         T x = a * c;
         T d = c * c;
         // k = floor.
-        T k = (a * c + fl) / (c * c);
+        T k = floorDiv(a * c + fl, c * c);
         if (!it::callbackResult(f, k))
             return it::result_break;
         while (true)
@@ -109,7 +109,7 @@ template <integral2 T> class quadratic : public cfrac_base
             d = (c * c * b - x * x) / d;
             if (d == 0)
                 break;
-            k = (x + fl) / d;
+            k = floorDiv(x + fl, d);
             if (!it::callbackResult(f, k))
                 return it::result_break;
         }
@@ -132,7 +132,7 @@ template <integral2 T> class periodic : public cfrac_base
     [[nodiscard]] constexpr const std::vector<T> &periodicTerms() const { return _periodicTerms; }
 
     /// Enumerates the terms in the periodic continued fraction.
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> constexpr it::result_t operator()(Fun f) const
     {
         for (auto &&x : _leadingTerms)
             if (!it::callbackResult(f, x))
@@ -144,7 +144,7 @@ template <integral2 T> class periodic : public cfrac_base
         return it::result_continue;
     }
 
-    [[nodiscard]] constexpr std::string str() const
+    [[nodiscard]] std::string str() const
     {
         std::stringstream ss;
         ss << "[";
@@ -165,7 +165,7 @@ struct e_t : public cfrac_base
 {
     using value_type = int64_t;
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> constexpr it::result_t operator()(Fun f) const
     {
         if (!it::callbackResult(f, (int64_t)2))
             return it::result_break;
@@ -193,17 +193,17 @@ template <integral2 T> class rational : public cfrac_base
     rational() = default;
     constexpr rational(T numerator, T denominator) : numerator(numerator), denominator(denominator) {}
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> constexpr it::result_t operator()(Fun f) const
     {
         T n = numerator;
         T d = denominator;
         while (d != 0)
         {
-            T x = n / d;
+            T x = floorDiv(n, d);
             if (!it::callbackResult(f, x))
                 return it::result_break;
             n -= d * x;
-            std::tie(n, d) = std::tuple{d, n};
+            std::swap(n, d);
         }
         return it::result_continue;
     }
@@ -221,7 +221,7 @@ template <integral2 Z = int64_t, typename T = double> class floating_point : pub
     floating_point() = default;
     constexpr explicit floating_point(T value) : _value(value) {}
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> constexpr it::result_t operator()(Fun f) const
     {
         using std::floor;
 
@@ -254,7 +254,7 @@ template <typename T, it::enumerable CFrac> class convergents_t : public it::it_
     convergents_t() = default;
     constexpr convergents_t(CFrac cfrac) : _cfrac(std::move(cfrac)) {}
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> it::result_t operator()(Fun f) const
     {
         T h = 1;
         T k = 0;
@@ -303,7 +303,7 @@ template <integral2 T> class pell_solutions : public it::it_base
     pell_solutions() = default;
     constexpr explicit pell_solutions(T d) : _d(std::move(d)) {}
 
-    template <std::invocable<value_type> Fun> constexpr it::result_t operator()(Fun f) const
+    template <typename Fun> it::result_t operator()(Fun f) const
     {
         if (isSquare(_d))
             return it::result_break;

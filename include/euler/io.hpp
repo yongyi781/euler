@@ -249,8 +249,8 @@ inline std::string getFileContents(std::string_view fileName)
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
 template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...>
-void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocable_v<Callable, Args...>)
+    requires(!std::integral<Callable>)
+void printTiming(Callable &&fn, Args &&...args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;
@@ -275,9 +275,7 @@ void printTiming(Callable &&fn, Args &&...args) noexcept(std::is_nothrow_invocab
 /// @param repeat The number of times to repeat the function.
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
-template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...>
-void printTiming(size_t repeat, Callable fn, Args... args) noexcept(std::is_nothrow_invocable_v<Callable, Args...>)
+template <typename Callable, typename... Args> void printTiming(size_t repeat, Callable fn, Args... args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;

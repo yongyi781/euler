@@ -88,29 +88,51 @@ template <integral2 T> constexpr bool checkSmallFactors(const T &n)
 
 template <integral2 T> constexpr bool millerRabinDeterministic(const T &n, std::initializer_list<int> witnesses)
 {
-    if (n == 2)
-        return true; // Trivial special case.
-    if (boost::multiprecision::bit_test(n, 0) == 0)
-        return false; // n is even
-    if (n <= 227)
-        return detail::isSmallPrime((size_t)n);
+    T const m = n - 1;
+    size_t const k = boost::multiprecision::lsb(m);
+    T const q = m >> k;
 
-    if (!detail::checkSmallFactors(n))
-        return false;
-
-    T nm1 = n - 1;
-    T q = n - 1;
-    size_t const k = boost::multiprecision::lsb(q);
-    q >>= k;
-
-    // Execute the trials:
+    T y;
     for (auto &&x : witnesses)
     {
-        T y = powmSafe(T(x), q, n);
+        y = powmSafe(T(x), q, n);
         size_t j = 0;
         while (true)
         {
-            if (y == nm1)
+            if (y == m)
+                break;
+            if (y == 1)
+            {
+                if (j == 0)
+                    break;
+                return false;
+            }
+            if (++j == k)
+                return false;
+            y = powmSafe(y, 2, n);
+        }
+    }
+    return true;
+}
+
+template <integral2 T> bool millerRabin(const T &n, size_t trials)
+{
+    T const m = n - 1;
+    size_t const k = boost::multiprecision::lsb(m);
+    T const q = m >> k;
+
+    static std::mt19937_64 gen;
+    boost::multiprecision::uniform_int_distribution<T> const dist(2, n - 2);
+
+    T x, y;
+    for (std::size_t i = 0; i < trials; ++i)
+    {
+        x = dist(gen);
+        y = powmSafe(x, q, n);
+        size_t j = 0;
+        while (true)
+        {
+            if (y == m)
                 break;
             if (y == 1)
             {
@@ -134,6 +156,22 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
 {
     if (n < 2)
         return false;
+    if (n == 2)
+        return true; // Trivial special case.
+    if (boost::multiprecision::bit_test(n, 0) == 0)
+        return false; // n is even
+    if (n <= 227)
+        return detail::isSmallPrime((size_t)n);
+    if (!detail::checkSmallFactors(n))
+        return false;
+
+    // Single Fermat test.
+    if (powmSafe(T(228), T(n - 1), n) != 1)
+        return false;
+
+    if (trials == 0) // trials == 0 means no Miller-Rabin test.
+        return true;
+
     if (n < 1373653)
         return detail::millerRabinDeterministic(n, {2, 3});
     if (n < 9080191)
@@ -150,7 +188,7 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
         return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11, 13, 17});
     if (n < 3825123056546413051)
         return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11, 13, 17, 19, 23});
-    return boost::multiprecision::miller_rabin_test(n, trials);
+    return detail::millerRabin(n, trials);
 }
 
 /// Removes all factors of p from a number, and returns the number of factors removed. The `knownDivides` template

@@ -54,9 +54,7 @@ template <template <typename...> typename Set, enumerable E, std::invocable<type
 class unique_t;
 
 /// Invoke a callable object, and returns result_continue if the callable returns void.
-template <typename Callable, typename... Args>
-    requires std::invocable<Callable, Args...>
-constexpr result_t callbackResult(Callable &&f, Args &&...args) noexcept(std::is_nothrow_invocable_v<Callable, Args...>)
+template <typename Callable, typename... Args> constexpr result_t callbackResult(Callable &&f, Args &&...args)
 {
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>)
     {
@@ -201,8 +199,7 @@ struct it_base
     }
 
     /// Maps this enumerable by a function.
-    template <typename Self, std::invocable<typename Self::value_type> Fn>
-    [[nodiscard]] constexpr map_t<Self, Fn> map(this Self self, Fn fn)
+    template <typename Self, typename Fn> [[nodiscard]] constexpr map_t<Self, Fn> map(this Self self, Fn fn)
     {
         return {std::move(self), std::move(fn)};
     }
@@ -217,7 +214,7 @@ struct it_base
     }
 
     /// Takes terms of this enumerable while the predicate is true.
-    template <typename Self, std::predicate<typename Self::value_type> Pred>
+    template <typename Self, typename Pred>
     [[nodiscard]] constexpr take_while_t<Self, Pred> takeWhile(this Self self, Pred pred)
     {
         return {std::move(self), std::move(pred)};
@@ -230,7 +227,7 @@ struct it_base
     }
 
     /// Drops terms of this enumerable while the predicate is true.
-    template <typename Self, std::predicate<typename Self::value_type> Pred>
+    template <typename Self, typename Pred>
     [[nodiscard]] constexpr drop_while_t<Self, Pred> dropWhile(this Self self, Pred pred)
     {
         return {std::move(self), std::move(pred)};
@@ -245,7 +242,7 @@ struct it_base
     }
 
     /// Creates an iterator that filters.
-    template <typename Self, std::predicate<typename Self::value_type> Pred>
+    template <typename Self, typename Pred>
     [[nodiscard]] constexpr filter_t<Self, Pred> filter(this Self self, Pred pred)
     {
         return {std::move(self), std::move(pred)};
@@ -259,7 +256,7 @@ struct it_base
 
     /// Outputs unique elements.
     template <template <typename...> typename Set = boost::unordered_flat_set, typename Self,
-              std::invocable<typename Self::value_type> Proj = std::identity>
+              typename Proj = std::identity>
     [[nodiscard]] constexpr unique_t<Set, Self, Proj> unique(this Self self, Proj proj = {})
     {
         return {std::move(self), std::move(proj)};
@@ -306,7 +303,7 @@ struct it_base
     }
 
     /// Calculates the minimum of the enumerable.
-    template <typename Self, std::invocable<typename Self::value_type> Proj = std::identity,
+    template <typename Self, typename Proj = std::identity,
               std::strict_weak_order<std::invoke_result_t<Proj, typename Self::value_type>,
                                      std::invoke_result_t<Proj, typename Self::value_type>>
                   Comp = std::ranges::less>
@@ -325,7 +322,7 @@ struct it_base
     }
 
     /// Calculates the maximum of the enumerable.
-    template <typename Self, std::invocable<typename Self::value_type> Proj = std::identity,
+    template <typename Self, typename Proj = std::identity,
               std::strict_weak_order<std::invoke_result_t<Proj, typename Self::value_type>,
                                      std::invoke_result_t<Proj, typename Self::value_type>>
                   Comp = std::ranges::less>
@@ -344,7 +341,7 @@ struct it_base
     }
 
     /// Returns true if the predicate is true for all items.
-    template <typename Self, std::predicate<typename Self::value_type> Pred = std::identity>
+    template <typename Self, typename Pred = std::identity>
     [[nodiscard]] constexpr bool all(this const Self &self, Pred pred = {})
     {
         bool result = true;
@@ -360,7 +357,7 @@ struct it_base
     }
 
     /// Returns true if the predicate is true for any item.
-    template <typename Self, std::predicate<typename Self::value_type> Pred = std::identity>
+    template <typename Self, typename Pred = std::identity>
     [[nodiscard]] constexpr bool any(this const Self &self, Pred pred = {})
     {
         bool result = false;
@@ -385,7 +382,7 @@ template <enumerable E, std::invocable<typename E::value_type> Fn> class map_t :
     map_t() = default;
     constexpr map_t(E base, Fn fn) : _base(std::move(base)), _fn(std::move(fn)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         return _base([&](auto &&x) -> decltype(auto) { return f(std::invoke(_fn, std::forward<decltype(x)>(x))); });
     }
@@ -424,7 +421,7 @@ template <enumerable E> class cycle_t : public it_base
     cycle_t() = default;
     constexpr cycle_t(E base) : _base(std::move(base)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         while (true)
             if (!_base(f))
@@ -465,7 +462,7 @@ template <enumerable E> class take_t : public it_base
     take_t() = default;
     constexpr take_t(E base, size_t n) : _base(std::move(base)), _n(n) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         size_t i = 0;
         result_t result = result_continue;
@@ -491,7 +488,7 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class take_
     take_while_t() = default;
     constexpr take_while_t(E base, Pred pred) : _base(std::move(base)), _pred(std::move(pred)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         result_t result = result_continue;
         _base([&](auto &&x) {
@@ -516,7 +513,7 @@ template <enumerable E> class drop_t : public it_base
     drop_t() = default;
     constexpr drop_t(E base, size_t n) : _base(std::move(base)), _n(n) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         size_t i = 0;
         return _base([&](auto &&x) {
@@ -540,7 +537,7 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class drop_
     drop_while_t() = default;
     constexpr drop_while_t(E base, Pred pred) : _base(std::move(base)), _pred(std::move(pred)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         bool drop = true;
         return _base([&](auto &&x) {
@@ -567,7 +564,7 @@ class filter_map_t : public it_base
     filter_map_t() = default;
     constexpr filter_map_t(E base, Fn fn) : _base(std::move(base)), _fn(std::move(fn)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         return _base([&](auto &&x) -> decltype(auto) {
             auto o = std::invoke(_fn, std::forward<decltype(x)>(x));
@@ -589,7 +586,7 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class filte
     filter_t() = default;
     constexpr filter_t(E base, Pred pred) : _base(std::move(base)), _pred(std::move(pred)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         return _base([&](auto &&x) {
             if (!_pred(x))
@@ -612,7 +609,7 @@ template <enumerable E> class enumerate_t : public it_base
     enumerate_t() = default;
     constexpr enumerate_t(E e) : _base(std::move(e)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         size_t i = 0;
         return _base([&](auto &&x) { return callbackResult(f, value_type{i++, std::forward<decltype(x)>(x)}); });
@@ -635,7 +632,7 @@ class unique_t : public it_base
     unique_t() = default;
     constexpr unique_t(E e, Proj proj) : _base(std::move(e)), _proj(std::move(proj)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         using T = std::remove_cvref_t<std::invoke_result_t<Proj, value_type>>;
         Set<T> visited;
@@ -666,13 +663,13 @@ template <std::ranges::view V> class wrap : public it_base
 
     /// Invokes f with the specified execution policy. Note that in this variant, the enumeration
     /// cannot be broken out of.
-    template <execution_policy Exec, std::invocable<value_type> Fun> result_t operator()(Exec &&exec, Fun f) const
+    template <execution_policy Exec, typename Fun> result_t operator()(Exec &&exec, Fun f) const
     {
         std::for_each(std::forward<Exec>(exec), std::ranges::begin(_base), std::ranges::end(_base), std::move(f));
         return result_continue;
     }
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         for (auto &&x : _base)
             if (!callbackResult(f, std::forward<decltype(x)>(x)))
@@ -717,7 +714,7 @@ template <integral2 T> class range : public it_base
 
     /// Invokes `f` with the specified execution policy. Note that in this variant, the enumeration cannot be broken out
     /// of.
-    template <execution_policy Exec, std::invocable<value_type> Fun> result_t operator()(Exec &&exec, Fun f) const
+    template <execution_policy Exec, typename Fun> result_t operator()(Exec &&exec, Fun f) const
     {
         if (!empty())
         {
@@ -736,7 +733,7 @@ template <integral2 T> class range : public it_base
         return result_continue;
     }
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         for (T i = _begin; _step > 0 ? i <= _end : i >= _end; i += _step)
             if (!callbackResult(f, i))

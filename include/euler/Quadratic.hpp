@@ -61,18 +61,15 @@ struct Quadratic
                 res.push_back(x);
             else
             {
+                // Hensel lifting.
                 auto const q = pow(p, i);
                 auto const num = mod(a * x * x + b * x + c, p * q);
                 auto const den = 2 * a * x + b;
-                if (den % p == 0)
-                {
-                    // Either p lifts or no lifts.
-                    if (num == 0)
-                        for (i64 k = 0; k < p; ++k)
-                            v.emplace_back(x + k * q, i + 1);
-                }
-                else
+                if (den % p != 0)
                     v.emplace_back(mod(x - num * modInverse(den, p * q), p * q), i + 1);
+                else if (num == 0)
+                    for (i64 k = 0; k < p; ++k)
+                        v.emplace_back(x + k * q, i + 1);
             }
         }
         std::ranges::sort(res);

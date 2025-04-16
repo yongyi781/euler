@@ -60,39 +60,29 @@ constexpr T pow(T base, U exponent)
     return pow(base, exponent, T(1), std::multiplies{});
 }
 
-/// @brief Computes the correct modulo operation in the case of negative values.
-/// @param a A number.
-/// @param modulus A number.
-/// @return A number between 0 and b - 1.
-template <integral2 T, integral2 Tm>
-    requires(!boost::multiprecision::is_number_expression<T>::value &&
-             !boost::multiprecision::is_number_expression<Tm>::value)
-constexpr std::common_type_t<T, Tm> mod(const T &a, Tm modulus)
+/// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
+/// Precondition: `modulus > 0`.
+template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &modulus)
 {
-    using Tp = std::common_type_t<T, Tm>;
     if (a >= 0)
-        return Tp(a) < Tp(modulus) ? Tp(a) : Tp(a % modulus);
-    return Tp(modulus - 1 - (-a - 1) % modulus);
+        return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
+    return boost::multiprecision::detail::evaluate_if_expression(modulus - 1 - (-a - 1) % modulus);
 }
 
-// template <typename T, size_t M, size_t N>
-// constexpr Matrix<T, M, N> mod(const Matrix<T, M, N> &m, integral2 auto modulus);
-
-/// Checked safe version of modmul.
-template <integral2 Ta, integral2 Tb, integral2 Tm>
-constexpr std::common_type_t<Ta, Tb, Tm> modmul(const Ta &a, const Tb &b, const Tm &m)
+/// Non-overflowing modular integer multiplication.
+template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const Ta &a, const Tb &b, const Tm &m)
 {
-    using T = std::common_type_t<Ta, Tb, Tm>;
+    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
     using Td = double_integer_t<T>;
     if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
     {
         Td result{};
         __builtin_mul_overflow(a, b, &result);
-        return T(result % m);
+        return result % m;
     }
     else
     {
-        return T(Td(a) * Td(b) % Td(m));
+        return a * b % m;
     }
 }
 
@@ -108,24 +98,29 @@ template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b,
 }
 
 /// Computes the integral square root of a number.
-template <integral2 T> constexpr T isqrt(T n)
+template <integral2 T> constexpr auto isqrt(const T &n)
 {
     if constexpr (!std::integral<T>)
-        return sqrt(std::move(n));
-    // boost::multiprecision::sqrt is constexpr, so take advantage of that in a constant-evaluated context.
-    if (std::is_constant_evaluated())
-        return boost::multiprecision::sqrt(std::move(n));
-    // This constant is the first input where floor(sqrt(n)) returns the wrong value.
-    if (n < 4'503'599'761'588'224)
-        return sqrt(std::move(n));
-    T x = sqrt(std::move(n));
-    while (x * x > n)
-        --x;
-    // double sqrt will underestimate starting from 2^106.
-    if constexpr (sizeof(T) > 8)
-        while ((x + 1) * (x + 1) <= n)
-            ++x;
-    return x;
+    {
+        return sqrt(n);
+    }
+    else
+    {
+        // boost::multiprecision::sqrt is constexpr, so take advantage of that in a constant-evaluated context.
+        if (std::is_constant_evaluated())
+            return boost::multiprecision::sqrt(n);
+        // This constant is the first input where floor(sqrt(n)) returns the wrong value.
+        if (n < 4'503'599'761'588'224)
+            return (T)sqrt(n);
+        T x = sqrt(n);
+        while (x * x > n)
+            --x;
+        // double sqrt will underestimate starting from 2^106.
+        if constexpr (sizeof(T) > 8)
+            while ((x + 1) * (x + 1) <= n)
+                ++x;
+        return x;
+    }
 }
 
 /// Computes the integral nth root of a number.
@@ -172,16 +167,16 @@ template <integral2 T> constexpr bool isSquare(const boost::rational<T> &r)
 }
 
 /// Calculates ⌊a / b⌋, and works for negative values too.
-template <integral2 Ta, integral2 Tb> constexpr Ta floorDiv(const Ta &a, const Tb &b)
+template <integral2 Ta, integral2 Tb> constexpr auto floorDiv(const Ta &a, const Tb &b)
 {
-    auto d = a / b;
-    return d * b == a ? Ta(d) : Ta(d - ((a < 0) ^ (b < 0)));
+    auto const d = boost::multiprecision::detail::evaluate_if_expression(a / b);
+    return d * b == a ? d : d - ((a < 0) ^ (b < 0));
 }
 
 /// Calculates ⌈a / b⌉, and works for negative values too.
-template <integral2 Ta, integral2 Tb> constexpr Ta ceilDiv(const Ta &a, const Tb &b)
+template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const Tb &b)
 {
-    return floorDiv<Ta, Tb>(a + b - 1, b);
+    return floorDiv(a + b - 1, b);
 }
 
 /// Invoke a callable object, and returns true if the callable returns void.

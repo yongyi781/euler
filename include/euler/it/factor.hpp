@@ -21,7 +21,7 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
         assert(_n != 0 && "0 does not have a factorization");
     }
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         T n = _n;
         if (n < 0)
@@ -123,7 +123,7 @@ template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfre
     T s = 1;
     for (auto &&[p, e] : std::forward<Range>(factorization))
     {
-        auto q = pow(p, e / 2);
+        T const q = pow(p, e / 2);
         s *= q;
         num /= q * q;
     }
@@ -131,7 +131,17 @@ template <integral2 T, std::ranges::range Range> constexpr std::pair<T, T> sqfre
 }
 
 /// Returns (s, t) where d = s²t and t is squarefree.
-template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num) { return sqfreeDecompose(num, factor(num)); }
+template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num)
+{
+    T s = 1;
+    it::factor{num}([&](auto &&pe) {
+        auto &&[p, e] = pe;
+        T const q = pow(p, e / 2);
+        s *= q;
+        num /= q * q;
+    });
+    return {s, num};
+}
 
 /// Function to find smallest primitive root of p.
 template <integral2 T, typename SPFSieve = std::vector<int>>
@@ -140,8 +150,8 @@ constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&sp
     using Tp = std::common_type_t<int64_t, T>;
     if (p == 2)
         return Tp(1);
-    auto phi = p - 1;
-    auto pf = factor(phi, std::forward<SPFSieve>(spfs));
+    T const phi = p - 1;
+    auto const pf = factor(phi, std::forward<SPFSieve>(spfs));
     for (Tp r = 2; r <= phi; ++r)
     {
         bool flag = false;

@@ -104,7 +104,7 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr Vector operator+() const { return *this; }
 
     /// Spaceship (3-way comparison) operator
-    std::strong_ordering operator<=>(const Vector &other) const = default;
+    auto operator<=>(const Vector &other) const = default;
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Vector &x)

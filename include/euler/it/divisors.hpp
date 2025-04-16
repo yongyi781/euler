@@ -19,7 +19,7 @@ template <std::ranges::view V> class divisors_t : public it_base
     divisors_t() = default;
     constexpr divisors_t(V factorization) : _factorization(std::move(factorization)) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> result_t operator()(Fun f) const
     {
         return _enumerate(std::ranges::begin(_factorization), std::ranges::end(_factorization), value_type(1),
                           std::move(f));
@@ -50,8 +50,7 @@ template <std::ranges::view V> class divisors_t : public it_base
     using It = std::ranges::iterator_t<const V>;
     V _factorization;
 
-    template <std::invocable<value_type> Fun>
-    constexpr result_t _enumerate(It it, It end, const value_type &current, Fun f) const
+    template <typename Fun> result_t _enumerate(It it, It end, const value_type &current, Fun f) const
     {
         if (!callbackResult(f, current))
             return result_break;
@@ -84,7 +83,7 @@ template <integral2 T> it::divisors_t<std::views::all_t<PF<T>>> divisors(T num)
 } // namespace it
 
 /// Generates a vector of divisors based on the given factorization.
-template <std::ranges::range Range> constexpr auto divisors(Range &&factorization)
+template <std::ranges::range Range> auto divisors(Range &&factorization)
 {
     using T = std::ranges::range_value_t<Range>::first_type;
     auto d = it::divisors(std::forward<Range>(factorization));
@@ -95,7 +94,7 @@ template <std::ranges::range Range> constexpr auto divisors(Range &&factorizatio
 }
 
 template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
-constexpr std::vector<T> divisors(T num, SPFSieve &&spfs = {})
+std::vector<T> divisors(T num, SPFSieve &&spfs = {})
 {
     if (num == 1)
         return {1};

@@ -13,9 +13,6 @@ template <typename T> struct euclidean_result_t
 /// Requirement: T is signed.
 template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
 {
-    if (m < 1 || n < 1)
-        throw std::domain_error("extended_euclidean: arguments must be strictly positive");
-
     bool swapped = false;
     if (m < n)
     {
@@ -31,7 +28,7 @@ template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
     T w0;
     T w1;
     T w2;
-    while (v0 > 0)
+    while (v0 != 0)
     {
         T q = u0 / v0;
         w0 = u0 - q * v0;
@@ -45,47 +42,44 @@ template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
         v2 = w2;
     }
 
-    euclidean_result_t<T> result;
-    result.gcd = u0;
-    if (!swapped)
+    euclidean_result_t<T> result{u0, u1, u2};
+    if (result.gcd < 0)
     {
-        result.x = u1;
-        result.y = u2;
+        result.gcd = -result.gcd;
+        result.x = -result.x;
+        result.y = -result.y;
     }
-    else
-    {
-        result.x = u2;
-        result.y = u1;
-    }
-
+    if (swapped)
+        std::swap(result.x, result.y);
     return result;
 }
 
 /// Computes modular inverse.
 /// @param a A number.
 /// @param modulus The modulus.
-/// @return number^-1 mod modulus.
-template <integral2 Ta, integral2 Tm> constexpr Tm modInverse(const Ta &a, const Tm &modulus)
+/// @return a^-1 mod modulus.
+template <integral2 Ta, integral2 Tm> constexpr auto modInverse(const Ta &a, const Tm &modulus)
 {
-    using Ts = std::make_signed_t<std::common_type_t<Ta, Tm>>;
+    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % modulus)));
+    using Ts = std::make_signed_t<T>;
     assert(modulus > 0);
     if (modulus == 1)
-        return 0;
+        return Ts{};
     // make sure a < modulus:
     Ts a_small = Ts(mod(a, modulus));
     if (a_small == 0)
-        return 0;
+        return Ts{};
     euclidean_result_t<Ts> u = xgcd(a_small, Ts(modulus));
     if (u.gcd > 1)
-        return 0;
+        return Ts{};
     // x might not be in the range 0 ≤ x < m, let's fix that:
     if (u.x < 0)
         u.x += modulus;
-    return Tm(u.x);
+    return u.x;
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
-template <> constexpr mpz_int modInverse(const mpz_int &a, const mpz_int &modulus)
+template <> constexpr auto modInverse(const mpz_int &a, const mpz_int &modulus)
 {
     mpz_int res;
     mpz_invert(res.backend().data(), a.backend().data(), modulus.backend().data());
