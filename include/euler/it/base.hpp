@@ -30,7 +30,9 @@ concept enumerable = requires(const T &t) {
 };
 
 // Forward declarations.
-template <enumerable E, std::invocable<typename E::value_type> Fn> class map_t;
+template <enumerable E, std::invocable<typename E::value_type> Fn>
+    requires(!std::is_void_v<std::invoke_result_t<Fn, typename E::value_type>>)
+class map_t;
 
 template <enumerable E> class take_t;
 
@@ -374,7 +376,9 @@ struct it_base
 };
 
 /// Maps this enumerable by a function.
-template <enumerable E, std::invocable<typename E::value_type> Fn> class map_t : public it_base
+template <enumerable E, std::invocable<typename E::value_type> Fn>
+    requires(!std::is_void_v<std::invoke_result_t<Fn, typename E::value_type>>)
+class map_t : public it_base
 {
   public:
     using value_type = std::remove_cvref_t<std::invoke_result_t<Fn, typename E::value_type>>;
