@@ -283,7 +283,10 @@ struct QD
         std::vector<Vector<T, 2>> res;
         // Group solutions by g = gcd(x, y).
         QD q = *this;
-        for (auto const g : divisors(sqfreeDecompose(-f).first))
+        auto fac = factor(-f);
+        for (auto &[p, e] : fac)
+            e /= 2;
+        for (auto const g : divisors(fac))
         {
             q.f = f / (g * g);
             q.solvePrimitive_af_coprime<T>([&](const T &u, const T &v) {

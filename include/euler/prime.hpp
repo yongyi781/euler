@@ -109,7 +109,7 @@ template <integral2 T> constexpr bool millerRabinDeterministic(const T &n, std::
             }
             if (++j == k)
                 return false;
-            y = powmSafe(y, 2, n);
+            y = modmul(y, y, n);
         }
     }
     return true;
@@ -142,7 +142,7 @@ template <integral2 T> bool millerRabin(const T &n, size_t trials)
             }
             if (++j == k)
                 return false;
-            y = powmSafe(y, 2, n);
+            y = modmul(y, y, n);
         }
     }
     return true;
