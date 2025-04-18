@@ -78,7 +78,7 @@ template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const 
     {
         Td result{};
         __builtin_mul_overflow(a, b, &result);
-        return result % m;
+        return T(result % m);
     }
     else
     {
@@ -247,7 +247,7 @@ template <std::ranges::range Range> std::ranges::range_value_t<Range> lcm(Range 
 /// A replacement for integer floor division.
 template <typename T, typename U> constexpr auto fastDiv(T n, U d)
 {
-    auto res = T((double)n / (double)d);
+    T res = T((double)n / (double)d);
     if (n < res * d)
     {
         --res;
