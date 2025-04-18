@@ -254,18 +254,18 @@ void printTiming(Callable &&fn, Args &&...args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;
-    auto t1 = now();
+    auto const t1 = now();
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>)
     {
         std::forward<Callable>(fn)(std::forward<Args>(args)...);
-        auto elapsed = now() - t1;
+        auto const elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
         std::cout << std::move(ss).str() << '\n';
     }
     else
     {
-        auto result = std::forward<Callable>(fn)(std::forward<Args>(args)...);
-        auto elapsed = now() - t1;
+        auto const result = std::forward<Callable>(fn)(std::forward<Args>(args)...);
+        auto const elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
         std::cout << std::move(ss).str() << " | " << result << '\n';
     }
@@ -284,16 +284,16 @@ template <typename Callable, typename... Args> void printTiming(size_t repeat, C
     {
         for (size_t i = 0; i < repeat; ++i)
             fn(args...);
-        auto elapsed = now() - t1;
+        auto const elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
         std::cout << std::move(ss).str() << '\n';
     }
     else
     {
-        std::invoke_result_t<Callable, Args...> result = fn(args...);
+        auto result = fn(args...);
         for (size_t i = 1; i < repeat; ++i)
             result = fn(args...);
-        auto elapsed = now() - t1;
+        auto const elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
         std::cout << std::move(ss).str() << " | " << result << '\n';
     }

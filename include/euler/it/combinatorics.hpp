@@ -435,14 +435,15 @@ template <std::ranges::view V> class powerset : public it_base
 template <std::ranges::range Range> powerset(Range &&) -> powerset<std::views::all_t<Range>>;
 
 /// Enumerate nonnegative tuples with a given sum. Takes about 1 - 3.5 ns per tuple depending on length.
-/// Usage: `it::tuples_with_sum(<length>, <total>)`.
+/// Usage: `it::tuples_with_sum(n, k)` where `n` is the sum and `k` is the length.
+/// The number of tuples is `binomial(n + k - 1, k - 1) = binomial(n + k - 1, n)`.
 template <integral2 T> class tuples_with_sum : public it_base
 {
   public:
     using value_type = std::vector<T>;
 
     tuples_with_sum() = default;
-    constexpr tuples_with_sum(size_t length, T total) : _length(length), _total(total) {}
+    constexpr tuples_with_sum(T total, size_t length) : _total(std::move(total)), _length(length) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
@@ -463,8 +464,8 @@ template <integral2 T> class tuples_with_sum : public it_base
     }
 
   private:
-    size_t _length = 0;
     T _total = 0;
+    size_t _length = 0;
 
     template <std::invocable<value_type> Fun>
     constexpr result_t _enumerate(value_type &t, size_t index, T total, Fun f) const
