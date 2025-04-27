@@ -140,7 +140,7 @@ constexpr auto crt(Range1 &&remainders, Range2 &&moduli)
 }
 
 /// Convenience method to return a list of powers of `a` from 0 to `n`.
-template <typename T> constexpr std::vector<T> powers(T a, int n)
+template <typename T> constexpr std::vector<T> powers(T a, size_t n)
 {
     std::vector<T> result(n + 1);
     T p = 1;

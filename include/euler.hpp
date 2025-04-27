@@ -27,3 +27,4 @@
 #include "euler/triangular_vector.hpp"
 #include "euler/types.hpp"
 #include "euler/vector2d.hpp"
+#include "euler/vector3d.hpp"

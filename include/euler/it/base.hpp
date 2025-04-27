@@ -739,9 +739,18 @@ template <integral2 T> class range : public it_base
 
     template <typename Fun> constexpr result_t operator()(Fun f) const
     {
-        for (T i = _begin; _step > 0 ? i <= _end : i >= _end; i += _step)
-            if (!callbackResult(f, i))
-                return result_break;
+        if (_step > 0)
+        {
+            for (T i = _begin; i <= _end; i += _step)
+                if (!callbackResult(f, i))
+                    return result_break;
+        }
+        else
+        {
+            for (T i = _begin; i >= _end; i += _step)
+                if (!callbackResult(f, i))
+                    return result_break;
+        }
         return result_continue;
     }
 

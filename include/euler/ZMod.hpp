@@ -8,7 +8,7 @@ inline namespace euler
 {
 /// Class for integers modulo a modulus. The modulus must be a compile-time constant.
 /// @tparam SafeMul whether to use safe multiplication.
-template <integral2 auto M, bool SafeMul = (int128_t)M * M >= std::numeric_limits<decltype(M)>::max()>
+template <integral2 auto M, bool SafeMul = (uint128_t)M >= std::numeric_limits<decltype(M)>::max() / M>
     requires(M > 0 && M <= std::numeric_limits<decltype(M)>::max() / 2)
 class ZMod
 {

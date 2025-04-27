@@ -14,14 +14,14 @@ inline namespace euler
 {
 namespace detail
 {
-constexpr std::array<unsigned, 17> primesTo59{2U,  3U,  5U,  7U,  11U, 13U, 17U, 19U, 23U,
-                                              29U, 31U, 37U, 41U, 43U, 47U, 53U, 59U};
-constexpr uint32_t firstNontrivialPrime = 61;
-constexpr std::array primeWheel{10U, 2U, 4U, 2U, 4U, 6U, 2U, 6U, 4U, 2U, 4U, 6U, 6U, 2U, 6U,  4U,
-                                2U,  6U, 4U, 6U, 8U, 4U, 2U, 4U, 2U, 4U, 8U, 6U, 4U, 6U, 2U,  4U,
-                                6U,  2U, 6U, 6U, 4U, 2U, 4U, 6U, 2U, 6U, 4U, 2U, 4U, 2U, 10U, 2U};
-constexpr uint32_t primeWheelPeriod = 210;
-constexpr size_t primeWheelSize = std::size(primeWheel);
+inline constexpr std::array<unsigned, 17> primesTo59{2U,  3U,  5U,  7U,  11U, 13U, 17U, 19U, 23U,
+                                                     29U, 31U, 37U, 41U, 43U, 47U, 53U, 59U};
+inline constexpr uint32_t firstNontrivialPrime = 61;
+inline constexpr std::array primeWheel{10U, 2U, 4U, 2U, 4U, 6U, 2U, 6U, 4U, 2U, 4U, 6U, 6U, 2U, 6U,  4U,
+                                       2U,  6U, 4U, 6U, 8U, 4U, 2U, 4U, 2U, 4U, 8U, 6U, 4U, 6U, 2U,  4U,
+                                       6U,  2U, 6U, 6U, 4U, 2U, 4U, 6U, 2U, 6U, 4U, 2U, 4U, 2U, 10U, 2U};
+inline constexpr uint32_t primeWheelPeriod = 210;
+inline constexpr size_t primeWheelSize = std::size(primeWheel);
 
 /// Assumption: n <= 227.
 constexpr bool isSmallPrime(size_t n)

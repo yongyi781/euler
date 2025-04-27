@@ -6,11 +6,14 @@
 
 inline namespace euler
 {
+/// Fenwick tree, also known as binary indexed tree.
 template <typename T> class FenwickTree
 {
   public:
+    /// Creates an empty Fenwick tree.
+    FenwickTree() = default;
     /// Constructs a new Fenwick tree with the given size.
-    explicit constexpr FenwickTree(size_t n) : _data(n + 1, T{}) {}
+    constexpr explicit FenwickTree(size_t n) : _data(n + 1, T{}) {}
 
     /// Constructs a new Fenwick tree with the given size and initial value.
     constexpr FenwickTree(size_t n, T value) : _data(n + 1)
@@ -46,21 +49,22 @@ template <typename T> class FenwickTree
         }
     }
 
-    std::vector<T> &data() { return _data; }
-    [[nodiscard]] constexpr const std::vector<T> &data() const { return _data; }
+    std::vector<T> &data() noexcept { return _data; }
+    [[nodiscard]] constexpr const std::vector<T> &data() const noexcept { return _data; }
 
-    /// Returns the size of the data.
-    [[nodiscard]] constexpr size_t size() const { return _data.size() - 1; }
+    /// Returns the size of the Fenwick tree.
+    [[nodiscard]] constexpr size_t size() const noexcept { return _data.size() - 1; }
 
-    /// Returns the sum of the elements up to the given index in the Fenwick tree.
-    ///
-    /// @param i the index up to which the sum should be calculated.
+    /// Resizes the Fenwick tree.
+    constexpr void resize(size_t newSize) { _data.resize(newSize + 1); }
+
+    /// Returns the sum of the elements up to the given index in the Fenwick tree. O(log n).
     [[nodiscard]] constexpr T sum(size_t i) const
     {
         assert(i < size());
         ++i;
         T res{};
-        while (i > 0)
+        while (i != 0)
         {
             res += _data[i];
             i = parent(i);
@@ -68,23 +72,17 @@ template <typename T> class FenwickTree
         return res;
     }
 
-    /// Calculates the sum of elements in a range.
-    ///
-    /// @param i The starting index of the range.
-    /// @param j The ending index of the range.
-    ///
-    /// @return The sum of elements in the range [i, j].
+    /// Calculates the sum of elements in the range [i, j]. O(2 * log n).
     [[nodiscard]] constexpr T sum(size_t i, size_t j) const
     {
-        assert(i <= j && j < size());
+        assert(j < size());
+        if (i > j)
+            return 0;
         return sum(j) - (i == 0 ? T{} : sum(i - 1));
     }
 
-    /// Updates the Fenwick tree by adding the value `v` to position `i`.
-    ///
-    /// @param i the starting index from which to update the elements
-    /// @param v the value to add.
-    constexpr void update(size_t i, T v)
+    /// Adds the value `v` to position `i`. O(log n).
+    constexpr void add(size_t i, T v)
     {
         ++i;
         while (i < _data.size())
@@ -94,22 +92,19 @@ template <typename T> class FenwickTree
         }
     }
 
-    /// Indexing operator to access the value at a specific index. O(log n) time.
-    ///
-    /// @param i the index to access.
-    /// @return the value at the specified index.
+    /// Returns the value at a specific index. O(log n).
     constexpr T operator[](size_t i) const { return sum(i, i); }
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const FenwickTree<T> &t)
     {
-        return o << t.data();
+        return o << "Fenwick tree " << t.data();
     }
 
   private:
     std::vector<T> _data;
 
-    [[nodiscard]] static constexpr size_t parent(size_t i) { return i - (i & (-i)); }
-    [[nodiscard]] static constexpr size_t next(size_t i) { return i + (i & (-i)); }
+    [[nodiscard]] static constexpr size_t parent(size_t i) noexcept { return i - (i & -i); }
+    [[nodiscard]] static constexpr size_t next(size_t i) noexcept { return i + (i & -i); }
 };
 } // namespace euler

@@ -1,10 +1,12 @@
 #pragma once
 
-#include "counting_iterator.hpp"
-#include "decls.hpp"
 #include <map>
 #include <random>
 #include <set>
+
+#include "counting_iterator.hpp"
+#include "decls.hpp"
+#include "it/base.hpp"
 
 inline namespace euler
 {
@@ -493,15 +495,37 @@ template <template <typename...> typename Map = std::map, std::ranges::range Ran
 }
 
 /// Creates a histogram (frequency count) of elements in the range `v`.
-template <std::ranges::range Range>
-    requires std::integral<std::ranges::range_value_t<Range>>
-auto histogram(const Range &v, size_t maxItem)
+template <std::ranges::range Range, std::integral T = std::ranges::range_value_t<Range>>
+std::vector<T> histogram(const Range &r, T maxItem)
 {
-    std::vector<size_t> res(maxItem + 1, 0);
-    for (const auto &i : v)
-        if (i <= maxItem)
-            ++res[i];
+    std::vector<T> res(maxItem + 1);
+    for (auto &&x : r)
+        if (x >= 0 && x <= maxItem)
+            ++res[x];
     return res;
+}
+
+/// Creates a histogram (frequency count) of elements in the range `v`.
+template <execution_policy Exec, std::ranges::range Range, std::integral T = std::ranges::range_value_t<Range>>
+std::vector<T> histogram(Exec && /*exec*/, Range &&r, T maxItem)
+{
+    if constexpr (std::same_as<std::decay_t<Exec>, std::execution::sequenced_policy> ||
+                  std::same_as<std::decay_t<Exec>, std::execution::unsequenced_policy>)
+        return histogram(std::forward<Range>(r), maxItem);
+    else
+        return tbb::parallel_reduce(
+            tbb::blocked_range(std::ranges::begin(r), std::ranges::end(r)), std::vector<T>(maxItem + 1),
+            [&](auto &&range, std::vector<T> &&h) {
+                for (auto i = range.begin(); i != range.end(); ++i)
+                    if (*i >= 0 && *i <= maxItem)
+                        ++h[*i];
+                return std::move(h);
+            },
+            [&](std::vector<T> a, const std::vector<T> &b) {
+                for (T i = 0; i <= maxItem; ++i)
+                    a[i] += b[i];
+                return a;
+            });
 }
 
 // Period finding
@@ -570,6 +594,48 @@ template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z per
             total += res;
     }
     return total + (stop - start + 1) / period * mid;
+}
+
+/// Convenience function that returns v, sorted and with duplicates removed.
+template <std::ranges::range Range> auto sortedSet(Range &&r)
+{
+    std::vector v(std::ranges::begin(r), std::ranges::end(r));
+    std::sort(v.begin(), v.end());
+    v.erase(std::unique(v.begin(), v.end()), v.end());
+    return v;
+}
+
+/// Convenience function that returns v, sorted and with duplicates removed.
+template <execution_policy Exec, std::ranges::range Range> auto sortedSet(Exec &&exec, Range &&r)
+{
+    std::vector v(std::ranges::begin(r), std::ranges::end(r));
+    std::sort(exec, v.begin(), v.end());
+    v.erase(std::unique(std::forward<decltype(exec)>(exec), v.begin(), v.end()), v.end());
+    return v;
+}
+
+/// Counting sort.
+template <std::ranges::range Range, std::integral T = std::ranges::range_value_t<Range>>
+void countSort(Range &&v, T maxItem)
+{
+    auto const h = histogram(v, maxItem);
+    auto it = v.begin();
+    for (size_t i = 0; i < h.size(); ++i)
+        for (T k = 0; k < h[i]; ++k)
+            *it++ = i;
+}
+
+/// Counting sort.
+template <execution_policy Exec, std::ranges::range Range, std::integral T = std::ranges::range_value_t<Range>>
+void countSort(Exec &&exec, Range &&v, T maxItem)
+{
+    auto const h = partialSum(histogram(std::forward<Exec>(exec), v, maxItem));
+    it::range(0, h.size() - 1)(std::forward<Exec>(exec), [&](size_t i) {
+        auto it = i == 0 ? v.begin() : v.begin() + h[i - 1];
+        auto end = v.begin() + h[i];
+        for (; it != end; ++it)
+            *it = i;
+    });
 }
 
 /// Appends a range to a vector.

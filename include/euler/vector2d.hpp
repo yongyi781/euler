@@ -49,6 +49,8 @@ template <typename T> class vector2d
     /// `i`th row.
     constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * _columns, _columns}; }
 
+    constexpr auto operator<=>(const vector2d &other) const = default;
+
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 

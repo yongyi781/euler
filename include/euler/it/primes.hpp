@@ -13,9 +13,9 @@ class primes : public it_base
   public:
     using value_type = int64_t;
 
-    constexpr primes(int64_t start = 2, int64_t stop = std::numeric_limits<int64_t>::max()) : _start(start), _stop(stop)
-    {
-    }
+    primes() = default;
+    constexpr primes(int64_t stop) : _stop(stop) {}
+    constexpr primes(int64_t start, int64_t stop) : _start(start), _stop(stop) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
@@ -30,8 +30,8 @@ class primes : public it_base
     }
 
   private:
-    int64_t _start;
-    int64_t _stop;
+    int64_t _start = 2;
+    int64_t _stop = std::numeric_limits<int64_t>::max();
 };
 } // namespace it
 } // namespace euler

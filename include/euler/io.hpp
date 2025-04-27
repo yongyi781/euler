@@ -30,7 +30,7 @@ inline namespace euler
 // }
 // } // namespace detail
 
-constexpr auto now = std::chrono::high_resolution_clock::now;
+inline constexpr auto now = std::chrono::high_resolution_clock::now;
 
 #ifdef BOOST_HAS_INT128
 template <typename CharT, typename Traits>
@@ -106,7 +106,7 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 // Need to hide behind a namespace to avoid name collision with std::print.
 namespace io
 {
-constexpr size_t defaultPrintLimit = 100;
+inline constexpr size_t defaultPrintLimit = 100;
 
 /// Prints a non-range.
 template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename T>
@@ -299,7 +299,7 @@ template <typename Callable, typename... Args> void printTiming(size_t repeat, C
     }
 }
 
-/// Measures the number of characters that would be output by `o << x`.
+/// Returns the string that would be output by `o << x`.
 template <typename T, typename CharT, typename Traits>
 std::string toStringWithFlags(const T &x, const std::basic_ostream<CharT, Traits> &o)
 {

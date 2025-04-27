@@ -54,10 +54,10 @@ template <typename T, integral2 U>
 constexpr T pow(T base, U exponent)
     requires requires {
         base * base;
-        T(1);
+        T{1};
     }
 {
-    return pow(base, exponent, T(1), std::multiplies{});
+    return pow(base, exponent, T{1}, std::multiplies{});
 }
 
 /// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
@@ -74,7 +74,11 @@ template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const 
 {
     using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
     using Td = double_integer_t<T>;
-    if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
+    if constexpr (std::same_as<T, Td>)
+    {
+        return a * b % m;
+    }
+    else if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
     {
         Td result{};
         __builtin_mul_overflow(a, b, &result);
@@ -82,7 +86,7 @@ template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const 
     }
     else
     {
-        return a * b % m;
+        return T(Td(a) * Td(b) % m);
     }
 }
 
@@ -196,16 +200,16 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
 }
 
 /// GCD for int128.
-inline int128_t gcd(int128_t m, int128_t n) noexcept { return boost::integer::gcd(m, n); }
+constexpr int128_t gcd(int128_t m, int128_t n) noexcept { return boost::integer::gcd(m, n); }
 /// LCM for int128.
-inline int128_t lcm(int128_t m, int128_t n) noexcept { return boost::integer::lcm(m, n); }
+constexpr int128_t lcm(int128_t m, int128_t n) noexcept { return boost::integer::lcm(m, n); }
 /// GCD for uint128.
-inline uint128_t gcd(uint128_t m, uint128_t n) noexcept { return boost::integer::gcd(m, n); }
+constexpr uint128_t gcd(uint128_t m, uint128_t n) noexcept { return boost::integer::gcd(m, n); }
 /// LCM for uint128.
-inline uint128_t lcm(uint128_t m, uint128_t n) noexcept { return boost::integer::lcm(m, n); }
+constexpr uint128_t lcm(uint128_t m, uint128_t n) noexcept { return boost::integer::lcm(m, n); }
 
 /// Greatest common divisor of a range.
-template <std::ranges::range Range> std::ranges::range_value_t<Range> gcd(Range &&r)
+template <std::ranges::range Range> constexpr std::ranges::range_value_t<Range> gcd(Range &&r)
 {
     using T = std::ranges::range_value_t<Range>;
     using std::gcd;
@@ -220,21 +224,13 @@ template <std::ranges::range Range> std::ranges::range_value_t<Range> gcd(Range 
 }
 
 /// Greatest common divisor, specialized to an initializer list.
-template <integral2 T> T gcd(std::initializer_list<T> l)
+template <integral2 T> constexpr T gcd(std::initializer_list<T> l)
 {
-    using std::gcd;
-    T g = 0;
-    for (auto &&x : l)
-    {
-        g = gcd(g, x);
-        if (g == 1)
-            break;
-    }
-    return g;
+    return gcd<std::initializer_list<T>>(std::move(l));
 }
 
 /// Least common multiple of a range.
-template <std::ranges::range Range> std::ranges::range_value_t<Range> lcm(Range &&r)
+template <std::ranges::range Range> constexpr std::ranges::range_value_t<Range> lcm(Range &&r)
 {
     using T = std::ranges::range_value_t<Range>;
     using std::lcm;
@@ -242,6 +238,12 @@ template <std::ranges::range Range> std::ranges::range_value_t<Range> lcm(Range 
     for (auto &&x : r)
         l = lcm(l, x);
     return l;
+}
+
+/// Least common multiple, specialized to an initializer list.
+template <integral2 T> constexpr T lcm(std::initializer_list<T> l)
+{
+    return lcm<std::initializer_list<T>>(std::move(l));
 }
 
 /// A replacement for integer floor division.
@@ -278,9 +280,6 @@ inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, uint32_t b)
     mpz_divexact_ui(dest.backend().data(), a.backend().data(), b);
     return dest;
 }
-
-// Function to check if a character is the start of a UTF-8 sequence
-constexpr bool isUtf8Start(char c) { return (c & 0xC0) != 0x80; }
 
 // Function to calculate the display width of a UTF-8 character
 constexpr int charWidth(char32_t c)

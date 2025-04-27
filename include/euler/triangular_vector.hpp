@@ -48,6 +48,8 @@ template <typename T> class triangular_vector
     /// `i`th row.
     constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * (i + 1) / 2, i + 1}; }
 
+    constexpr auto operator<=>(const triangular_vector &other) const = default;
+
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 

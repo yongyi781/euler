@@ -16,7 +16,7 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
     using value_type = PrimePower<T>;
 
     factor() = default;
-    constexpr explicit factor(T n, const SPFSieve &spfs = {}) : _n(std::move(n)), _spfs(std::ref(spfs))
+    constexpr factor(T n, const SPFSieve &spfs = {}) : _n(std::move(n)), _spfs(std::ref(spfs))
     {
         assert(_n != 0 && "0 does not have a factorization");
     }
@@ -170,7 +170,7 @@ constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&sp
     assert(false && "primitiveRoot: Should not reach here (maybe p wasn't prime).");
 }
 
-/// Returns the number of integers coprime to the given integer in the range [1, limit].
+/// Returns the sum of a function at integers coprime to the given integer in the range [1, limit].
 template <typename SummatoryFun, integral2 Tk, typename T> constexpr auto sumCoprime(SummatoryFun F, Tk k, T limit)
 {
     thread_local std::vector<Tk> primes;
