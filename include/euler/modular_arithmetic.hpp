@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decls.hpp"
+#include <boost/multiprecision/gmp.hpp>
 
 inline namespace euler
 {
@@ -53,6 +54,72 @@ template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
         std::swap(result.x, result.y);
     return result;
 }
+
+/// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
+/// Precondition: `modulus > 0`.
+template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &modulus)
+{
+    if (a >= 0)
+        return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
+    return boost::multiprecision::detail::evaluate_if_expression(modulus - 1 - (-a - 1) % modulus);
+}
+
+/// Non-overflowing modular integer multiplication.
+template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const Ta &a, const Tb &b, const Tm &m)
+{
+    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
+    using Td = double_integer_t<T>;
+    if constexpr (std::same_as<T, Td>)
+    {
+        return a * b % m;
+    }
+    else if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
+    {
+        Td result{};
+        __builtin_mul_overflow(a, b, &result);
+        return T(result % m);
+    }
+    else
+    {
+        return T(Td(a) * Td(b) % m);
+    }
+}
+
+/// Function object for mod plus.
+template <integral2 TMod> struct mod_plus
+{
+    TMod modulus;
+
+    template <typename T, typename U>
+    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b)))
+    {
+        return (std::forward<T>(a) + std::forward<U>(b)) % modulus;
+    }
+};
+
+/// Function object for mod multiplies.
+template <typename TMod> struct mod_multiplies
+{
+    TMod modulus;
+
+    template <typename T, typename U>
+    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) * std::forward<U>(b)))
+    {
+        return std::forward<T>(a) * std::forward<U>(b) % modulus;
+    }
+};
+
+/// This version doesn't overflow.
+template <integral2 TMod> struct mod_multiplies_safe
+{
+    TMod modulus;
+
+    template <typename T, typename U>
+    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) * std::forward<U>(b)))
+    {
+        return modmul(std::forward<T>(a), std::forward<U>(b), modulus);
+    }
+};
 
 /// Computes modular inverse.
 /// @param a A number.

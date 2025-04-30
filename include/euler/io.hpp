@@ -8,29 +8,111 @@
 
 inline namespace euler
 {
-// namespace detail
-// {
-// /// Ignores ANSI colour sequences.
-// inline size_t displayedWidth(std::string_view str)
-// {
-//     size_t result = 0;
-//     const auto *p = str.begin();
-//     for (; *p; ++p)
-//     {
-//         if (p[0] == '\e' && p[1] == '[')
-//             while (*p != 'm')
-//                 if (*p)
-//                     ++p;
-//                 else
-//                     throw std::runtime_error("string terminates inside ANSI colour sequence");
-//         else
-//             ++result;
-//     }
-//     return result;
-// }
-// } // namespace detail
-
 inline constexpr auto now = std::chrono::high_resolution_clock::now;
+
+template <typename CharT, typename Traits, typename T, typename U>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::pair<T, U> &v);
+
+template <typename CharT, typename Traits, typename... Args>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::tuple<Args...> const &t);
+
+template <typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::optional<T> &x);
+
+template <typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::nullopt_t /*unused*/);
+
+template <typename CharT, typename Traits, std::ranges::range Range>
+    requires(!is_string<Range>)
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Range &r);
+
+// Function to calculate the display width of a UTF-8 character
+constexpr int charWidth(char32_t c)
+{
+    if (c == 0)
+        return 0;
+    if (c < 32 || (c >= 0x7F && c < 0xA0))
+        return 0; // Control characters
+    if (c >= 0x1100 &&
+        (c <= 0x115F ||                                                               // Hangul Jamo
+         c == 0x2329 || c == 0x232A || (c >= 0x2E80 && c <= 0xA4CF && c != 0x303F) || // CJK ... Yi
+         (c >= 0xAC00 && c <= 0xD7A3) ||                                              // Hangul Syllables
+         (c >= 0xF900 && c <= 0xFAFF) ||                                              // CJK Compatibility Ideographs
+         (c >= 0xFE10 && c <= 0xFE19) ||                                              // Vertical forms
+         (c >= 0xFE30 && c <= 0xFE6F) ||                                              // CJK Compatibility Forms
+         (c >= 0xFF00 && c <= 0xFF60) ||                                              // Fullwidth Forms
+         (c >= 0xFFE0 && c <= 0xFFE6) || (c >= 0x20000 && c <= 0x2FFFD) || (c >= 0x30000 && c <= 0x3FFFD)))
+    {
+        return 2;
+    }
+    return 1;
+}
+
+// Function to calculate display width of a string, ignoring ANSI escape codes
+constexpr size_t displayWidth(std::string_view str)
+{
+    size_t width = 0;
+    bool in_escape = false;
+    auto it = str.begin(); // NOLINT
+
+    while (it != str.end())
+    {
+        if (*it == '\033')
+        {
+            in_escape = true;
+            ++it;
+            continue;
+        }
+
+        if (in_escape)
+        {
+            if (std::isalpha(static_cast<uint8_t>(*it)))
+                in_escape = false;
+            ++it;
+            continue;
+        }
+
+        if ((*it & 0x80) == 0)
+        {
+            width += charWidth(*it);
+            ++it;
+        }
+        else
+        {
+            char32_t cp = 0;
+            int bytes = 0;
+            if ((*it & 0xE0) == 0xC0)
+            {
+                cp = (*it & 0x1F);
+                bytes = 2;
+            }
+            else if ((*it & 0xF0) == 0xE0)
+            {
+                cp = (*it & 0x0F);
+                bytes = 3;
+            }
+            else if ((*it & 0xF8) == 0xF0)
+            {
+                cp = (*it & 0x07);
+                bytes = 4;
+            }
+            else
+            {
+                // Invalid UTF-8, skip
+                ++it;
+                continue;
+            }
+
+            for (int i = 1; i < bytes && it + i != str.end(); ++i)
+                cp = (cp << 6) | (*(it + i) & 0x3F);
+
+            width += charWidth(cp);
+            std::advance(it, bytes);
+        }
+    }
+
+    return width;
+}
 
 #ifdef BOOST_HAS_INT128
 template <typename CharT, typename Traits>
@@ -230,9 +312,9 @@ template <typename Rep, typename Period> constexpr std::string to_string(const s
 template <integral2 T> constexpr std::string bin(T n) { return to_string(std::move(n), 2); }
 
 /// Reads the entire contents of a file as a string. Buggy with CRLF though.
-inline std::string getFileContents(std::string_view fileName)
+inline std::string getFileContents(const std::string &filename)
 {
-    if (std::ifstream fin(fileName.data(), std::ios::in); fin)
+    if (std::ifstream fin(filename.c_str(), std::ios::in); fin)
     {
         std::string result;
         fin.seekg(0, std::ios::end);
@@ -353,7 +435,7 @@ std::basic_ostream<CharT, Traits> &table(Range1 &&ir, Range2 &&jr, Fun f, int mi
     for (int i = 0; i <= rowHeaderWidth; ++i)
         o << "─";
     o << "─┼─";
-    for (int w : widths)
+    for (int const w : widths)
         for (int i = 0; i <= w; ++i)
             o << "─";
     o << '\n';

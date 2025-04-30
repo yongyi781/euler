@@ -6,6 +6,7 @@
 #include "modular_arithmetic.hpp"
 #include "prime.hpp"
 #include <algorithm>
+#include <boost/multiprecision/gmp.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <numeric>
 #include <primesieve.hpp>
@@ -32,27 +33,141 @@ template <std::ranges::range Range> constexpr size_t countSquarefreeHelper(Range
 } // namespace detail
 
 /// The factorials from 0 to 20, precisely those which fit in a 64-bit integer.
-constexpr std::array<int64_t, 21> factorialsTo20{1,
-                                                 1,
-                                                 2,
-                                                 6,
-                                                 24,
-                                                 120,
-                                                 720,
-                                                 5040,
-                                                 40320,
-                                                 362880,
-                                                 3628800,
-                                                 39916800,
-                                                 479001600,
-                                                 6227020800,
-                                                 87178291200,
-                                                 1307674368000,
-                                                 20922789888000,
-                                                 355687428096000,
-                                                 6402373705728000,
-                                                 121645100408832000,
-                                                 2432902008176640000};
+inline constexpr std::array<int64_t, 21> factorialsTo20{1,
+                                                        1,
+                                                        2,
+                                                        6,
+                                                        24,
+                                                        120,
+                                                        720,
+                                                        5040,
+                                                        40320,
+                                                        362880,
+                                                        3628800,
+                                                        39916800,
+                                                        479001600,
+                                                        6227020800,
+                                                        87178291200,
+                                                        1307674368000,
+                                                        20922789888000,
+                                                        355687428096000,
+                                                        6402373705728000,
+                                                        121645100408832000,
+                                                        2432902008176640000};
+
+/// Calculates ⌊a / b⌋, and works for negative values too.
+template <integral2 Ta, integral2 Tb> constexpr auto floorDiv(const Ta &a, const Tb &b)
+{
+    auto const d = boost::multiprecision::detail::evaluate_if_expression(a / b);
+    return d * b == a ? d : d - ((a < 0) ^ (b < 0));
+}
+
+/// Calculates ⌈a / b⌉, and works for negative values too.
+template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const Tb &b)
+{
+    return floorDiv(a + b - 1, b);
+}
+
+template <integral2 T> constexpr bool isSquare(const T &n)
+{
+    T a = isqrt(n);
+    return a * a == n;
+}
+
+template <integral2 T> constexpr bool isSquare(const boost::rational<T> &r)
+{
+    return isSquare(r.numerator()) && isSquare(r.denominator());
+}
+
+/// Greatest common divisor of a range.
+template <std::ranges::range Range> constexpr std::ranges::range_value_t<Range> gcd(Range &&r)
+{
+    using T = std::ranges::range_value_t<Range>;
+    using std::gcd;
+    T g = 0;
+    for (auto &&x : r)
+    {
+        g = gcd(g, x);
+        if (g == 1)
+            break;
+    }
+    return g;
+}
+
+/// Greatest common divisor, specialized to an initializer list.
+template <integral2 T> constexpr T gcd(std::initializer_list<T> l)
+{
+    return gcd<std::initializer_list<T>>(std::move(l));
+}
+
+/// Least common multiple of a range.
+template <std::ranges::range Range> constexpr std::ranges::range_value_t<Range> lcm(Range &&r)
+{
+    using T = std::ranges::range_value_t<Range>;
+    using std::lcm;
+    T l = 1;
+    for (auto &&x : r)
+        l = lcm(l, x);
+    return l;
+}
+
+/// Least common multiple, specialized to an initializer list.
+template <integral2 T> constexpr T lcm(std::initializer_list<T> l)
+{
+    return lcm<std::initializer_list<T>>(std::move(l));
+}
+
+/// A replacement for integer floor division.
+template <typename T, typename U> constexpr auto fastDiv(T n, U d)
+{
+    T res = T((double)n / (double)d);
+    if (n < res * d)
+    {
+        --res;
+        while (n < res * d)
+            --res;
+        return res;
+    }
+    if (n >= (res + 1) * d)
+    {
+        ++res;
+        while (n >= (res + 1) * d)
+            ++res;
+        return res;
+    }
+    return res;
+}
+
+/// Wrapper for `mpz_divexact`.
+inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, const mpz_int &b)
+{
+    mpz_divexact(dest.backend().data(), a.backend().data(), b.backend().data());
+    return dest;
+}
+
+/// Wrapper for `mpz_divexact_ui`.
+inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, uint32_t b)
+{
+    mpz_divexact_ui(dest.backend().data(), a.backend().data(), b);
+    return dest;
+}
+
+/// Returns the square root of an integer, if it is a square. Otherwise, returns none.
+template <integral2 T> constexpr std::optional<T> sqrtIfSquare(T n)
+{
+    auto s = isqrt(n);
+    return s * s == n ? std::optional{s} : std::nullopt;
+}
+
+/// Returns the square root of a rational number, if it is a square. Otherwise, returns none.
+template <integral2 T> constexpr std::optional<boost::rational<T>> sqrt(const boost::rational<T> &r)
+{
+    T num = isqrt(r.numerator());
+    T denom = isqrt(r.denominator());
+    if (num * num != r.numerator() || denom * denom != r.denominator())
+        return std::nullopt;
+    return {{num, denom}};
+}
 
 /// Factors `n!`.
 template <integral2 T = int> constexpr PF<T> factorFactorial(int n)

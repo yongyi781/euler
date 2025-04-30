@@ -11,7 +11,8 @@ constexpr auto pred_true = [](auto &&) { return true; };
 
 /// Enumerates a virtual tree. This version enumerates iteratively, rather than recursively.
 /// Usage: `it::tree(root, fun(x, f, <call f on each child of x>), fun(x, <whether x has children>))`.
-template <typename T, typename Fun, std::predicate<T> Pred = decltype(pred_true)> class tree : public it_base
+template <typename T, std::invocable<T, result_t(T)> Fun, std::predicate<T> Pred = decltype(pred_true)>
+class tree : public it_base
 {
   public:
     using value_type = T;
@@ -33,7 +34,7 @@ template <typename T, typename Fun, std::predicate<T> Pred = decltype(pred_true)
     ///                    should enumerate children backwards.
     constexpr tree(T root, Fun childrenFun) : tree(std::move(root), std::move(childrenFun), pred_true) {}
 
-    template <std::invocable<value_type> Callback> constexpr result_t operator()(Callback f) const
+    template <typename Callback> constexpr result_t operator()(Callback f) const
     {
         if (!it::callbackResult(f, _root))
             return result_break;
@@ -62,7 +63,8 @@ template <typename T, typename Fun, std::predicate<T> Pred = decltype(pred_true)
 
 /// Enumerates a virtual tree. This version enumerates recursively and in preorder traversal order.
 /// Usage: `it::tree_preorder(root, fun(x, f, <call f on each child of x>), fun(x, <whether x has children>))`.
-template <typename T, typename Fun, std::predicate<T> Pred = decltype(pred_true)> class tree_preorder : public it_base
+template <typename T, std::invocable<T, result_t(T)> Fun, std::predicate<T> Pred = decltype(pred_true)>
+class tree_preorder : public it_base
 {
   public:
     using value_type = T;
@@ -86,7 +88,7 @@ template <typename T, typename Fun, std::predicate<T> Pred = decltype(pred_true)
     {
     }
 
-    template <std::invocable<value_type> Callback> constexpr result_t operator()(Callback f) const
+    template <typename Callback> constexpr result_t operator()(Callback f) const
     {
         if (!callbackResult(f, _root))
             return result_break;
