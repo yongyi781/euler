@@ -145,7 +145,7 @@ template <typename T> using half_integer_t = half_integer<T>::type;
 // ==== Concepts ==============================================================
 
 template <typename T>
-concept integral2 = boost::multiprecision::number_category<T>::value ==
+concept integral2 = boost::multiprecision::number_category<std::decay_t<T>>::value ==
                     boost::multiprecision::number_category_type::number_kind_integer;
 
 template <typename T>

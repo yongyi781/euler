@@ -24,7 +24,7 @@ constexpr auto range(T begin, U end, Fun f = {})
     std::vector<FT> result((size_t)(e - b + 1));
     auto it = result.begin();
     for (Tp i = b; i <= e; ++i)
-        *it++ = f(i);
+        *it++ = std::invoke(f, i);
     return result;
 }
 
@@ -45,10 +45,10 @@ constexpr auto range(T begin, U end, V step, Fun f = {})
     auto it = result.begin();
     if (s > 0)
         for (Tp i = b; i <= e; i += s)
-            *it++ = f(i);
+            *it++ = std::invoke(f, i);
     else
         for (Tp i = b; i >= e; i += s)
-            *it++ = f(i);
+            *it++ = std::invoke(f, i);
     return result;
 }
 
@@ -62,7 +62,7 @@ constexpr auto arange(Fun f = {})
     std::array<FT, End - Begin + 1> result;
     auto it = result.begin();
     for (int64_t i = Begin; i <= End; ++i)
-        *it++ = f(i);
+        *it++ = std::invoke(f, i);
     return result;
 }
 
@@ -77,18 +77,16 @@ constexpr auto arange(Fun f = {})
     auto it = result.begin();
     if constexpr (Step > 0)
         for (int64_t i = Begin; i <= End; i += Step)
-            *it++ = f(i);
+            *it++ = std::invoke(f, i);
     else
         for (int64_t i = Begin; i >= End; i += Step)
-            *it++ = f(i);
+            *it++ = std::invoke(f, i);
     return result;
 }
 
 /// Unfolds a recursive sequence into a vector. The parameter `f` can take either the previous
 /// element of the sequence or the pair (previous element, index) as parameter.
-template <typename T, typename Fun>
-    requires std::invocable<Fun, T, size_t> || std::invocable<Fun, T>
-constexpr std::vector<T> unfold(size_t size, T seed, Fun f)
+template <typename T, typename Fun> constexpr std::vector<T> unfold(size_t size, T seed, Fun f)
 {
     std::vector<T> result(size);
     result[0] = seed;
@@ -101,8 +99,7 @@ constexpr std::vector<T> unfold(size_t size, T seed, Fun f)
 }
 
 /// Transforms a range.
-template <execution_policy Exec, std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun>
-auto mapv(Exec &&exec, Range &&r, Fun f)
+template <execution_policy Exec, std::ranges::range Range, typename Fun> auto mapv(Exec &&exec, Range &&r, Fun f)
 {
     using T = std::ranges::range_value_t<Range>;
     using FT = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
@@ -113,8 +110,7 @@ auto mapv(Exec &&exec, Range &&r, Fun f)
 }
 
 /// Transforms a range.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun>
-constexpr auto mapv(Range &&r, Fun f)
+template <std::ranges::range Range, typename Fun> constexpr auto mapv(Range &&r, Fun f)
 {
     using T = std::ranges::range_value_t<Range>;
     using FT = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
@@ -124,11 +120,7 @@ constexpr auto mapv(Range &&r, Fun f)
 }
 
 /// Reduces a range.
-template <execution_policy Exec, std::ranges::range Range, typename T,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp>
+template <execution_policy Exec, std::ranges::range Range, typename T, typename BinaryOp, typename Fun = std::identity>
 T reducev(Exec &&exec, Range &&r, T init, BinaryOp op, Fun f = {})
 {
     return std::transform_reduce(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::move(init),
@@ -136,10 +128,7 @@ T reducev(Exec &&exec, Range &&r, T init, BinaryOp op, Fun f = {})
 }
 
 /// Reduces a range.
-template <std::ranges::range Range, typename T, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp>
+template <std::ranges::range Range, typename T, typename BinaryOp, typename Fun = std::identity>
 constexpr T reducev(Range &&r, T init, BinaryOp op, Fun f = {})
 {
     return std::transform_reduce(std::ranges::begin(r), std::ranges::end(r), std::move(init), std::move(op),
@@ -147,11 +136,7 @@ constexpr T reducev(Range &&r, T init, BinaryOp op, Fun f = {})
 }
 
 /// Reduces a range.
-template <execution_policy Exec, integral2 T, integral2 U, typename Tp,
-          std::invocable<std::common_type_t<T, U>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::common_type_t<T, U>>,
-                         std::invoke_result_t<Fun, std::common_type_t<T, U>>>
-              BinaryOp>
+template <execution_policy Exec, integral2 T, integral2 U, typename Tp, typename BinaryOp, typename Fun = std::identity>
 Tp reduceRange(Exec &&exec, T begin, U end, Tp init, BinaryOp op, Fun f = {})
 {
     using V = std::common_type_t<T, U>;
@@ -162,10 +147,7 @@ Tp reduceRange(Exec &&exec, T begin, U end, Tp init, BinaryOp op, Fun f = {})
 }
 
 /// Reduces a range.
-template <integral2 T, integral2 U, typename Tp, std::invocable<std::common_type_t<T, U>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::common_type_t<T, U>>,
-                         std::invoke_result_t<Fun, std::common_type_t<T, U>>>
-              BinaryOp>
+template <integral2 T, integral2 U, typename Tp, typename BinaryOp, typename Fun = std::identity>
 constexpr Tp reduceRange(T begin, U end, Tp init, BinaryOp op, Fun f = {})
 {
     using V = std::common_type_t<T, U>;
@@ -176,8 +158,7 @@ constexpr Tp reduceRange(T begin, U end, Tp init, BinaryOp op, Fun f = {})
 }
 
 /// Sums a function over a range.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity>
+template <execution_policy Exec, std::ranges::range Range, typename Fun = std::identity>
 auto sum(Exec &&exec, Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
@@ -185,15 +166,14 @@ auto sum(Exec &&exec, Range &&r, Fun f = {})
 }
 
 /// Sums a function over a range.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity>
-constexpr auto sum(Range &&r, Fun f = {})
+template <std::ranges::range Range, typename Fun = std::identity> constexpr auto sum(Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
     return reducev(std::forward<Range>(r), T{}, std::plus{}, std::move(f));
 }
 
 /// Sums a function over a range of numbers.
-template <execution_policy Exec, integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
+template <execution_policy Exec, integral2 T, integral2 U, typename Fun = std::identity>
 auto sum(Exec &&exec, T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
@@ -201,15 +181,13 @@ auto sum(Exec &&exec, T begin, U end, Fun f = {})
 }
 
 /// Sums a function over a range of numbers.
-template <integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
-constexpr auto sum(T begin, U end, Fun f = {})
+template <integral2 T, integral2 U, typename Fun = std::identity> constexpr auto sum(T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
     return reduceRange(std::move(begin), std::move(end), Tp{}, std::plus{}, std::move(f));
 }
 
-template <size_t Threshold = 8192, integral2 T, integral2 U,
-          std::invocable<std::common_type_t<T, U>> Fun = std::identity>
+template <size_t Threshold = 8192, integral2 T, integral2 U, typename Fun = std::identity>
 auto sumMaybeParallel(T begin, U end, Fun f = {})
 {
     if constexpr (Threshold == 0)
@@ -220,8 +198,7 @@ auto sumMaybeParallel(T begin, U end, Fun f = {})
 }
 
 /// Multiplies a function over a range.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity>
+template <execution_policy Exec, std::ranges::range Range, typename Fun = std::identity>
 auto product(Exec &&exec, Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
@@ -229,15 +206,14 @@ auto product(Exec &&exec, Range &&r, Fun f = {})
 }
 
 /// Multiplies a function over a range.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity>
-constexpr auto product(Range &&r, Fun f = {})
+template <std::ranges::range Range, typename Fun = std::identity> constexpr auto product(Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
     return reducev(std::forward<Range>(r), T{1}, std::multiplies{}, std::move(f));
 }
 
 /// Multiplies a function over a range of numbers.
-template <execution_policy Exec, integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
+template <execution_policy Exec, integral2 T, integral2 U, typename Fun = std::identity>
 auto product(Exec &&exec, T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
@@ -246,15 +222,14 @@ auto product(Exec &&exec, T begin, U end, Fun f = {})
 }
 
 /// Multiplies a function over a range of numbers.
-template <integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>
-constexpr auto product(T begin, U end, Fun f = {})
+template <integral2 T, integral2 U, typename Fun = std::identity> constexpr auto product(T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
     return reduceRange(std::move(begin), std::move(end), Tp{1}, std::multiplies{}, std::move(f));
 }
 
 /// Returns the maximum value in a sequence according to a specified key selector function.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Key = std::identity>
+template <std::ranges::range Range, typename Key = std::identity>
 constexpr auto maxBy(Range &&range, std::ranges::range_value_t<Range> init, Key key = {})
 {
     return reducev(range, std::move(init), [&](auto &&a, auto &&b) {
@@ -263,8 +238,7 @@ constexpr auto maxBy(Range &&range, std::ranges::range_value_t<Range> init, Key 
 }
 
 /// Returns the maximum value in a sequence according to a specified key selector function.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Key = std::identity>
+template <execution_policy Exec, std::ranges::range Range, typename Key = std::identity>
 auto maxBy(Exec &&exec, Range &&range, std::ranges::range_value_t<Range> init, Key key = {})
 {
     return reducev(std::forward<Exec>(exec), std::forward<Range>(range), std::move(init), [&](auto &&a, auto &&b) {
@@ -273,7 +247,7 @@ auto maxBy(Exec &&exec, Range &&range, std::ranges::range_value_t<Range> init, K
 }
 
 /// Returns the maximum value in a numeric range according to a specified key selector function.
-template <integral2 T, integral2 U, typename Tp, std::invocable<std::common_type_t<T, U>> Key = std::identity>
+template <integral2 T, integral2 U, typename Tp, typename Key = std::identity>
 constexpr auto maxRangeBy(T begin, U end, Tp init, Key key = {})
 {
     return reduceRange(std::move(begin), std::move(end), std::move(init), [&](auto &&a, auto &&b) {
@@ -282,9 +256,8 @@ constexpr auto maxRangeBy(T begin, U end, Tp init, Key key = {})
 }
 
 /// Returns the maximum value in a numeric range according to a specified key selector function.
-template <execution_policy Exec, integral2 TBegin, integral2 TEnd, typename Tp,
-          std::invocable<std::common_type_t<TBegin, TEnd>> Key = std::identity>
-auto maxRangeBy(Exec &&exec, TBegin begin, TEnd end, Tp init, Key key = {})
+template <execution_policy Exec, integral2 T, integral2 U, typename Tp, typename Key = std::identity>
+auto maxRangeBy(Exec &&exec, T begin, U end, Tp init, Key key = {})
 {
     return reduceRange(std::forward<Exec>(exec), std::move(begin), std::move(end), std::move(init),
                        [&](auto &&a, auto &&b) {
@@ -293,11 +266,8 @@ auto maxRangeBy(Exec &&exec, TBegin begin, TEnd end, Tp init, Key key = {})
 }
 
 /// Returns a vector of partial sums of a function over a range.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::plus<>,
+template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::plus<>,
+          typename Fun = std::identity,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
 auto partialSum(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
@@ -308,10 +278,7 @@ auto partialSum(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {
 }
 
 /// Returns a vector of partial sums of a function over a range.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::plus<>,
+template <std::ranges::range Range, typename BinaryOp = std::plus<>, typename Fun = std::identity,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
 constexpr auto partialSum(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
@@ -322,11 +289,8 @@ constexpr auto partialSum(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 }
 
 /// Takes partial sums of a function over a range in place.
-template <execution_policy Exec, std::ranges::range Range,
-          std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::plus<>,
+template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::plus<>,
+          typename Fun = std::identity,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
 void partialSumInPlace(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
@@ -335,10 +299,7 @@ void partialSumInPlace(Exec &&exec, Range &&r, T init = {}, BinaryOp op = {}, Fu
 }
 
 /// Takes partial sums of a function over a range in place.
-template <std::ranges::range Range, std::invocable<std::ranges::range_value_t<Range>> Fun = std::identity,
-          std::invocable<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>,
-                         std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>
-              BinaryOp = std::plus<>,
+template <std::ranges::range Range, typename BinaryOp = std::plus<>, typename Fun = std::identity,
           typename T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>>
 constexpr void partialSumInPlace(Range &&r, T init = {}, BinaryOp op = {}, Fun f = {})
 {
@@ -636,33 +597,5 @@ void countSort(Exec &&exec, Range &&v, T maxItem)
         for (; it != end; ++it)
             *it = i;
     });
-}
-
-/// Appends a range to a vector.
-template <typename T, std::ranges::range Range> constexpr std::vector<T> &operator+=(std::vector<T> &a, Range &&b)
-{
-    a.insert(a.end(), std::ranges::begin(b), std::ranges::end(b));
-    return a;
-}
-
-/// Appends a range to a set.
-template <typename T, std::ranges::range Range> constexpr std::set<T> &operator+=(std::set<T> &a, Range &&b)
-{
-    a.insert(std::ranges::begin(b), std::ranges::end(b));
-    return a;
-}
-
-/// Appends a range to a vector.
-template <typename T, std::ranges::range Range> constexpr std::vector<T> operator+(const std::vector<T> &a, Range &&b)
-{
-    auto result = a;
-    return result += std::forward<Range>(b);
-}
-
-/// Appends a range to a set.
-template <typename T, std::ranges::range Range> constexpr std::set<T> operator+(const std::set<T> &a, Range &&b)
-{
-    auto result = a;
-    return result += std::forward<Range>(b);
 }
 } // namespace euler

@@ -125,7 +125,7 @@ template <integral2 TMod> struct mod_multiplies_safe
 /// @param a A number.
 /// @param modulus The modulus.
 /// @return a^-1 mod modulus.
-template <integral2 Ta, integral2 Tm> constexpr auto modInverse(const Ta &a, const Tm &modulus)
+template <integral2 Ta, integral2 Tm> constexpr auto modInverse(Ta a, Tm modulus)
 {
     using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % modulus)));
     using Ts = std::make_signed_t<T>;
@@ -146,7 +146,7 @@ template <integral2 Ta, integral2 Tm> constexpr auto modInverse(const Ta &a, con
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
-template <> constexpr auto modInverse(const mpz_int &a, const mpz_int &modulus)
+inline auto modInverse(const mpz_int &a, const mpz_int &modulus)
 {
     mpz_int res;
     mpz_invert(res.backend().data(), a.backend().data(), modulus.backend().data());
