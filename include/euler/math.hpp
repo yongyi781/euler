@@ -212,12 +212,12 @@ template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto
     using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b * m * n)));
     if (m < 0 || n < 0)
         return std::pair<T, T>{-1, -1};
-    auto &&[g, x, _] = xgcd(m, n);
+    auto const [g, s, _] = xgcd(m, n);
     T const diff = b - a;
     if (diff % g != 0)
         return std::pair<T, T>{-1, -1};
     T const l = m / g * n;
-    return std::pair<T, T>{mod(a + modmul(modmul(diff / g, x, l), m, l), l), l};
+    return std::pair<T, T>{mod(a + modmul(modmul(diff / g, s, l), m, l), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:

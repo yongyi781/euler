@@ -598,4 +598,30 @@ void countSort(Exec &&exec, Range &&v, T maxItem)
             *it = i;
     });
 }
+
+/// Convenience method to add a range to a vector.
+template <typename T, std::ranges::range Range> std::vector<T> operator+(std::vector<T> v, Range &&r)
+{
+    v.append_range(r);
+    return v;
+}
+
+/// Convenience method to add a range to a vector.
+template <typename T, std::ranges::range Range> std::vector<T> &operator+=(std::vector<T> &v, Range &&r)
+{
+    v.append_range(r);
+    return v;
+}
+
+/// Convenience method to repeat a vector n times.
+template <typename T> std::vector<T> operator*(const std::vector<T> &v, size_t n)
+{
+    std::vector<T> result(n * v.size());
+    for (size_t i = 0; i < n * v.size(); ++i)
+        result[i] = v[i % v.size()];
+    return result;
+}
+
+/// Convenience method to repeat a vector n times.
+template <typename T> std::vector<T> operator*(const T &scalar, const std::vector<T> &a) { return a * scalar; }
 } // namespace euler

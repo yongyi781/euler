@@ -5,33 +5,29 @@
 
 inline namespace euler
 {
+/// Holds a result of the extended Euclidean algorithm, which is a triple (g, s, t).
 template <typename T> struct euclidean_result_t
 {
-    T gcd, x, y;
+    T g, s, t;
+
+    auto operator<=>(const euclidean_result_t &other) const = default;
+
+    template <typename CharT, typename Traits>
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o,
+                                                         const euclidean_result_t &x)
+    {
+        return o << "{ g: " << x.g << ", s: " << x.s << ", t: " << x.t << " }";
+    }
 };
 
 /// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
-/// Requirement: T is signed.
+/// Precondition: T is signed.
 template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
 {
-    bool swapped = false;
-    if (m < n)
-    {
-        swapped = true;
-        std::swap(m, n);
-    }
-    T u0 = m;
-    T u1 = 1;
-    T u2 = 0;
-    T v0 = n;
-    T v1 = 0;
-    T v2 = 1;
-    T w0;
-    T w1;
-    T w2;
+    T u0 = std::move(m), v0 = std::move(n), u1 = 1, v1 = 0, u2 = 0, v2 = 1, q, w0, w1, w2;
     while (v0 != 0)
     {
-        T q = u0 / v0;
+        q = u0 / v0;
         w0 = u0 - q * v0;
         w1 = u1 - q * v1;
         w2 = u2 - q * v2;
@@ -42,17 +38,21 @@ template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
         v1 = w1;
         v2 = w2;
     }
-
-    euclidean_result_t<T> result{u0, u1, u2};
-    if (result.gcd < 0)
+    if (u0 < 0)
     {
-        result.gcd = -result.gcd;
-        result.x = -result.x;
-        result.y = -result.y;
+        u1 = -u1;
+        u2 = -u2;
     }
-    if (swapped)
-        std::swap(result.x, result.y);
-    return result;
+    return {std::move(u0), std::move(u1), std::move(u2)};
+}
+
+/// Extended Euclidean algorithm for `mpz_int`. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
+inline euclidean_result_t<mpz_int> xgcd(const mpz_int &m, const mpz_int &n)
+{
+    euclidean_result_t<mpz_int> res;
+    mpz_gcdext(res.g.backend().data(), res.s.backend().data(), res.t.backend().data(), m.backend().data(),
+               n.backend().data());
+    return res;
 }
 
 /// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
@@ -136,13 +136,13 @@ template <integral2 Ta, integral2 Tm> constexpr auto modInverse(Ta a, Tm modulus
     Ts a_small = Ts(mod(a, modulus));
     if (a_small == 0)
         return Ts{};
-    euclidean_result_t<Ts> u = xgcd(a_small, Ts(modulus));
-    if (u.gcd > 1)
+    auto [g, s, _] = xgcd(a_small, Ts(modulus));
+    if (g > 1)
         return Ts{};
-    // x might not be in the range 0 ≤ x < m, let's fix that:
-    if (u.x < 0)
-        u.x += modulus;
-    return u.x;
+    // s might not be in the range 0 ≤ s < m, let's fix that:
+    if (s < 0)
+        s += modulus;
+    return s;
 }
 
 /// Specialization of `modInverse` for `mpz_int`.

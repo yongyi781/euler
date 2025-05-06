@@ -330,7 +330,7 @@ inline std::string getFileContents(const std::string &filename)
 /// Measures the execution time of a given function and prints the timing information.
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
-template <typename Callable, typename... Args>
+template <typename... Args, std::invocable<Args...> Callable>
     requires(!std::integral<Callable>)
 void printTiming(Callable &&fn, Args &&...args)
 {
@@ -357,7 +357,7 @@ void printTiming(Callable &&fn, Args &&...args)
 /// @param repeat The number of times to repeat the function.
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
-template <typename Callable, typename... Args> void printTiming(size_t repeat, Callable fn, Args... args)
+template <typename... Args, std::invocable<Args...> Callable> void printTiming(size_t repeat, Callable fn, Args... args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;

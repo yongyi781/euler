@@ -19,19 +19,19 @@ template <typename T> class vector3d
     using const_reference = std::vector<T>::const_reference;
 
     vector3d() = default;
-    constexpr vector3d(size_t dim1, size_t dim2, size_t dim3)
-        : _dim1(dim1), _dim2(dim2), _dim3(dim3), _data(dim1 * dim2 * dim3)
+    constexpr vector3d(size_t dim0, size_t dim1, size_t dim2)
+        : _dim0(dim0), _dim1(dim1), _dim2(dim2), _data(dim0 * dim1 * dim2)
     {
     }
-    constexpr vector3d(size_t dim1, size_t dim2, size_t dim3, const T &value) : vector3d(dim1, dim2, dim3)
+    constexpr vector3d(size_t dim0, size_t dim1, size_t dim2, const T &value) : vector3d(dim0, dim1, dim2)
     {
         std::ranges::fill(_data, value);
     }
 
-    [[nodiscard]] constexpr std::array<size_t, 3> dimensions() const noexcept { return {_dim1, _dim2, _dim3}; }
+    [[nodiscard]] constexpr std::array<size_t, 3> dimensions() const noexcept { return {_dim0, _dim1, _dim2}; }
+    [[nodiscard]] constexpr size_t dim0() const noexcept { return _dim0; }
     [[nodiscard]] constexpr size_t dim1() const noexcept { return _dim1; }
     [[nodiscard]] constexpr size_t dim2() const noexcept { return _dim2; }
-    [[nodiscard]] constexpr size_t dim3() const noexcept { return _dim3; }
 
     [[nodiscard]] constexpr size_t size() const noexcept { return _data.size(); }
 
@@ -55,12 +55,12 @@ template <typename T> class vector3d
     /// Gets the span at (i, j).
     constexpr std::span<T> operator[](size_t i, size_t j) noexcept
     {
-        return {_data.data() + _dim3 * (j + _dim2 * i), _dim3};
+        return {_data.data() + _dim2 * (j + _dim1 * i), _dim2};
     }
     /// Gets the span at (i, j).
     constexpr std::span<const T> operator[](size_t i, size_t j) const noexcept
     {
-        return {_data.data() + _dim3 * (j + _dim2 * i), _dim3};
+        return {_data.data() + _dim2 * (j + _dim1 * i), _dim2};
     }
 
     constexpr auto operator<=>(const vector3d &other) const = default;
@@ -70,9 +70,9 @@ template <typename T> class vector3d
 
     constexpr void resize(size_t dim1, size_t dim2, size_t dim3)
     {
-        _dim1 = dim1;
-        _dim2 = dim2;
-        _dim3 = dim3;
+        _dim0 = dim1;
+        _dim1 = dim2;
+        _dim2 = dim3;
         _data.resize(dim1 * dim2 * dim3);
     }
 
@@ -86,12 +86,12 @@ template <typename T> class vector3d
         ss.flags(o.flags());
         ss.imbue(o.getloc());
         ss.precision(o.precision());
-        ss << v._dim1 << "×" << v._dim2 << "×" << v._dim3 << " vector3d:\n";
-        for (size_t i = 0; i < v.dim1(); ++i)
+        ss << v._dim0 << "×" << v._dim1 << "×" << v._dim2 << " vector3d:\n";
+        for (size_t i = 0; i < v.dim0(); ++i)
         {
-            for (size_t j = 0; j < v.dim2(); ++j)
+            for (size_t j = 0; j < v.dim1(); ++j)
             {
-                for (size_t k = 0; k < v.dim3(); ++k)
+                for (size_t k = 0; k < v.dim2(); ++k)
                     ss << std::setw(maxWidth + 1) << v[i, j, k];
                 ss << '\n';
             }
@@ -101,15 +101,15 @@ template <typename T> class vector3d
     }
 
   private:
+    size_t _dim0 = 0;
     size_t _dim1 = 0;
     size_t _dim2 = 0;
-    size_t _dim3 = 0;
     std::vector<T> _data;
 
-    /// Gets the linear index corresponding to a coordinate `(i, j)`.
+    /// Gets the linear index corresponding to a coordinate `(i, j, k)`.
     [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j, size_t k) const noexcept
     {
-        return k + _dim3 * (j + _dim2 * i);
+        return k + _dim2 * (j + _dim1 * i);
     }
 };
 #endif
