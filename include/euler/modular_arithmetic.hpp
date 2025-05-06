@@ -155,36 +155,47 @@ inline auto modInverse(const mpz_int &a, const mpz_int &modulus)
 
 /// Modular exponentiation. Works for negative exponents.
 template <typename T, integral2 Te, typename Tm>
-constexpr T powm(const T &base, const Te &exponent, Tm modulus, const T &identity = T(1))
-{
-    if constexpr (integral2<T>)
-    {
-        if (exponent < 0)
-            return modInverse(pow(T(base % modulus), T(-exponent), identity, mod_multiplies(modulus)), modulus);
-        return pow(T(base % modulus), exponent, identity, mod_multiplies(modulus));
-    }
-    else
-    {
-        assert(exponent >= 0);
-        return pow(T(base % modulus), exponent, identity, mod_multiplies(modulus));
-    }
-}
-
-/// A version of modular exponentiation that handles overflow correctly.
-template <typename T, integral2 Te, integral2 Tm>
-constexpr T powmSafe(const T &base, const Te &exponent, Tm modulus, const T &identity = T(1))
+constexpr auto powm(T base, Te exponent, const Tm &modulus, T identity = T(1))
 {
     assert(modulus > 0);
     if constexpr (integral2<T>)
     {
         if (exponent < 0)
-            return modInverse(pow(T(base % modulus), T(-exponent), identity, mod_multiplies_safe(modulus)), modulus);
-        return pow(T(base % modulus), exponent, identity, mod_multiplies_safe(modulus));
+            return modInverse(pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                                  boost::multiprecision::detail::evaluate_if_expression(-std::move(exponent)),
+                                  std::move(identity), mod_multiplies(modulus)),
+                              modulus);
+        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                   std::move(exponent), std::move(identity), mod_multiplies(modulus));
     }
     else
     {
         assert(exponent >= 0);
-        return pow(T(base % modulus), exponent, identity, mod_multiplies_safe(modulus));
+        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                   std::move(exponent), std::move(identity), mod_multiplies(modulus));
+    }
+}
+
+/// A version of modular exponentiation that handles overflow correctly.
+template <typename T, integral2 Te, integral2 Tm>
+constexpr auto powmSafe(T base, Te exponent, const Tm &modulus, const T &identity = T(1))
+{
+    assert(modulus > 0);
+    if constexpr (integral2<T>)
+    {
+        if (exponent < 0)
+            return modInverse(pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                                  boost::multiprecision::detail::evaluate_if_expression(-std::move(exponent)),
+                                  std::move(identity), mod_multiplies_safe(modulus)),
+                              modulus);
+        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                   std::move(exponent), std::move(identity), mod_multiplies_safe(modulus));
+    }
+    else
+    {
+        assert(exponent >= 0);
+        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+                   std::move(exponent), std::move(identity), mod_multiplies_safe(modulus));
     }
 }
 
