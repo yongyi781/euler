@@ -590,19 +590,19 @@ template <typename T> class Dirichlet
 
 namespace dirichlet
 {
-/// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n).
-/// Also known as `∑ (k ≤ n), (g * h)(k)`.
-/// Also known as `∑ (k ≤ n), g(k) * H(n/k) = ∑ (k ≤ n), h(k) * G(n/k)`.
+/// Computes `∑ (ab ≤ n), f(a) * g(b)` in O(√n).
+/// Equivalent to `∑ (k ≤ n), (f * g)(k)`.
+/// Equivalent to `∑ (k ≤ n), f(k) * G(n/k) = ∑ (k ≤ n), g(k) * F(n/k)`.
 /// Requirements:
-/// * `G` and `H` should be the summatory functions of `g` and `h`.
-/// * Need to be able to evaluate `g(k)`, `h(k)` for `k ≤ √n` and `G(m)` and `H(m)` for `m ≥ √n`.
+/// * `F` and `G` should be the summatory functions of `f` and `g`.
+/// * Need to be able to evaluate `f(k)`, `g(k)` for `k ≤ √n` and `F(k)` and `G(k)` for `k ≥ √n`.
 template <typename Fun1, typename SummatoryFun1, typename Fun2, typename SummatoryFun2, integral2 T>
 auto productValue(Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G, T n)
 {
     return SpecialDirichlet{std::move(f), std::move(F)}.productValue(SpecialDirichlet{std::move(g), std::move(G)}, n);
 }
 
-/// Computes `∑ (ab ≤ n), g(a) * h(b)` in O(√n), given only their summatory functions. Convenience function.
+/// Computes `∑ (ab ≤ n), f(a) * g(b)` in O(√n), given only their summatory functions. Convenience function.
 template <typename SummatoryFun1, typename SummatoryFun2, integral2 T>
 auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
 {

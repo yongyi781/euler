@@ -21,29 +21,32 @@ template <typename T> struct euclidean_result_t
 };
 
 /// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
-/// Precondition: T is signed.
-template <typename T> constexpr euclidean_result_t<T> xgcd(T m, T n)
+template <integral2 T, integral2 U> constexpr auto xgcd(T m, U n)
 {
-    T u0 = std::move(m), v0 = std::move(n), u1 = 1, v1 = 0, u2 = 0, v2 = 1, q, w0, w1, w2;
+    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(m - n)));
+    using std::swap;
+
+    Tp u0 = std::move(m), v0 = std::move(n), u1 = 1, v1 = 0, u2 = 0, v2 = 1, q, w0, w1, w2;
     while (v0 != 0)
     {
         q = u0 / v0;
         w0 = u0 - q * v0;
         w1 = u1 - q * v1;
         w2 = u2 - q * v2;
-        u0 = v0;
-        u1 = v1;
-        u2 = v2;
-        v0 = w0;
-        v1 = w1;
-        v2 = w2;
+        swap(u0, v0);
+        swap(u1, v1);
+        swap(u2, v2);
+        swap(v0, w0);
+        swap(v1, w1);
+        swap(v2, w2);
     }
     if (u0 < 0)
     {
+        u0 = -u0;
         u1 = -u1;
         u2 = -u2;
     }
-    return {std::move(u0), std::move(u1), std::move(u2)};
+    return euclidean_result_t<Tp>{std::move(u0), std::move(u1), std::move(u2)};
 }
 
 /// Extended Euclidean algorithm for `mpz_int`. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
@@ -121,27 +124,16 @@ template <integral2 TMod> struct mod_multiplies_safe
     }
 };
 
-/// Computes modular inverse.
-/// @param a A number.
-/// @param modulus The modulus.
-/// @return a^-1 mod modulus.
-template <integral2 Ta, integral2 Tm> constexpr auto modInverse(Ta a, Tm modulus)
+/// Computes `a^-1 mod m`.
+template <integral2 T, integral2 U> constexpr auto modInverse(T a, U m)
 {
-    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % modulus)));
-    using Ts = std::make_signed_t<T>;
-    assert(modulus > 0);
-    if (modulus == 1)
-        return Ts{};
-    // make sure a < modulus:
-    Ts a_small = Ts(mod(a, modulus));
-    if (a_small == 0)
-        return Ts{};
-    auto [g, s, _] = xgcd(a_small, Ts(modulus));
+    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % m)));
+    auto [g, s, _] = xgcd(mod(a, m), m);
     if (g > 1)
-        return Ts{};
+        return Tp{};
     // s might not be in the range 0 ≤ s < m, let's fix that:
-    if (s < 0)
-        s += modulus;
+    if (s < 0 || s >= m)
+        s += m;
     return s;
 }
 
@@ -158,21 +150,17 @@ template <typename T, integral2 Te, typename Tm>
 constexpr auto powm(T base, Te exponent, const Tm &modulus, T identity = T(1))
 {
     assert(modulus > 0);
+    auto res = pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), mod_multiplies(modulus));
     if constexpr (integral2<T>)
     {
         if (exponent < 0)
-            return modInverse(pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
-                                  boost::multiprecision::detail::evaluate_if_expression(-std::move(exponent)),
-                                  std::move(identity), mod_multiplies(modulus)),
-                              modulus);
-        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
-                   std::move(exponent), std::move(identity), mod_multiplies(modulus));
+            return decltype(res)(modInverse(std::move(res), modulus));
+        return res;
     }
     else
     {
         assert(exponent >= 0);
-        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
-                   std::move(exponent), std::move(identity), mod_multiplies(modulus));
+        return res;
     }
 }
 
@@ -184,18 +172,18 @@ constexpr auto powmSafe(T base, Te exponent, const Tm &modulus, const T &identit
     if constexpr (integral2<T>)
     {
         if (exponent < 0)
-            return modInverse(pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
+            return modInverse(pow(T(std::move(base) % modulus),
                                   boost::multiprecision::detail::evaluate_if_expression(-std::move(exponent)),
                                   std::move(identity), mod_multiplies_safe(modulus)),
                               modulus);
-        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
-                   std::move(exponent), std::move(identity), mod_multiplies_safe(modulus));
+        return pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity),
+                   mod_multiplies_safe(modulus));
     }
     else
     {
         assert(exponent >= 0);
-        return pow(boost::multiprecision::detail::evaluate_if_expression(std::move(base) % modulus),
-                   std::move(exponent), std::move(identity), mod_multiplies_safe(modulus));
+        return pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity),
+                   mod_multiplies_safe(modulus));
     }
 }
 
@@ -229,18 +217,18 @@ template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
     if (s == 1)
     {
         // Our modulus is 3 mod 4, there's a fast way to do this!
-        Tp r = powm(n, (p + 1) / 4, p);
+        Tp r = powm(n, (p + 1) >> 2, p);
         if ((r * r) % p == n)
             return r;
         return Tp(-1);
     }
     // Find the first quadratic non-residue z by brute-force search
     Tp z = 1;
-    while (powm(++z, (p - 1) / 2, p) != p - 1)
+    while (powm(++z, (p - 1) >> 1, p) != p - 1)
     {
     }
     Tp c = powm(z, q, p);
-    Tp r = powm(n, (q + 1) / 2, p);
+    Tp r = powm(n, (q + 1) >> 1, p);
     Tp t = powm(n, q, p);
     Tp m = s;
     while (t != 1)
@@ -254,7 +242,7 @@ template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
             if (i == m)
                 return Tp(-1);
         }
-        Tp b = powm(c, powm(2LL, m - i - 1, p - 1), p);
+        Tp b = powm(c, powm(Tp(2), m - i - 1, p - 1), p);
         Tp b2 = (b * b) % p;
         r = (r * b) % p;
         t = (t * b2) % p;

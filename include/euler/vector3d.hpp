@@ -28,7 +28,8 @@ template <typename T> class vector3d
         std::ranges::fill(_data, value);
     }
 
-    [[nodiscard]] constexpr std::array<size_t, 3> dimensions() const noexcept { return {_dim0, _dim1, _dim2}; }
+    [[nodiscard]] constexpr std::array<size_t, 3> dims() const noexcept { return {_dim0, _dim1, _dim2}; }
+    [[nodiscard]] constexpr size_t dim(size_t d) const noexcept { return dims()[d]; }
     [[nodiscard]] constexpr size_t dim0() const noexcept { return _dim0; }
     [[nodiscard]] constexpr size_t dim1() const noexcept { return _dim1; }
     [[nodiscard]] constexpr size_t dim2() const noexcept { return _dim2; }

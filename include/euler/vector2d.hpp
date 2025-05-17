@@ -19,14 +19,16 @@ template <typename T> class vector2d
     using const_reference = std::vector<T>::const_reference;
 
     vector2d() = default;
-    constexpr vector2d(size_t rows, size_t columns) : _rows(rows), _columns(columns), _data(rows * columns) {}
-    constexpr vector2d(size_t rows, size_t columns, const T &value) : vector2d(rows, columns)
+    constexpr vector2d(size_t dim0, size_t dim1) : _dim0(dim0), _dim1(dim1), _data(dim0 * dim1) {}
+    constexpr vector2d(size_t dim0, size_t dim1, const T &value) : vector2d(dim0, dim1)
     {
         std::ranges::fill(_data, value);
     }
 
-    [[nodiscard]] constexpr size_t rows() const noexcept { return _rows; }
-    [[nodiscard]] constexpr size_t columns() const noexcept { return _columns; }
+    [[nodiscard]] constexpr std::array<size_t, 2> dims() const noexcept { return {_dim0, _dim1}; }
+    [[nodiscard]] constexpr size_t dim(size_t d) const noexcept { return dims()[d]; }
+    [[nodiscard]] constexpr size_t dim0() const noexcept { return _dim0; }
+    [[nodiscard]] constexpr size_t dim1() const noexcept { return _dim1; }
 
     [[nodiscard]] constexpr size_t size() const noexcept { return _data.size(); }
 
@@ -45,20 +47,29 @@ template <typename T> class vector2d
     constexpr reference operator[](size_t i, size_t j) noexcept { return _data[toIndex(i, j)]; }
 
     /// `i`th row.
-    constexpr std::span<T> operator[](size_t i) noexcept { return {_data.data() + i * _columns, _columns}; }
+    constexpr std::span<T> operator[](size_t i) noexcept { return {_data.data() + i * _dim1, _dim1}; }
     /// `i`th row.
-    constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * _columns, _columns}; }
+    constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * _dim1, _dim1}; }
 
     constexpr auto operator<=>(const vector2d &other) const = default;
 
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 
-    constexpr void resize(size_t rows, size_t columns)
+    constexpr void resize(size_t dim0, size_t dim1)
     {
-        _rows = rows;
-        _columns = columns;
-        _data.resize(columns * rows);
+        _dim0 = dim0;
+        _dim1 = dim1;
+        _data.resize(dim1 * dim0);
+    }
+
+    constexpr vector2d transpose() const
+    {
+        vector2d res(_dim1, _dim0);
+        for (size_t i = 0; i < _dim0; ++i)
+            for (size_t j = 0; j < _dim1; ++j)
+                res[j, i] = (*this)[i, j];
+        return res;
     }
 
     template <typename CharT, typename Traits>
@@ -71,10 +82,10 @@ template <typename T> class vector2d
         ss.flags(o.flags());
         ss.imbue(o.getloc());
         ss.precision(o.precision());
-        ss << v._columns << "×" << v._rows << " vector2d:\n";
-        for (size_t i = 0; i < v.rows(); ++i)
+        ss << v._dim0 << "×" << v._dim1 << " vector2d:\n";
+        for (size_t i = 0; i < v.dim0(); ++i)
         {
-            for (size_t j = 0; j < v.columns(); ++j)
+            for (size_t j = 0; j < v.dim1(); ++j)
                 ss << std::setw(maxWidth + 1) << v[i, j];
             ss << '\n';
         }
@@ -82,12 +93,12 @@ template <typename T> class vector2d
     }
 
   private:
-    size_t _rows = 0;
-    size_t _columns = 0;
+    size_t _dim0 = 0;
+    size_t _dim1 = 0;
     std::vector<T> _data;
 
     /// Gets the linear index corresponding to a coordinate `(i, j)`.
-    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j) const noexcept { return _columns * i + j; }
+    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j) const noexcept { return _dim1 * i + j; }
 };
 #endif
 } // namespace euler

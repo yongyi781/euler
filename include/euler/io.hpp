@@ -211,8 +211,8 @@ print(Range &&r, size_t limit = defaultPrintLimit, std::basic_ostream<CharT, Tra
     ss.imbue(o.getloc());
     ss.precision(o.precision());
     ss << open;
-    auto first = std::ranges::cbegin(r);
-    auto last = std::ranges::cend(r);
+    auto first = std::ranges::begin(r);
+    auto last = std::ranges::end(r);
     auto it = first;
     for (size_t i = 0; i < limit && it != last; ++i, ++it)
     {

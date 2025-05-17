@@ -15,17 +15,14 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples : public it
     primitive_pythagorean_triples() = default;
     constexpr primitive_pythagorean_triples(T limit) : _limit(limit) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
-    {
-        return _enumerate(T(3), T(4), T(5), f);
-    }
+    template <typename Fun> constexpr result_t operator()(Fun f) const { return _enumerate(T(3), T(4), T(5), f); }
 
     [[nodiscard]] constexpr T limit() const { return _limit; }
 
   private:
     T _limit;
 
-    template <std::invocable<value_type> Fun> constexpr result_t _enumerate(T a, T b, T c, Fun f) const
+    template <typename Fun> constexpr result_t _enumerate(T a, T b, T c, Fun f) const
     {
         if (c > _limit)
             return result_continue;
@@ -58,7 +55,7 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
     primitive_pythagorean_triples2() = default;
     constexpr primitive_pythagorean_triples2(T limit) : _limit(limit) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         using euler::gcd;
         using std::gcd;
@@ -94,7 +91,7 @@ class pythagorean_triples : public it_base
     pythagorean_triples() = default;
     constexpr pythagorean_triples(T limit) : base(limit) {}
 
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    template <typename Fun> constexpr result_t operator()(Fun f) const
     {
         return base([&](auto &&x) {
             auto &&[a, b, c] = std::forward<decltype(x)>(x);

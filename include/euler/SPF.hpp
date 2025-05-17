@@ -199,6 +199,32 @@ template <std::integral T = int64_t> class SPF
         return sumCoprime(std::identity{}, k, limit);
     }
 
+    /// Decomposes a number into its squarefree part and its square part.
+    ///
+    /// @param n The number to decompose.
+    /// @return A pair of (u, v) such that n = u * v^2 with u squarefree.
+    [[nodiscard]] std::pair<T, T> sqfreeDecompose(T n) const
+    {
+        std::pair<T, T> res{1, n};
+        if (n % 4 == 0)
+        {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
+            res.first <<= e / 2;
+            res.second >>= 2 * (e / 2);
+            n >>= e;
+        }
+        while (n != 1)
+        {
+            auto const p = (*this)[n];
+            T const q = pow(p, removeFactors<true>(n, p) / 2);
+            res.first *= q;
+            res.second /= q * q;
+        }
+        return res;
+    }
+
+    // ==== Sieves ====
+
     /// Creates a sieve from a multiplicative function in O(n log log n) time.
     template <typename Fun> [[nodiscard]] auto sieve(Fun f, T limit) const
     {
