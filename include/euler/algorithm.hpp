@@ -558,19 +558,20 @@ template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z per
 }
 
 /// Convenience function that returns v, sorted and with duplicates removed.
-template <std::ranges::range Range> auto sortedSet(Range &&r)
+template <std::ranges::range Range, typename Comp = std::ranges::less> auto sortedSet(Range &&r, Comp comp = {})
 {
     std::vector v(std::ranges::begin(r), std::ranges::end(r));
-    std::sort(v.begin(), v.end());
+    std::ranges::sort(v, comp);
     v.erase(std::unique(v.begin(), v.end()), v.end());
     return v;
 }
 
 /// Convenience function that returns v, sorted and with duplicates removed.
-template <execution_policy Exec, std::ranges::range Range> auto sortedSet(Exec &&exec, Range &&r)
+template <execution_policy Exec, std::ranges::range Range, typename Comp = std::ranges::less>
+auto sortedSet(Exec &&exec, Range &&r, Comp comp = {})
 {
     std::vector v(std::ranges::begin(r), std::ranges::end(r));
-    std::sort(exec, v.begin(), v.end());
+    std::sort(exec, v.begin(), v.end(), comp);
     v.erase(std::unique(std::forward<decltype(exec)>(exec), v.begin(), v.end()), v.end());
     return v;
 }
