@@ -101,12 +101,10 @@ template <typename T = int64_t> class floors_array
     std::vector<T> _down;
 };
 
-/// Calculates the sum of a completely multiplicative function applied to prime numbers in a given range, and returns
-/// the computed map.
-///
-/// @return The map storing sum ∑ f(p) for p ∈ [2, n), p prime for all n of the form floor(limit/k).
-template <std::invocable<int64_t> Fun, std::invocable<int64_t> SummatoryFun>
-constexpr auto sumPrimeRangeLucyHedgehogExt(int64_t limit, Fun f, SummatoryFun F)
+/// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * f(p)` for `k` of the form `⌊limit / i⌋`. Here, `f` must be
+/// a completely multiplicative function and `F` must be the summatory function of `f`.
+template <std::invocable<size_t> Fun, std::invocable<size_t> SummatoryFun>
+constexpr auto primeSumTable(size_t limit, Fun f, SummatoryFun F)
 {
     using FT = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, int64_t>>;
     size_t const r = isqrt(limit);
@@ -139,27 +137,40 @@ constexpr auto sumPrimeRangeLucyHedgehogExt(int64_t limit, Fun f, SummatoryFun F
     return S;
 }
 
-/// Calculates `∑ (p ∈ [2, limit] and p prime), f(p)`, given a multiplicative function `f` and the summatory function
-/// `F` of `f`.
+/// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * p` for `k` of the form `⌊limit / i⌋`.
+template <typename T = int64_t> constexpr floors_array<T> primeSumTable(size_t limit)
+{
+    return primeSumTable(limit, [](size_t n) -> T { return n; }, [](size_t n) -> T { return sumId<T>(n); });
+}
+
+/// Returns a floors array of values `#(1 ≤ p ≤ k, p prime)` for `k` of the form `⌊limit / i⌋`.
+template <typename T = int64_t> constexpr floors_array<T> primePiTable(size_t limit)
+{
+    return primeSumTable(limit, [](size_t) -> T { return 1; }, [](size_t n) -> T { return n; });
+}
+
+/// Calculates `(1 ≤ p ≤ limit, p prime) * f(p)`. Here, `f` must be a completely multiplicative function and `F` must be
+/// the summatory function of `f`.
 template <std::invocable<int64_t> Fun, std::invocable<int64_t> SummatoryFun>
-constexpr auto sumPrimeRangeLucyHedgehog(int64_t limit, Fun f, SummatoryFun F)
+constexpr auto primeSum(size_t limit, Fun f, SummatoryFun F)
 {
-    return sumPrimeRangeLucyHedgehogExt(limit, std::move(f), std::move(F))[limit];
+    return primeSumTable(limit, std::move(f), std::move(F))[limit];
 }
 
-/// Calculates `∑ (p ∈ [2, limit] and p prime), p`.
-template <typename T = int64_t> constexpr T sumPrimeRangeLucyHedgehog(int64_t limit)
+/// Calculates `(1 ≤ p ≤ limit, p prime) * p`.
+template <typename T = int64_t> constexpr T primeSum(size_t limit)
 {
-    return sumPrimeRangeLucyHedgehog(limit, std::identity{}, [](auto &&n) { return T(n) * (n + 1) / 2; });
+    return primeSum(limit, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
 }
 
-/// Returns a list of pairs (exp, c) indicating that c primes have exponent exp in the factorization of n!. O(n^(3/4)).
+/// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.
+/// O(n^(3/4)). Sublinear version of `factorFactorial`.
 inline std::vector<std::pair<int64_t, int64_t>> factorialExponents(int64_t n)
 {
     uint32_t const s = isqrt(n);
     std::vector<std::pair<int64_t, int64_t>> res;
     it::primes(2, s)([&](auto p) { res.emplace_back(factorialValuation(n, p), 1); });
-    auto const S = sumPrimeRangeLucyHedgehogExt(n, [](auto &&) { return 1; }, std::identity{});
+    auto const S = primePiTable(n);
     for (int64_t i = n / (s + 1); i >= 1; --i)
     {
         int64_t const c = S[n / i] - S[n / (i + 1)];

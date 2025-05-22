@@ -122,20 +122,16 @@ template <> struct double_integer<mpz_int>
 
 template <typename T> using double_integer_t = double_integer<T>::type;
 
-template <std::integral T> struct half_integer
+template <typename T> struct half_integer
 {
 };
 
-template <std::integral T>
-    requires(std::is_signed_v<T>)
-struct half_integer<T>
+template <std::signed_integral T> struct half_integer<T>
 {
     using type = boost::int_t<CHAR_BIT / 2 * sizeof(T)>::least;
 };
 
-template <std::integral T>
-    requires(std::is_unsigned_v<T>)
-struct half_integer<T>
+template <std::unsigned_integral T> struct half_integer<T>
 {
     using type = boost::uint_t<CHAR_BIT / 2 * sizeof(T)>::least;
 };
