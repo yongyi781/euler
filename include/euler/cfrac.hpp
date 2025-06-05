@@ -197,9 +197,10 @@ template <integral2 T> class rational : public cfrac_base
     {
         T n = numerator;
         T d = denominator;
+        T x;
         while (d != 0)
         {
-            T x = floorDiv(n, d);
+            x = floorDiv(n, d);
             if (!it::callbackResult(f, x))
                 return it::result_break;
             n -= d * x;

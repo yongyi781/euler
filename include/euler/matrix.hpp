@@ -54,7 +54,7 @@ template <typename T, size_t N> class Vector
 
     template <typename U> constexpr Vector &operator*=(U value)
     {
-        for (auto &&x : _data)
+        for (auto &x : _data)
             x *= value;
         return *this;
     }
@@ -69,7 +69,7 @@ template <typename T, size_t N> class Vector
 
     template <typename U> constexpr Vector &operator/=(U value)
     {
-        for (auto &&x : _data)
+        for (auto &x : _data)
             x /= value;
         return *this;
     }
@@ -82,7 +82,7 @@ template <typename T, size_t N> class Vector
 
     template <typename U> constexpr Vector &operator%=(U value)
     {
-        for (auto &&x : _data)
+        for (auto &x : _data)
             x %= value;
         return *this;
     }
@@ -380,7 +380,7 @@ template <typename T, size_t M, size_t N> class Matrix
     }
 
     /// Returns the power of an matrix to an integer.
-    [[nodiscard]] constexpr Matrix powm(integral2 auto exponent, integral2 auto modulus)
+    [[nodiscard]] constexpr Matrix powm(integral2 auto exponent, integral2 auto modulus) const
         requires(M == N)
     {
         return euler::powm(*this, std::move(exponent), std::move(modulus), identity());
@@ -506,15 +506,14 @@ template <typename T, size_t N> class SymmetricMatrix
         Vector<T, N> result{};
         for (size_t i = 0; i < N; ++i)
             for (size_t j = 0; j < N; ++j)
-                result[i] += _data[i, j] * v[j];
+                result[i] += (*this)[i, j] * v[j];
         return result;
     }
 
     constexpr SymmetricMatrix &operator*=(T value)
     {
-        for (auto &&row : _data)
-            for (auto &&x : row)
-                x *= value;
+        for (auto &x : _data)
+            x *= value;
         return *this;
     }
 
@@ -528,9 +527,8 @@ template <typename T, size_t N> class SymmetricMatrix
 
     constexpr SymmetricMatrix &operator/=(T t)
     {
-        for (auto &&row : _data)
-            for (auto &&x : row)
-                x /= t;
+        for (auto &x : _data)
+            x /= t;
         return *this;
     }
 
@@ -542,9 +540,8 @@ template <typename T, size_t N> class SymmetricMatrix
 
     constexpr SymmetricMatrix &operator%=(T t)
     {
-        for (auto &&row : _data)
-            for (auto &&x : row)
-                x %= t;
+        for (auto &x : _data)
+            x %= t;
         return *this;
     }
     [[nodiscard]] friend constexpr SymmetricMatrix operator%(SymmetricMatrix m, T value)
@@ -556,9 +553,8 @@ template <typename T, size_t N> class SymmetricMatrix
     [[nodiscard]] constexpr SymmetricMatrix operator-() const
     {
         SymmetricMatrix result{};
-        for (size_t i = 0; i < N; ++i)
-            for (size_t j = 0; j < N; ++j)
-                result._data[i][j] = -_data[i][j];
+        for (size_t i = 0; i < size; ++i)
+            result._data[i] = -_data[i];
         return result;
     }
 
@@ -577,7 +573,7 @@ template <typename T, size_t N> class SymmetricMatrix
     }
 
     /// Returns the power of an SymmetricMatrix to an integer.
-    [[nodiscard]] constexpr SymmetricMatrix powm(integral2 auto exponent, integral2 auto modulus)
+    [[nodiscard]] constexpr SymmetricMatrix powm(integral2 auto exponent, integral2 auto modulus) const
     {
         return ::powm(*this, std::move(exponent), std::move(modulus), identity());
     }

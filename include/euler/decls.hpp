@@ -17,7 +17,7 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
                   boost::multiprecision::is_signed_number<T>::value)
         if (base == -identity)
             return exponent % 2 == 0 ? identity : -identity;
-    if constexpr (requires(T a, T b) { a / b; })
+    if constexpr (boost::multiprecision::number_category<T>::value != boost::multiprecision::number_kind_unknown)
     {
         if (exponent < 0)
         {
