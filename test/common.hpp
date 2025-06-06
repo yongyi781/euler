@@ -17,7 +17,8 @@ inline void fail(std::string_view message)
     throw std::logic_error(std::string{message});
 }
 
-template <typename T, typename U> void assertEqual(const T &actual, const U &expected)
+template <typename T, typename U, typename V = std::string_view>
+void assertEqual(const T &actual, const U &expected, const V &name = {})
 {
     using Tp = std::common_type_t<T, U>;
     using std::to_string;
@@ -25,11 +26,10 @@ template <typename T, typename U> void assertEqual(const T &actual, const U &exp
     if (Tp(actual) != Tp(expected))
     {
         std::ostringstream ostr;
-        ostr << "Expected ";
-        if constexpr (std::same_as<Tp, bool>)
-            ostr << (expected ? "true, got false" : "false, got true");
-        else
-            ostr << expected << ", got " << actual;
+        if (name != V{})
+            ostr << name << ": ";
+        ostr << "Expected " << std::boolalpha;
+        ostr << expected << ", got " << actual;
         fail(ostr.view());
     }
 }

@@ -65,7 +65,7 @@ template <integral2 Ta, integral2 Tb> constexpr auto floorDiv(const Ta &a, const
 /// Calculates ⌈a / b⌉, and works for negative values too.
 template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const Tb &b)
 {
-    return floorDiv(a + b - 1, b);
+    return floorDiv(a + b - (b > 0 ? 1 : -1), b);
 }
 
 template <integral2 T> constexpr bool isSquare(const T &n)
@@ -118,24 +118,38 @@ template <integral2 T> constexpr T lcm(std::initializer_list<T> l)
 }
 
 /// A replacement for integer floor division.
-template <typename T, typename U> constexpr auto fastDiv(T n, U d)
+template <typename T, typename U> constexpr T fastDiv(T a, U b)
 {
-    T res = T((double)n / (double)d);
-    if (n < res * d)
+    T q = T((double)a / (double)b);
+    T const prod = q * b;
+    if (b > 0)
     {
-        --res;
-        while (n < res * d)
-            --res;
-        return res;
+        if (prod > a)
+        {
+            --q;
+            while (q * b > a)
+                --q;
+        }
+        else if (prod + b <= a)
+        {
+            ++q;
+            while ((q + 1) * b <= a)
+                ++q;
+        }
     }
-    if (n >= (res + 1) * d)
+    else if (prod < a)
     {
-        ++res;
-        while (n >= (res + 1) * d)
-            ++res;
-        return res;
+        --q;
+        while (q * b < a)
+            --q;
     }
-    return res;
+    else if (prod + b >= a)
+    {
+        ++q;
+        while ((q + 1) * b >= a)
+            ++q;
+    }
+    return q;
 }
 
 /// Wrapper for `mpz_divexact`.
