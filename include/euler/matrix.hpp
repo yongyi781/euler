@@ -148,12 +148,13 @@ template <typename T, size_t N> class Vector
     }
 
     // 2D cross product, outputs a scalar.
-    [[nodiscard]] constexpr T cross(const Vector &other) const
+    template <typename U = T>
+    [[nodiscard]] constexpr U cross(const Vector &other) const
         requires(N == 2)
     {
         auto &&[a1, a2] = _data;
         auto &&[b1, b2] = other._data;
-        return a1 * b2 - a2 * b1;
+        return U(a1) * b2 - U(a2) * b1;
     }
 
     // 3D cross product.

@@ -22,12 +22,10 @@ enum result_t : uint8_t
     result_continue_no_recurse
 };
 
+struct it_base;
+
 template <typename T>
-concept enumerable = requires(const T &t) {
-    {
-        t([](auto) {})
-    } -> std::same_as<result_t>;
-};
+concept enumerable = std::derived_from<std::decay_t<T>, it_base>;
 
 // Forward declarations.
 template <enumerable E, std::invocable<typename E::value_type> Fn>

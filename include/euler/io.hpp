@@ -311,6 +311,15 @@ template <typename Rep, typename Period> constexpr std::string to_string(const s
 /// Converts an integral number to its binary representation.
 template <integral2 T> constexpr std::string bin(T n) { return to_string(std::move(n), 2); }
 
+/// Converts an integral number to its binary representation padded to the given width.
+template <integral2 T> constexpr std::string bin(T n, int width)
+{
+    auto res = to_string(std::move(n), 2);
+    if ((int)res.size() < width)
+        res = std::string(width - res.size(), '0') + res;
+    return res;
+}
+
 /// Reads the entire contents of a file as a string. Buggy with CRLF though.
 inline std::string getFileContents(const std::string &filename)
 {

@@ -361,9 +361,11 @@ std::vector<T> randomVector(size_t size, T low, T high, Gen &&g = {})
 }
 
 /// Returns the least integer `n` such that `f(n) ≥ target`.
-template <integral2 T, integral2 U, std::invocable<U> Fun>
+template <typename T, integral2 U, std::invocable<U> Fun>
 constexpr U bisectionLowerBound(Fun f, const T &target, U low, U high)
 {
+    if (f(low) >= target)
+        return low;
     while (high - low > 1)
     {
         U mid = low + (high - low) / 2;
@@ -376,9 +378,11 @@ constexpr U bisectionLowerBound(Fun f, const T &target, U low, U high)
 }
 
 /// Returns the least integer `n` such that `f(n) > target`.
-template <integral2 T, integral2 U, std::invocable<U> Fun>
+template <typename T, integral2 U, std::invocable<U> Fun>
 constexpr U bisectionUpperBound(Fun f, const T &target, U low, U high)
 {
+    if (f(low) > target)
+        return low;
     while (high - low > 1)
     {
         U mid = low + (high - low) / 2;

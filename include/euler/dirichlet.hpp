@@ -92,7 +92,7 @@ template <typename T> class Dirichlet
     }
 
     /// Initialize with the given summatory function.
-    template <typename Fun> Dirichlet(size_t n, Fun F) : Dirichlet(n)
+    template <typename SummatoryFun> Dirichlet(size_t n, SummatoryFun F) : Dirichlet(n)
     {
         for (size_t k = 1; k < _up.size(); ++k)
             _up[k] = T(F(k));

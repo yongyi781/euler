@@ -25,18 +25,79 @@ template <typename T = int64_t> class floors_array
     [[nodiscard]] constexpr size_t n() const { return _n; }
     /// The transition point between up and down. What was passed as the s parameter during construction.
     [[nodiscard]] constexpr size_t pivot() const { return _up.size() - 1; }
+
+    /// The up vector, mutable.
+    [[nodiscard]] std::vector<T> &up() noexcept { return _up; }
     /// The up vector.
-    [[nodiscard]] std::vector<T> &up() { return _up; }
-    /// The up vector.
-    [[nodiscard]] constexpr const std::vector<T> &up() const { return _up; }
+    [[nodiscard]] const std::vector<T> &up() const noexcept { return _up; }
+    /// Element access into the up array, mutable.
+    [[nodiscard]] T &up(size_t x) noexcept { return _up[x]; }
+    /// Element access into the up array.
+    [[nodiscard]] const T &up(size_t x) const noexcept { return _up[x]; }
+
+    /// The down vector, mutable.
+    [[nodiscard]] std::vector<T> &down() noexcept { return _down; }
     /// The down vector.
-    [[nodiscard]] std::vector<T> &down() { return _down; }
-    /// The down vector.
-    [[nodiscard]] constexpr const std::vector<T> &down() const { return _down; }
+    [[nodiscard]] const std::vector<T> &down() const noexcept { return _down; }
+    /// Element access into the down array, mutable.
+    [[nodiscard]] T &down(size_t x) noexcept { return _down[x]; }
+    /// Element access into the down array.
+    [[nodiscard]] const T &down(size_t x) const noexcept { return _down[x]; }
+
     [[nodiscard]] constexpr T &front() { return _up[1]; }
     [[nodiscard]] constexpr const T &front() const { return _up[1]; }
     [[nodiscard]] constexpr T &back() { return _down[1]; }
     [[nodiscard]] constexpr const T &back() const { return _down[1]; }
+
+    /// Addition.
+    template <typename U> floors_array &operator+=(const floors_array<U> &other)
+    {
+        assert(_n == other.n());
+        for (size_t k = 1; k < _up.size(); ++k)
+            up(k) += other.up(k);
+        for (uint32_t i = 1; i < _down.size(); ++i)
+            down(i) += other.down(i);
+        return *this;
+    }
+
+    template <typename U> [[nodiscard]] friend floors_array operator+(floors_array left, const floors_array<U> &right)
+    {
+        left += right;
+        return left;
+    }
+
+    /// Subtraction.
+    template <typename U> floors_array &operator-=(const floors_array<U> &other)
+    {
+        assert(_n == other.n());
+        for (size_t k = 1; k < _up.size(); ++k)
+            up(k) -= other.up(k);
+        for (uint32_t i = 1; i < _down.size(); ++i)
+            down(i) -= other.down(i);
+        return *this;
+    }
+
+    template <typename U> [[nodiscard]] friend floors_array operator-(floors_array left, const floors_array<U> &right)
+    {
+        left -= right;
+        return left;
+    }
+
+    /// Division by a scalar.
+    floors_array &operator/=(T value)
+    {
+        for (size_t k = 1; k < _up.size(); ++k)
+            up(k) /= value;
+        for (uint32_t i = 1; i < _down.size(); ++i)
+            down(i) /= value;
+        return *this;
+    }
+
+    [[nodiscard]] friend floors_array operator/(floors_array left, T value)
+    {
+        left /= value;
+        return left;
+    }
 
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
