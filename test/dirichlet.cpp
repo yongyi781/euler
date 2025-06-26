@@ -1,6 +1,6 @@
 #include "euler/dirichlet.hpp"
 
-#include "common.hpp"
+#include "test.hpp"
 
 using namespace std;
 

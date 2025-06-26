@@ -1,7 +1,7 @@
 #include "euler/ZMod.hpp"
 #include "euler/algorithm.hpp"
 
-#include "common.hpp"
+#include "test.hpp"
 
 using namespace std;
 using Int = int64_t;

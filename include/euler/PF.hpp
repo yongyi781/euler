@@ -50,7 +50,7 @@ template <typename T = int64_t> class PF
     /// Dangerous! Make sure you know what you are doing.
     constexpr void push_back(value_type x) { _data.push_back(x); }
     /// Dangerous! Make sure you know what you are doing.
-    constexpr iterator insert(const_iterator position, value_type x) { _data.insert(position, x); }
+    constexpr iterator insert(const_iterator position, value_type x) { return _data.insert(position, x); }
 
     /// Combines two prime factorizations using a binary operation `op` on the exponents.
     template <typename U, std::invocable<int, int> BinaryOp>
@@ -168,6 +168,9 @@ template <typename T = int64_t> class PF
             rad *= p;
         return rad;
     }
+
+    /// Returns whether the number is prime (has only one factor, with exponent 1).
+    [[nodiscard]] constexpr bool isPrime() const { return _data.size() == 1 && _data[0].second == 1; }
 
     /// Multiplication.
     template <typename U> constexpr PF &operator*=(const PF<U> &other) { return combineInPlace(other, std::plus{}); }

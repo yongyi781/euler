@@ -9,10 +9,25 @@ namespace it
 /// D-finite recurrence.
 template <typename T = int64_t> class dfinite : public it_base
 {
+    std::vector<std::vector<T>> _coeffPolys;
+    std::vector<T> _init;
+    int64_t _firstIndex;
+
+    [[nodiscard]] constexpr T evalPoly(const std::vector<T> &poly, const T &x) const
+    {
+        T res = 0;
+        for (auto &&c : poly | std::views::reverse)
+        {
+            res *= x;
+            res += c;
+        }
+        return res;
+    }
+
   public:
     using value_type = T;
 
-    constexpr dfinite(std::vector<std::vector<int64_t>> coeffPolys, std::vector<T> init, int64_t firstIndex = 0)
+    constexpr dfinite(std::vector<std::vector<T>> coeffPolys, std::vector<T> init, int64_t firstIndex = 0)
         : _coeffPolys(std::move(coeffPolys)), _init(std::move(init)), _firstIndex(firstIndex)
     {
         assert(_coeffPolys.size() - 1 == _init.size() &&
@@ -90,22 +105,6 @@ template <typename T = int64_t> class dfinite : public it_base
 
     /// Deleted because this enumerable is guaranteed to be infinite.
     [[nodiscard]] constexpr auto product() const = delete;
-
-  private:
-    std::vector<std::vector<int64_t>> _coeffPolys;
-    std::vector<T> _init;
-    int64_t _firstIndex;
-
-    [[nodiscard]] constexpr T evalPoly(const std::vector<int64_t> &poly, const T &x) const
-    {
-        T res = 0;
-        for (auto &&c : poly | std::views::reverse)
-        {
-            res *= x;
-            res += c;
-        }
-        return res;
-    }
 };
 } // namespace it
 } // namespace euler

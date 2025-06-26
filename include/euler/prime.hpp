@@ -2,6 +2,7 @@
 
 /// Constexpr replacement of boost's is_small_prime function.
 #include "algorithm.hpp"
+#include "literals.hpp"
 #include "modular_arithmetic.hpp"
 #include <algorithm>
 #include <boost/multiprecision/gmp.hpp>
@@ -14,8 +15,8 @@ inline namespace euler
 {
 namespace detail
 {
-inline constexpr std::array<unsigned, 17> primesTo59{2U,  3U,  5U,  7U,  11U, 13U, 17U, 19U, 23U,
-                                                     29U, 31U, 37U, 41U, 43U, 47U, 53U, 59U};
+inline constexpr std::array<u32, 17> primesTo59{2U,  3U,  5U,  7U,  11U, 13U, 17U, 19U, 23U,
+                                                29U, 31U, 37U, 41U, 43U, 47U, 53U, 59U};
 inline constexpr uint32_t firstNontrivialPrime = 61;
 inline constexpr std::array primeWheel{10U, 2U, 4U, 2U, 4U, 6U, 2U, 6U, 4U, 2U, 4U, 6U, 6U, 2U, 6U,  4U,
                                        2U,  6U, 4U, 6U, 8U, 4U, 2U, 4U, 2U, 4U, 8U, 6U, 4U, 6U, 2U,  4U,
@@ -26,49 +27,45 @@ inline constexpr size_t primeWheelSize = std::size(primeWheel);
 /// Assumption: n <= 227.
 constexpr bool isSmallPrime(size_t n)
 {
-    std::initializer_list<unsigned> const primesTo227{
+    std::initializer_list<u32> const primesTo227{
         3U,   5U,   7U,   11U,  13U,  17U,  19U,  23U,  29U,  31U,  37U,  41U,  43U,  47U,  53U,  59U,
         61U,  67U,  71U,  73U,  79U,  83U,  89U,  97U,  101U, 103U, 107U, 109U, 113U, 127U, 131U, 137U,
         139U, 149U, 151U, 157U, 163U, 167U, 173U, 179U, 181U, 191U, 193U, 197U, 199U, 211U, 223U, 227U};
-    return std::ranges::find(primesTo227, n) != primesTo227.end();
+    return std::ranges::contains(primesTo227, n);
 }
 
 template <integral2 T> constexpr bool checkSmallFactors(const T &n)
 {
-    constexpr unsigned pp1 = 223092870U;
-
-    auto m1 = (unsigned)(n % pp1);
-    for (unsigned const p : {3U, 5U, 7U, 11U, 13U, 17U, 19U, 23U})
+    constexpr u32 pp1 = 223092870U;
+    auto const m1 = (u32)(n % pp1);
+    for (u32 const p : {3U, 5U, 7U, 11U, 13U, 17U, 19U, 23U})
         if (m1 % p == 0)
             return false;
 
-    constexpr unsigned pp2 = 2756205443U;
-
-    auto m2 = (unsigned)(n % pp2);
-    for (unsigned const p : {29U, 31U, 37U, 41U, 43U, 47U})
+    constexpr u32 pp2 = 2756205443U;
+    auto const m2 = (u32)(n % pp2);
+    for (u32 const p : {29U, 31U, 37U, 41U, 43U, 47U})
         if (m2 % p == 0)
             return false;
 
-    constexpr unsigned pp3 = 907383479U;
-
-    auto m3 = (unsigned)(n % pp3);
-    for (unsigned const p : {53U, 59U, 61U, 67U, 71U})
+    constexpr u32 pp3 = 907383479U;
+    auto const m3 = (u32)(n % pp3);
+    for (u32 const p : {53U, 59U, 61U, 67U, 71U})
         if (m3 % p == 0)
             return false;
 
-    constexpr unsigned pp4 = 4132280413U;
-
-    auto m4 = (unsigned)(n % pp4);
-    for (unsigned const p : {73U, 79U, 83U, 89U, 97U})
+    constexpr u32 pp4 = 4132280413U;
+    auto const m4 = (u32)(n % pp4);
+    for (u32 const p : {73U, 79U, 83U, 89U, 97U})
         if (m4 % p == 0)
             return false;
 
-    std::array<std::initializer_list<unsigned>, 6> smallFactors5{{{101U, 103U, 107U, 109U},
-                                                                  {113U, 127U, 131U, 137U},
-                                                                  {139U, 149U, 151U, 157U},
-                                                                  {163U, 167U, 173U, 179U},
-                                                                  {181U, 191U, 193U, 197U},
-                                                                  {199U, 211U, 223U, 227U}}};
+    std::array<std::initializer_list<u32>, 6> smallFactors5{{{101U, 103U, 107U, 109U},
+                                                             {113U, 127U, 131U, 137U},
+                                                             {139U, 149U, 151U, 157U},
+                                                             {163U, 167U, 173U, 179U},
+                                                             {181U, 191U, 193U, 197U},
+                                                             {199U, 211U, 223U, 227U}}};
     constexpr std::array pp5{121330189U,
                              113U * 127U * 131U * 137U,
                              139U * 149U * 151U * 157U,
@@ -78,7 +75,7 @@ template <integral2 T> constexpr bool checkSmallFactors(const T &n)
 
     for (std::size_t k = 0; k < pp5.size(); ++k)
     {
-        auto m5 = (unsigned)(n % pp5[k]);
+        auto const m5 = (u32)(n % pp5[k]);
         for (auto p : smallFactors5[k])
             if (m5 % p == 0)
                 return false;
@@ -86,15 +83,19 @@ template <integral2 T> constexpr bool checkSmallFactors(const T &n)
     return true;
 }
 
-template <integral2 T> constexpr bool millerRabinDeterministic(const T &n, std::initializer_list<int> witnesses)
+/// Deterministic Miller test.
+template <integral2 T> constexpr bool miller(const T &n, std::initializer_list<u64> witnesses)
 {
     T const m = n - 1;
     size_t const k = boost::multiprecision::lsb(m);
     T const q = m >> k;
 
     T y;
-    for (auto &&x : witnesses)
+    for (u64 x : witnesses)
     {
+        x %= n;
+        if (x == 0)
+            return true;
         y = powmSafe(T(x), q, n);
         size_t j = 0;
         while (true)
@@ -115,6 +116,7 @@ template <integral2 T> constexpr bool millerRabinDeterministic(const T &n, std::
     return true;
 }
 
+/// Probabilistic Miller-Rabin test.
 template <integral2 T> bool millerRabin(const T &n, size_t trials)
 {
     T const m = n - 1;
@@ -156,39 +158,33 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
 {
     if (n < 2)
         return false;
-    if (n == 2)
-        return true; // Trivial special case.
     if (boost::multiprecision::bit_test(n, 0) == 0)
-        return false; // n is even
+        return n == 2; // n is even
     if (n <= 227)
-        return detail::isSmallPrime((size_t)n);
-    if (!detail::checkSmallFactors(n))
+        return euler::detail::isSmallPrime((size_t)n);
+    if (!euler::detail::checkSmallFactors(n))
         return false;
-
-    // Single Fermat test.
-    if (powmSafe(T(228), T(n - 1), n) != 1)
-        return false;
-
-    if (trials == 0) // trials == 0 means no Miller-Rabin test.
+    if (n < 52441)
         return true;
-
-    if (n < 1373653)
-        return detail::millerRabinDeterministic(n, {2, 3});
-    if (n < 9080191)
-        return detail::millerRabinDeterministic(n, {31, 73});
-    if (n < 4759123141)
-        return detail::millerRabinDeterministic(n, {2, 7, 61});
-    if (n < 1122004669633)
-        return detail::millerRabinDeterministic(n, {2, 13, 23, 1662803});
-    if (n < 2152302898747)
-        return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11});
-    if (n < 3474749660383)
-        return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11, 13});
-    if (n < 341550071728321)
-        return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11, 13, 17});
-    if (n < 3825123056546413051)
-        return detail::millerRabinDeterministic(n, {2, 3, 5, 7, 11, 13, 17, 19, 23});
-    return detail::millerRabin(n, trials);
+    if (n < 341531)
+        return euler::detail::miller(n, {9345883071009581737_u64});
+    if (n < 1050535501)
+        return euler::detail::miller(n, {336781006125_u64, 9639812373923155_u64});
+    if (n < 350269456337)
+        return euler::detail::miller(n, {4230279247111683200_u64, 14694767155120705706_u64, 16641139526367750375_u64});
+    if (n < 55245642489451)
+        return euler::detail::miller(n,
+                                     {2_u64, 141889084524735_u64, 1199124725622454117_u64, 11096072698276303650_u64});
+    if (n < 7999252175582851)
+        return euler::detail::miller(
+            n, {2_u64, 4130806001517_u64, 149795463772692060_u64, 186635894390467037_u64, 3967304179347715805_u64});
+    if (n < 585226005592931977)
+        return euler::detail::miller(n, {2_u64, 123635709730000_u64, 9233062284813009_u64, 43835965440333360_u64,
+                                         761179012939631437_u64, 1263739024124850375_u64});
+    if constexpr (sizeof(T) <= 8)
+        return euler::detail::miller(n, {2_u64, 325_u64, 9375_u64, 28178_u64, 450775_u64, 9780504_u64, 1795265022_u64});
+    else
+        return euler::detail::millerRabin(n, trials);
 }
 
 /// Removes all factors of p from a number, and returns the number of factors removed. The `knownDivides` template

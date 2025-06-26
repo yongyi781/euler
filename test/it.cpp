@@ -1,7 +1,7 @@
 #include "euler/it.hpp"
 
-#include "common.hpp"
 #include "euler/ZMod.hpp"
+#include "test.hpp"
 
 using namespace std;
 

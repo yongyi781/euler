@@ -2,7 +2,7 @@
 #include "euler/io.hpp"
 #include <boost/rational.hpp>
 
-#include "common.hpp"
+#include "test.hpp"
 
 using namespace std;
 

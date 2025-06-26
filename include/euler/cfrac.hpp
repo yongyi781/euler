@@ -262,8 +262,8 @@ template <typename T, it::enumerable CFrac> class convergents_t : public it::it_
         T h0 = 0;
         T k0 = 1;
         return _cfrac([&](auto &&x) {
-            T h2 = x * h + h0;
-            T k2 = x * k + k0;
+            T h2 = T(x * h + h0);
+            T k2 = T(x * k + k0);
             std::tie(h, k, h0, k0) = std::tuple{h2, k2, h, k};
             return it::callbackResult(f, std::pair{h, k});
         });
@@ -321,23 +321,20 @@ template <integral2 T> class pell_solutions : public it::it_base
 };
 } // namespace cfrac
 
-/// Finds the best rational approximation to a floating-point number with denominator less than `denomBound`.
-template <typename R, integral2 Z> std::pair<Z, Z> nearbyRational(R value, Z denomBound)
+/// Finds the best rational approximation to a floating-point number with denominator less than `limit`.
+template <typename R, integral2 Z> std::pair<Z, Z> nearbyRational(R value, Z limit)
 {
     using std::abs;
 
-    assert(denomBound > 0);
+    assert(limit > 0);
 
-    Z h0 = 0;
-    Z k0 = 1;
-    Z h1 = 1;
-    Z k1 = 0;
+    Z h0 = 0, k0 = 1, h1 = 1, k1 = 0;
     cfrac::floating_point{value}([&](const Z &a) {
         Z h2 = a * h1 + h0;
         Z k2 = a * k1 + k0;
-        if (k2 > denomBound)
+        if (k2 > limit)
         {
-            Z a2 = (denomBound - k0) / k1;
+            Z a2 = (limit - k0) / k1;
             if (a2 >= (a + 1) / 2)
             {
                 h2 = a2 * h1 + h0;

@@ -1,7 +1,7 @@
 #include "euler.hpp"
 #include "euler/BinomialModPrimePower.hpp"
 
-#include "common.hpp"
+#include "test.hpp"
 
 using namespace std;
 using Int = int64_t;

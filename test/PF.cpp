@@ -1,7 +1,7 @@
 #include "euler/PF.hpp"
 
-#include "common.hpp"
 #include "euler/it/factor.hpp"
+#include "test.hpp"
 
 using namespace std;
 

@@ -549,4 +549,18 @@ template <typename T = int64_t> constexpr T sumSquares(size_t limit)
     //     std::unreachable();
     // }
 }
+
+/// Finds the largest `e` such that `b^e ≤ n`.
+template <integral2 T, integral2 U> inline int floor_log(T n, U b)
+{
+    if (n < b)
+        return 0;
+    if (n < b * b)
+        return 1;
+    int e = 1;
+    T x = b;
+    for (; mulLeq(x, b, n); x *= b, ++e)
+        ;
+    return e;
+}
 } // namespace euler

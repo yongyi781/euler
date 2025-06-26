@@ -96,8 +96,8 @@ constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPF
     if (gcd(a, modulus) != 1)
         return 0;
     it::factor(totient, std::forward<SPFSieve>(spfs))([&](auto &&pe) {
-        auto [q, _] = pe;
-        while (totient % q == 0 && powmSafe(a, totient / q, modulus) == 1)
+        auto [q, e] = pe;
+        while (e-- > 0 && powmSafe(a, totient / q, modulus) == 1)
             totient /= q;
     });
     return totient;
@@ -144,27 +144,26 @@ template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num)
 }
 
 /// Function to find smallest primitive root of p.
-template <integral2 T, typename SPFSieve = std::vector<int>>
-constexpr std::common_type_t<int64_t, T> primitiveRoot(const T &p, SPFSieve &&spfs = {})
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
+constexpr T primitiveRoot(T p, SPFSieve &&spfs = {})
 {
-    using Tp = std::common_type_t<int64_t, T>;
     if (p == 2)
-        return Tp(1);
+        return 1;
     T const phi = p - 1;
     auto const pf = factor(phi, std::forward<SPFSieve>(spfs));
-    for (Tp r = 2; r <= phi; ++r)
+    for (T r = 2; r <= phi; ++r)
     {
-        bool flag = false;
+        bool found = true;
         for (const auto &[q, e] : pf)
         {
-            if (powm(r, phi / q, p) == 1)
+            if (powmSafe(r, phi / q, p) == 1)
             {
-                flag = true;
+                found = false;
                 break;
             }
         }
 
-        if (!flag)
+        if (found)
             return r;
     }
     assert(false && "primitiveRoot: Should not reach here (maybe p wasn't prime).");
@@ -186,5 +185,51 @@ template <integral2 Tk, typename T> constexpr T countCoprime(Tk k, T limit)
     primes.clear();
     it::factor(k).map([&](auto &&t) { return t.first; }).appendTo(primes);
     return countCoprime(primes.begin(), primes.end(), limit);
+}
+
+/// Performs one merge step for enumerating sorted divisors.
+template <typename T, typename U> constexpr void sortedDivisorsMerge(std::vector<T> &res, U p, int e)
+{
+    auto tmp = res;
+    while (e-- > 0)
+    {
+        for (auto &x : tmp)
+            x *= p;
+        res.append_range(tmp);
+        std::ranges::inplace_merge(res, res.end() - tmp.size());
+    }
+}
+
+/// Performs one merge step for enumerating sorted divisors, using a temporary vector passed in by the caller.
+template <typename T, typename U>
+constexpr void sortedDivisorsMerge(std::vector<T> &res, std::vector<T> &tmp, U p, int e)
+{
+    tmp = res;
+    while (e-- > 0)
+    {
+        for (auto &x : tmp)
+            x *= p;
+        res.append_range(tmp);
+        std::ranges::inplace_merge(res, res.end() - tmp.size());
+    }
+}
+
+/// Returns the sorted list of divisors of `n`.
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
+constexpr std::vector<T> sortedDivisors(T n, SPFSieve &&spfs = {})
+{
+    std::vector<T> res{T(1)};
+    it::factor(n, spfs)([&](auto &&pe) { sortedDivisorsMerge(res, pe.first, pe.second); });
+    return res;
+}
+
+/// Returns the sorted list of divisors of `n` from its factorization.
+template <std::ranges::range Range> constexpr auto sortedDivisors(Range &&factorization)
+{
+    using T = std::tuple_element_t<0, std::ranges::range_value_t<Range>>;
+    std::vector<T> res{T(1)};
+    for (auto &&[p, e] : factorization)
+        sortedDivisorsMerge(res, p, e);
+    return res;
 }
 } // namespace euler

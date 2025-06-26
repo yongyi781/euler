@@ -759,31 +759,70 @@ template <integral2 T> class range : public it_base
 
     /// Reduces the enumerable into a single value. Uses `std::transform_reduce`.
     template <execution_policy Exec, typename U, typename BinaryOp, typename UnaryOp = std::identity>
-    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] U reduce(Exec &&exec, U init, BinaryOp op, UnaryOp f = {}) const
     {
         if (empty())
             return init;
         if (_step == 1)
             return std::transform_reduce(std::forward<Exec>(exec), counting_iterator{_begin},
-                                         counting_iterator{T(_end + 1)}, std::move(init), std::forward<BinaryOp>(op),
-                                         std::forward<UnaryOp>(f));
+                                         counting_iterator{T(_end + 1)}, std::move(init), std::move(op), std::move(f));
         T n = (_end - _begin) / _step;
         return std::transform_reduce(std::forward<Exec>(exec), counting_iterator{T(0)}, counting_iterator{T(n + 1)},
-                                     std::move(init), std::forward<BinaryOp>(op),
-                                     [&](auto &&i) { return f(i * _step + _begin); });
+                                     std::move(init), std::move(op), [&](auto &&i) { return f(i * _step + _begin); });
     }
 
     /// Reduces the enumerable into a single value. Uses `std::transform_reduce`.
     template <typename U, typename BinaryOp, typename UnaryOp = std::identity>
         requires(!execution_policy<U>)
-    [[nodiscard]] constexpr U reduce(U init, BinaryOp &&op, UnaryOp &&f = {}) const
+    [[nodiscard]] constexpr U reduce(U init, BinaryOp op, UnaryOp f = {}) const
     {
         if (empty())
             return init;
         if (_step == 1)
             return std::transform_reduce(counting_iterator{_begin}, counting_iterator{T(_end + 1)}, std::move(init),
-                                         std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
-        return it_base::reduce(std::move(init), std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
+                                         std::move(op), std::move(f));
+        return it_base::reduce(std::move(init), std::move(op), std::move(f));
+    }
+
+    /// Returns the first element for which `pred` returns `true`.
+    template <typename Pred> [[nodiscard]] std::optional<T> findIf(Pred pred) const
+    {
+        if (empty())
+            return std::nullopt;
+        if (_step == 1)
+        {
+            auto const res = std::find_if(counting_iterator{_begin}, counting_iterator{T(_end + 1)}, std::move(pred));
+            if (res.value == _end + 1)
+                return std::nullopt;
+            return res.value;
+        }
+        T n = (_end - _begin) / _step;
+        auto const res = std::find_if(counting_iterator{T(0)}, counting_iterator{T(n + 1)},
+                                      [&](auto &&i) { return pred(i * _step + _begin); });
+        if (res.value == n + 1)
+            return std::nullopt;
+        return res.value * _step + _begin;
+    }
+
+    /// Returns, in parallel, the first element for which `pred` returns `true`.
+    template <execution_policy Exec, typename Pred> [[nodiscard]] std::optional<T> findIf(Exec &&exec, Pred pred) const
+    {
+        if (empty())
+            return std::nullopt;
+        if (_step == 1)
+        {
+            auto const res = std::find_if(std::forward<Exec>(exec), counting_iterator{_begin},
+                                          counting_iterator{T(_end + 1)}, std::move(pred));
+            if (res.value == _end + 1)
+                return std::nullopt;
+            return res.value;
+        }
+        T n = (_end - _begin) / _step;
+        auto const res = std::find_if(std::forward<Exec>(exec), counting_iterator{T(0)}, counting_iterator{T(n + 1)},
+                                      [&](auto &&i) { return pred(i * _step + _begin); });
+        if (res.value == n + 1)
+            return std::nullopt;
+        return res.value * _step + _begin;
     }
 
   private:

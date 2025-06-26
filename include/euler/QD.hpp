@@ -28,15 +28,15 @@ struct QD
         /// Enumerates the terms in the square root continued fraction.
         template <typename Fun> it::result_t operator()(Fun f) const
         {
-            using DT = double_integer_t<T>;
+            using D = double_integer_t<T>;
             // Idea: each remainder is of the form (x + c√b) / d, starting with x = a*c and d = c². k stores the floor.
             T const fl = isqrt(c * c * b) * (c > 0 ? 1 : -1);
-            DT x = a * c;
+            D x = a * c;
             T d = c * c;
             T k = floorDiv(a * c + fl, c * c);
             if (!it::callbackResult(f, k))
                 return it::result_break;
-            boost::unordered_flat_set<std::pair<DT, T>> seen{{x, d}};
+            boost::unordered_flat_set<std::pair<D, T>> seen{{x, d}};
             while (true)
             {
                 x = k * d - x;
@@ -97,7 +97,7 @@ struct QD
     }
 
     /// Returns the discriminant.
-    [[nodiscard]] constexpr i64 disc() const noexcept { return b * b - 4 * a * c; }
+    template <integral2 T = i64> [[nodiscard]] constexpr T disc() const noexcept { return T(b) * b - T(4) * a * c; }
 
     /// Evaluates the quadratic function at (x, y).
     template <integral2 T> [[nodiscard]] constexpr T operator()(const T &x, const T &y)
@@ -108,7 +108,7 @@ struct QD
     /// Fundamental solutions to `ax^2 + bxy + cy^2 + dx + ey + f == 0`.
     template <integral2 T = i64> [[nodiscard]] std::vector<Vector<T, 2>> solve() const
     {
-        i64 const D = disc();
+        i64 const D = (i64)disc<T>();
         assert(D > 0 && !isSquare(D) && "Non-hyperbolic QDs not implemented");
 
         auto const alpha = 2 * c * d - b * e;
@@ -160,13 +160,13 @@ struct QD
 
     /// Returns all integral solutions to `ax^2 + bxy + cy^2 + dx + ey + f == 0` within the specified range, sorted.
     template <integral2 T1, integral2 T2, integral2 T3, integral2 T4>
-    [[nodiscard]] auto solve(T1 xmin, T2 xmax, T3 ymin, T4 ymax)
+    [[nodiscard]] auto solve(T1 xmin, T2 xmax, T3 ymin, T4 ymax) const
     {
         using T = std::common_type_t<T1, T2, T3, T4>;
         using std::abs;
 
         auto sols = solve<T>();
-        auto const rec = recurrence();
+        auto const rec = recurrence<T>();
         if (sols.size() == 1 && sols[0][0] == 0 && sols[0][1] == 0 && rec.k == 0 && rec.l == 0)
             return std::vector<Vector<T, 2>>{{}};
         auto const inv = rec.inverse();
@@ -196,13 +196,16 @@ struct QD
     }
 
     /// Returns all integral solutions to `ax^2 + bxy + cy^2 + dx + ey + f == 0` within the specified range, sorted.
-    template <integral2 T1, integral2 T2> [[nodiscard]] auto solve(T1 min, T2 max) { return solve(min, max, min, max); }
+    template <integral2 T1, integral2 T2> [[nodiscard]] auto solve(T1 min, T2 max) const
+    {
+        return solve(min, max, min, max);
+    }
 
     /// Gets the forward recurrence for solutions to this quadratic diophantine equation.
     template <integral2 T = i64> [[nodiscard]] affine_transform recurrence() const
     {
-        i64 const D = disc();
-        auto const res = cfrac::quadratic(-b, b * b - 4 * a * c, 2_i64)
+        i64 const D = (i64)disc<T>();
+        auto const res = cfrac::quadratic<T>(-b, b * b - 4 * a * c, 2_i64)
                              .convergents()
                              .filterMap([&](auto &&t) -> std::optional<affine_transform> {
                                  auto &&[x, y] = t;
@@ -250,7 +253,7 @@ struct QD
         {
             if (t > n / 2)
                 t -= n;
-            i64 const p = (a * t * t + b * t + c) / n;
+            i64 const p = ((i128)a * t * t + (i128)b * t + c) / n;
             i64 const q = -(2 * a * t + b);
             i64 const r = a * n;
             if (r == 1)
@@ -263,11 +266,11 @@ struct QD
             if (gcd({p, q, r}) != 1)
                 continue;
 
-            if (cfrac_quadratic_one_period<T>(q, disc(), -2 * r).template convergents<T>()([&](auto &&ky) {
+            if (cfrac_quadratic_one_period<T>(q, disc<T>(), -2 * r).template convergents<T>()([&](auto &&ky) {
                     return proc(t, p, q, r, ky.first, ky.second);
                 }) == it::result_continue)
                 // Return value of result_continue means solution not found, need to check other root of quadratic.
-                cfrac_quadratic_one_period<T>(-q, disc(), 2 * r).template convergents<T>()([&](auto &&ky) {
+                cfrac_quadratic_one_period<T>(-q, disc<T>(), 2 * r).template convergents<T>()([&](auto &&ky) {
                     return proc(t, p, q, r, ky.first, ky.second);
                 });
         }

@@ -145,46 +145,42 @@ inline auto modInverse(const mpz_int &a, const mpz_int &modulus)
     return res;
 }
 
+namespace detail
+{
 /// Modular exponentiation. Works for negative exponents.
-template <typename T, integral2 Te, typename Tm>
-constexpr auto powm(T base, Te exponent, const Tm &modulus, T identity = T(1))
+template <typename Multiply, typename T, integral2 E, typename M>
+constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
 {
     assert(modulus > 0);
-    auto res = pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), mod_multiplies(modulus));
     if constexpr (integral2<T>)
     {
-        if (exponent < 0)
+        // Allow negative exponents in this case
+        bool const neg = exponent < 0;
+        auto res = pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), Multiply(modulus));
+        if (neg)
             return decltype(res)(modInverse(std::move(res), modulus));
         return res;
     }
     else
     {
         assert(exponent >= 0);
-        return res;
+        return pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), Multiply(modulus));
     }
+}
+} // namespace detail
+
+/// Modular exponentiation. Works for negative exponents.
+template <typename T, integral2 E, typename M> constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
+{
+    return detail::powm<mod_multiplies<M>>(std::move(base), std::move(exponent), std::move(modulus),
+                                           std::move(identity));
 }
 
 /// A version of modular exponentiation that handles overflow correctly.
-template <typename T, integral2 Te, integral2 Tm>
-constexpr auto powmSafe(T base, Te exponent, const Tm &modulus, const T &identity = T(1))
+template <typename T, integral2 E, typename M> constexpr auto powmSafe(T base, E exponent, M modulus, T identity = T(1))
 {
-    assert(modulus > 0);
-    if constexpr (integral2<T>)
-    {
-        if (exponent < 0)
-            return modInverse(pow(T(std::move(base) % modulus),
-                                  boost::multiprecision::detail::evaluate_if_expression(-std::move(exponent)),
-                                  std::move(identity), mod_multiplies_safe(modulus)),
-                              modulus);
-        return pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity),
-                   mod_multiplies_safe(modulus));
-    }
-    else
-    {
-        assert(exponent >= 0);
-        return pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity),
-                   mod_multiplies_safe(modulus));
-    }
+    return detail::powm<mod_multiplies_safe<M>>(std::move(base), std::move(exponent), std::move(modulus),
+                                                std::move(identity));
 }
 
 /// Builds the table of inverses modulo a prime.
@@ -207,6 +203,8 @@ template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
 {
     if (n < 0 || n >= p)
         n = mod(n, p);
+    if (n == 0)
+        return 0;
     Tp s = 0;
     Tp q = p - 1;
     while ((q & 1) == 0)
@@ -253,4 +251,24 @@ template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
         return r;
     return Tp(-1);
 }
+
+/// Returns the modular inverse of `a` modulo 2^64. Much faster than generic modular inverse algorithm.
+/// Precondition: `a` must be odd.
+inline u64 modInverse_u64(u64 a)
+{
+    assert(a % 2 == 1);
+    u64 const x0 = (3 * a) ^ 2;
+    u64 y = 1 - a * x0;
+    u64 const x1 = x0 * (1 + y);
+    y *= y;
+    u64 const x2 = x1 * (1 + y);
+    y *= y;
+    u64 const x3 = x2 * (1 + y);
+    y *= y;
+    u64 const x4 = x3 * (1 + y);
+    return x4;
+}
+
+/// Returns the `k` least significant bits of `number`.
+template <std::integral T> T bit_trunc(T number, int k) { return number & (T(1) << k) - 1; }
 } // namespace euler

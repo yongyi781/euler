@@ -1,7 +1,7 @@
 #include "euler/prime.hpp"
 #include <euler/Quadratic.hpp>
 
-#include "common.hpp"
+#include "test.hpp"
 
 using namespace std;
 
