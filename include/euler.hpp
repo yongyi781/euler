@@ -2,6 +2,7 @@
 
 #include "euler/FactorialMod.hpp"
 #include "euler/FenwickTree.hpp"
+#include "euler/GI.hpp"
 #include "euler/PF.hpp"
 #include "euler/QD.hpp"
 #include "euler/Quadratic.hpp"

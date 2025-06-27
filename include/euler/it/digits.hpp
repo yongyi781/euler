@@ -41,36 +41,36 @@ template <integral2 T = int64_t, integral2 TBase = int> class digits : public it
 };
 } // namespace it
 
-template <integral2 TBase = int>
-constexpr std::vector<TBase> digits(const integral2 auto &num, TBase base = 10,
-                                    std::endian endian = std::endian::little)
+template <std::endian Endian = std::endian::little, integral2 TBase = int>
+constexpr std::vector<TBase> digits(const integral2 auto &num, TBase base = 10)
 {
     std::vector<TBase> result;
     result.reserve(8); // Easy optimization
     it::digits(num, base)([&](TBase d) { result.push_back(d); });
-    if (endian == std::endian::big)
-        reverse(result.begin(), result.end());
+    if constexpr (Endian == std::endian::big)
+        std::ranges::reverse(result);
     return result;
 }
 
-template <integral2 T, std::ranges::range Range>
-constexpr T fromDigits(Range &&digits, int base = 10, std::endian endian = std::endian::little)
+template <integral2 T, std::endian Endian = std::endian::little, std::ranges::range Range>
+constexpr T fromDigits(Range &&digits, int base = 10)
 {
-    T result = 0;
-    T p = 1;
-    if (endian == std::endian::big)
-        for (auto it = digits.rbegin(); it != digits.rend(); ++it)
-        {
-            result += p * *it;
-            p *= base;
-        }
+    T res = 0;
+    if constexpr (Endian == std::endian::big)
+    {
+        for (auto &&d : digits)
+            res = res * base + d;
+    }
     else
-        for (auto it = digits.begin(); it != digits.end(); ++it)
+    {
+        T p = 1;
+        for (auto &&d : digits)
         {
-            result += p * *it;
+            res += p * d;
             p *= base;
         }
-    return result;
+    }
+    return res;
 }
 
 /// Shortcut for `it::digits(num, base).size()`.
