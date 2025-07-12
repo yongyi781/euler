@@ -93,9 +93,12 @@ template <integral2 T> constexpr bool miller(const T &n, std::initializer_list<u
     T y;
     for (u64 x : witnesses)
     {
-        x %= n;
-        if (x == 0)
-            return true;
+        if (x >= n)
+        {
+            x %= (u64)n;
+            if (x == 0)
+                return true;
+        }
         y = powmSafe(T(x), q, n);
         size_t j = 0;
         while (true)
@@ -187,22 +190,28 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
         return euler::detail::millerRabin(n, trials);
 }
 
+/// Returns whether the given number is prime, using GMP.
+template <> inline bool isPrime<mpz_int>(const mpz_int &n, size_t trials)
+{
+    return mpz_probab_prime_p(n.backend().data(), trials);
+}
+
 /// Removes all factors of p from a number, and returns the number of factors removed. The `knownDivides` template
 /// parameter is for performance optimization, skipping the first modulus check if it is known `p` divides `n` in
 /// advance.
-template <bool KnownDivides = false, typename Tn, typename Tp> constexpr int removeFactors(Tn &n, const Tp &p)
+template <bool KnownDivides = false, typename T, typename U> constexpr int removeFactors(T &n, const U &p)
 {
     assert(n != 0);
     assert(p >= 2);
 
     /// Specialization for GMP integers.
-    if constexpr (std::same_as<Tn, mpz_int> && std::same_as<Tp, mpz_int>)
+    if constexpr (std::same_as<T, mpz_int> && std::same_as<U, mpz_int>)
         return mpz_remove((mpz_ptr)n.backend().data(), (mpz_srcptr)n.backend().data(), (mpz_srcptr)p.backend().data());
-    if constexpr (std::integral<Tn>)
+    if constexpr (std::integral<T>)
     {
         if (p == 2)
         {
-            int e = std::countr_zero(std::make_unsigned_t<Tn>(n));
+            int e = std::countr_zero(std::make_unsigned_t<T>(n));
             n >>= e;
             return e;
         }
@@ -280,51 +289,6 @@ constexpr T totient(T n, Range &&factorization) // Pass by value intentional
     for (auto &&[p, e] : std::forward<Range>(factorization))
         n -= n / p;
     return n;
-}
-
-/// @brief Sieves primes up to a limit using the sieve of Eratosthenes.
-/// @param limit Inclusive upper bound.
-/// @return The sieve.
-constexpr std::vector<bool> primeSieve(size_t limit)
-{
-    std::vector<bool> sieve(limit + 1, false);
-    auto sequentialSievePass = [&](int i) {
-        if (sieve[i])
-        {
-            auto jLimit = limit / i;
-            for (size_t j = i; j <= jLimit; ++j)
-                sieve[i * j] = false;
-        }
-    };
-    for (auto const p : detail::primesTo59)
-    {
-        if (limit < p)
-            return sieve;
-        sieve[p] = true;
-    }
-    for (size_t i = 11, c = 1; i <= limit;
-         i += detail::primeWheel[c], c = (c + 1 == detail::primeWheelSize ? 0 : c + 1))
-        sieve[i] = true;
-    int const sqrtLimit = (int)isqrt(limit);
-    for (int i = 11; i <= 31; i += 2)
-        sequentialSievePass(i);
-    // After i = 31, safe to parallelize.
-    if (limit >= 10'000'000)
-    {
-        for (int i = 37; i <= sqrtLimit; i += 2)
-            if (sieve[i])
-            {
-                int64_t const jLimit = limit / i;
-                std::for_each(std::execution::par, counting_iterator((int64_t)i), counting_iterator(jLimit + 1),
-                              [&](int64_t j) { sieve[i * j] = false; });
-            }
-    }
-    else
-    {
-        for (int i = 37; i <= sqrtLimit; i += 2)
-            sequentialSievePass(i);
-    }
-    return sieve;
 }
 
 /// @brief Generates primes within a range.

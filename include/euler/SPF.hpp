@@ -79,6 +79,26 @@ template <std::integral T = int64_t> class SPF
     /// Returns whether the given number is prime. Requires 1 ≤ n ≤ size().
     [[nodiscard]] bool isPrime(T n) const { return (*this)[n] == n; }
 
+    /// Returns the radical of the given number. Requires 1 ≤ n ≤ size().
+    [[nodiscard]] T radical(T n) const
+    {
+        T res = 1;
+        if (n % 2 == 0)
+        {
+            res = 2;
+            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
+        }
+        while (n != 1)
+        {
+            auto const p = (*this)[n];
+            n /= p;
+            while ((*this)[n] == p)
+                n /= p;
+            res *= p;
+        }
+        return res;
+    }
+
     /// Returns the mobius function for the given number. Requires 1 ≤ n ≤ size().
     [[nodiscard]] int mobius(T n) const
     {
@@ -202,7 +222,7 @@ template <std::integral T = int64_t> class SPF
     /// Decomposes a number into its squarefree part and its square part.
     ///
     /// @param n The number to decompose.
-    /// @return A pair of (u, v) such that n = u * v^2 with u squarefree.
+    /// @return A pair of (s, t) such that n = s^2 * t with t squarefree.
     [[nodiscard]] std::pair<T, T> sqfreeDecompose(T n) const
     {
         std::pair<T, T> res{1, n};

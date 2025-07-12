@@ -57,7 +57,6 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
 
     template <typename Fun> constexpr result_t operator()(Fun f) const
     {
-        using euler::gcd;
         using std::gcd;
 
         T hv = isqrt(_limit / 2);

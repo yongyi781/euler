@@ -187,14 +187,34 @@ template <integral2 T, integral2 U, typename Fun = std::identity> constexpr auto
     return reduceRange(std::move(begin), std::move(end), Tp{}, std::plus{}, std::move(f));
 }
 
+/// Sums a function over a range of numbers using TBB.
+template <integral2 T, integral2 U, typename Fun = std::identity> auto psum(T begin, U end, Fun f = {})
+{
+    using V = std::common_type_t<T, U>;
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
+    return tbb::parallel_reduce(
+        tbb::blocked_range<V>(begin, end + 1), Tp{},
+        [&](tbb::blocked_range<V> r, Tp running_total) {
+            for (auto i = r.begin(); i < r.end(); ++i)
+                running_total += f(i);
+            return running_total;
+        },
+        std::plus{});
+}
+
 template <size_t Threshold = 8192, integral2 T, integral2 U, typename Fun = std::identity>
 auto sumMaybeParallel(T begin, U end, Fun f = {})
 {
     if constexpr (Threshold == 0)
+    {
         return sum(begin, end, f);
-    if (end - begin + 1 >= Threshold)
-        return sum(std::execution::par, begin, end, f);
-    return sum(begin, end, f);
+    }
+    else
+    {
+        if (end - begin + 1 >= Threshold)
+            return psum(begin, end, f);
+        return sum(begin, end, f);
+    }
 }
 
 /// Multiplies a function over a range.
@@ -629,4 +649,66 @@ template <typename T> std::vector<T> operator*(const std::vector<T> &v, size_t n
 
 /// Convenience method to repeat a vector n times.
 template <typename T> std::vector<T> operator*(const T &scalar, const std::vector<T> &a) { return a * scalar; }
+
+// ==== Atomic helpers ====
+
+/// Atomically replaces the current value with the result of std::min of the value and arg. That is, it performs atomic
+/// minimum operation.
+template <typename T> T fetch_min(std::atomic<T> &a, T b, std::memory_order m = std::memory_order_seq_cst) noexcept
+{
+    return __atomic_fetch_min((T *)&a, b, (int)m); // NOLINT
+}
+
+/// Atomically replaces the current value with the result of std::max of the value and arg. That is, it performs atomic
+/// maximum operation.
+template <typename T> T fetch_max(std::atomic<T> &a, T b, std::memory_order m = std::memory_order_seq_cst) noexcept
+{
+    return __atomic_fetch_max((T *)&a, b, (int)m); // NOLINT
+}
+
+/// Sums a function over the nodes of a binary tree.
+template <typename Node, typename T, typename Fun> auto sumBinaryTree(Node root, T limit, Fun f)
+{
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, Node>>;
+    if (root.height() > limit)
+        return Tp{};
+    std::vector<Node> st{root};
+    Tp res{};
+    while (!st.empty())
+    {
+        auto node = st.back();
+        st.pop_back();
+        for (; node.height() <= limit; node = *node.left())
+        {
+            res += f(node);
+            auto const right = node.right();
+            if (right && right->height() <= limit)
+                st.push_back(*right);
+            if (!node.left())
+                break;
+        }
+    }
+    return res;
+}
+
+/// Sums a function over the nodes of a binary tree in parallel.
+template <typename Node, typename T, typename U, typename Fun>
+auto sumBinaryTree(Node root, T limit, U parallelThreshold, Fun f)
+{
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, Node>>;
+    if (root.height() > parallelThreshold)
+        return sumBinaryTree(root, limit, f);
+
+    Tp left_res{}, right_res{};
+    auto const left = root.left(), right = root.right();
+    bool const do_left = left && left->height() <= limit, do_right = right && right->height() <= limit;
+    if (do_left && do_right)
+        tbb::parallel_invoke([&] { right_res = sumBinaryTree(*right, limit, parallelThreshold, f); },
+                             [&] { left_res = sumBinaryTree(*left, limit, parallelThreshold, f); });
+    else if (do_left)
+        left_res = sumBinaryTree(*left, limit, parallelThreshold, f);
+    else if (do_right)
+        right_res = sumBinaryTree(*right, limit, parallelThreshold, f);
+    return f(root) + left_res + right_res;
+}
 } // namespace euler

@@ -46,7 +46,10 @@ template <typename T = int64_t> class PF
     constexpr void swap(PF &other) noexcept { _data.swap(other._data); }
     constexpr void clear() noexcept { _data.clear(); }
     /// Dangerous! Make sure you know what you are doing.
-    template <typename... Args> constexpr reference emplace_back(Args &&...args) { return _data.emplace_back(args...); }
+    template <typename... Args> constexpr reference emplace_back(Args &&...args)
+    {
+        return _data.emplace_back(std::forward<Args>(args)...);
+    }
     /// Dangerous! Make sure you know what you are doing.
     constexpr void push_back(value_type x) { _data.push_back(x); }
     /// Dangerous! Make sure you know what you are doing.

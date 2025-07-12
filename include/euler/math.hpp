@@ -1,15 +1,11 @@
 #pragma once
 
 #include "PF.hpp"
-#include "decls.hpp"
-#include "it/primes.hpp"
 #include "modular_arithmetic.hpp"
-#include "prime.hpp"
 #include <algorithm>
 #include <boost/multiprecision/gmp.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <numeric>
-#include <primesieve.hpp>
 
 inline namespace euler
 {
@@ -183,23 +179,6 @@ template <integral2 T> constexpr std::optional<boost::rational<T>> sqrt(const bo
     return {{num, denom}};
 }
 
-/// Factors `n!`.
-template <integral2 T = int> constexpr PF<T> factorFactorial(int n)
-{
-    return it::primes{2, n}.map([&](auto &&p) { return PrimePower<T>{p, factorialValuation(n, p)}; }).to();
-}
-
-/// Factors `binomial(n, r)`.
-template <integral2 T = int> constexpr PF<T> factorBinomial(int n, int r)
-{
-    return it::primes{2, n}
-        .map([&](auto &&p) {
-            auto e = factorialValuation(n, p) - factorialValuation(n - r, p) - factorialValuation(r, p);
-            return PrimePower<T>{p, e};
-        })
-        .to();
-}
-
 /// Returns a table of binomial coefficients of size `size`.
 template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(size_t size)
 {
@@ -214,6 +193,16 @@ template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable
             table[n][r] = table[n - 1][r - 1] + table[n - 1][r];
     }
     return table;
+}
+
+/// Returns a vector of binomial coefficients (n choose k) for k from 0 to `limit`.
+template <typename T> std::vector<T> binomialVec(size_t n, size_t limit)
+{
+    std::vector<T> res(limit + 1);
+    res[0] = 1;
+    for (size_t i = 1; i <= limit; ++i)
+        res[i] = res[i - 1] * (n - i + 1) / i;
+    return res;
 }
 
 /// Returns a solution to two simultaneous congruences along with the lcm of the moduli. Requirements:
@@ -551,7 +540,7 @@ template <typename T = int64_t> constexpr T sumSquares(size_t limit)
 }
 
 /// Finds the largest `e` such that `b^e ≤ n`.
-template <integral2 T, integral2 U> inline int floor_log(T n, U b)
+template <integral2 T, integral2 U> constexpr int floor_log(T n, U b)
 {
     if (n < b)
         return 0;

@@ -64,6 +64,14 @@ template <typename T> class vector3d
         return {_data.data() + _dim2 * (j + _dim1 * i), _dim2};
     }
 
+    /// Gets the 2D slice at (i, j), as a 1D span.
+    constexpr std::span<T> operator[](size_t i) noexcept { return {_data.data() + _dim1 * _dim2 * i, _dim1 * _dim2}; }
+    /// Gets the 2D slice at (i, j), as a 1D span.
+    constexpr std::span<const T> operator[](size_t i) const noexcept
+    {
+        return {_data.data() + _dim1 * _dim2 * i, _dim1 * _dim2};
+    }
+
     constexpr auto operator<=>(const vector3d &other) const = default;
 
     /// Zeros out the vector. This method does not set size to 0.

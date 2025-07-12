@@ -147,7 +147,7 @@ template <typename T, size_t N> class Vector
         return result;
     }
 
-    // 2D cross product, outputs a scalar.
+    /// 2D cross product, outputs a scalar.
     template <typename U = T>
     [[nodiscard]] constexpr U cross(const Vector &other) const
         requires(N == 2)
@@ -157,13 +157,24 @@ template <typename T, size_t N> class Vector
         return U(a1) * b2 - U(a2) * b1;
     }
 
-    // 3D cross product.
+    /// 3D cross product.
     [[nodiscard]] constexpr Vector cross(const Vector &other) const
         requires(N == 3)
     {
         auto &&[a1, a2, a3] = _data;
         auto &&[b1, b2, b3] = other._data;
         return {a2 * b3 - a3 * b2, a3 * b1 - a1 * b3, a1 * b2 - a2 * b1};
+    }
+
+    /// Returns the norm of the vector.
+    [[nodiscard]] constexpr auto norm() const
+    {
+        using std::sqrt;
+
+        T result{};
+        for (auto const x : _data)
+            result += x * x;
+        return sqrt(result);
     }
 
   private:
@@ -395,6 +406,23 @@ template <typename T, size_t M, size_t N> class Matrix
         for (size_t i = 0; i < N; ++i)
             result += _data[i][i];
         return result;
+    }
+
+    [[nodiscard]] constexpr T det() const
+        requires(M == N)
+    {
+        if constexpr (M == 1)
+            return _data[0][0];
+        else if constexpr (M == 2)
+            return _data[0][0] * _data[1][1] - _data[0][1] * _data[1][0];
+        else if constexpr (M == 3)
+        {
+            return _data[0][0] * (_data[1][1] * _data[2][2] - _data[1][2] * _data[2][1]) -
+                   _data[0][1] * (_data[1][0] * _data[2][2] - _data[1][2] * _data[2][0]) +
+                   _data[0][2] * (_data[1][0] * _data[2][1] - _data[1][1] * _data[2][0]);
+        }
+        else
+            throw std::runtime_error("det for 4x4 or higher is not implemented");
     }
 
     template <typename CharT, typename Traits>

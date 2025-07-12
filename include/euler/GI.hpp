@@ -1,8 +1,7 @@
 #pragma once
 
-#include "PF.hpp"
 #include "it/primes.hpp"
-#include "modular_arithmetic.hpp"
+#include "math.hpp"
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -14,66 +13,92 @@ template <integral2 T> struct GI
 {
     T re, im;
 
-    GI(T real = {}, T imag = {}) : re(std::move(real)), im(std::move(imag)) {}
+    constexpr GI(T real = {}, T imag = {}) : re(std::move(real)), im(std::move(imag)) {}
 
-    template <integral2 U> GI<T> operator+(const GI<U> &other) const { return {re + T(other.re), im + T(other.im)}; }
-    template <integral2 U> GI<T> &operator+=(const GI<U> &other) { return *this = *this + other; }
-    template <integral2 U> GI<T> operator-(const GI<U> &other) const { return {re - T(other.re), im - T(other.im)}; }
-    template <integral2 U> GI<T> &operator-=(const GI<U> &other) { return *this = *this - other; }
-    template <integral2 U> GI<T> operator*(const GI<U> &other) const
+    template <integral2 U> constexpr GI<T> operator+(const GI<U> &other) const
+    {
+        return {re + T(other.re), im + T(other.im)};
+    }
+    template <integral2 U> constexpr GI<T> &operator+=(const GI<U> &other) { return *this = *this + other; }
+    template <integral2 U> constexpr GI<T> operator-(const GI<U> &other) const
+    {
+        return {re - T(other.re), im - T(other.im)};
+    }
+    template <integral2 U> constexpr GI<T> &operator-=(const GI<U> &other) { return *this = *this - other; }
+    template <integral2 U> constexpr GI<T> operator*(const GI<U> &other) const
     {
         return {re * T(other.re) - im * T(other.im), re * T(other.im) + im * T(other.re)};
     }
-    template <integral2 U> GI<T> &operator*=(const GI<U> &other) { return *this = *this * other; }
+    template <integral2 U> constexpr GI<T> &operator*=(const GI<U> &other) { return *this = *this * other; }
+
+    /// Truncated division in the Gaussian integers.
+    template <integral2 U> constexpr GI<T> operator/(const GI<U> &other) const { return div(other).first; }
+    template <integral2 U> constexpr GI<T> &operator/=(const GI<U> &other) { return *this = *this / other; }
+    template <integral2 U> constexpr GI<T> operator%(const GI<U> &other) const { return div(other).second; }
+    template <integral2 U> constexpr GI<T> &operator%=(const GI<U> &other) { return *this = *this % other; }
+
     /// Scalar multiplication
-    template <integral2 U> GI<T> operator*(const U &scalar) const { return {re * scalar, im * scalar}; }
-    template <integral2 U> GI<T> &operator*=(const U &scalar) { return *this = *this * scalar; }
+    template <integral2 U> constexpr GI<T> operator*(const U &scalar) const { return {re * scalar, im * scalar}; }
+    template <integral2 U> constexpr GI<T> &operator*=(const U &scalar) { return *this = *this * scalar; }
+    template <integral2 U> friend constexpr GI operator*(const U &scalar, const GI &z) { return z * scalar; }
     /// Scalar division (floor division)
-    template <integral2 U> GI<T> operator/(const U &scalar) const { return {re / scalar, im / scalar}; }
-    template <integral2 U> GI<T> &operator/=(const U &scalar) { return *this = *this / scalar; }
-    GI operator-() const { return {-re, -im}; }
+    template <integral2 U> constexpr GI<T> operator/(const U &scalar) const { return {re / scalar, im / scalar}; }
+    template <integral2 U> constexpr GI<T> &operator/=(const U &scalar) { return *this = *this / scalar; }
+    constexpr GI operator-() const { return {-re, -im}; }
 
     // Equality operator
-    auto operator<=>(const GI &other) const = default;
+    constexpr auto operator<=>(const GI &other) const = default;
 
     // Norm and absolute value
-    [[nodiscard]] T norm() const { return re * re + im * im; }
+    [[nodiscard]] constexpr T norm() const { return re * re + im * im; }
     [[nodiscard]] double abs() const { return std::sqrt((double)norm()); }
 
     // Conjugate
-    [[nodiscard]] GI conj() const { return {re, -im}; }
+    [[nodiscard]] constexpr GI conj() const { return {re, -im}; }
 
-    // Division (returns a pair of GaussianIntegers for quotient and remainder)
-    [[nodiscard]] std::pair<GI, GI> div(const GI &other) const
+    /// Rotate by a power of i so that (re > 0 and im ≥ 0).
+    [[nodiscard]] constexpr GI canonicalAssociate() const
     {
-        if (other == GI{})
+        if (re > 0 && im >= 0)
+            return *this;
+        if (im > 0 && re <= 0)
+            return {im, -re};
+        if (re < 0 && im <= 0)
+            return -*this;
+        return {-im, re};
+    }
+
+    // Division with remainder. This is normalized so that the remainder has the smallest norm among possible
+    // remainders.
+    template <integral2 U> [[nodiscard]] constexpr std::pair<GI, GI> div(const GI<U> &other) const
+    {
+        T const d = other.norm();
+        if (d == 0)
             throw std::overflow_error("Gaussian integer division by zero");
+        auto const [a, b] = *this * other.conj();
 
-        // (a+bi)/(c+di) = (ac+bd)/(c^2+d^2) + i(bc-ad)/(c^2+d^2)
-        T denominator = other.norm();
-        T num_re = re * other.re + im * other.im;
-        T num_im = im * other.re - re * other.im;
+        GI q{floorDiv(a + (d - 1) / 2, d), floorDiv(b + (d - 1) / 2, d)};
+        GI r = *this - q * other;
 
-        T q_re = num_re / denominator;
-        T q_im = num_im / denominator;
-
-        GI quotient = {q_re, q_im};
-        GI remainder = *this - quotient * other;
-
-        return {std::move(quotient), std::move(remainder)};
+        return {std::move(q), std::move(r)};
     }
 
     // Stream insertion operator for printing
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const GI &z)
     {
-        if (z.re != 0)
+        if (z.re != 0 || z.im == 0)
             o << z.re;
         if (z.im != 0)
         {
-            if (z.re && z.im > 0)
+            if (z.re != 0 && z.im > 0)
                 o << '+';
-            o << z.im << "i";
+            if (z.im == -1)
+                o << "-i";
+            else if (z.im == 1)
+                o << "i";
+            else
+                o << z.im << "i";
         }
         return o;
     }
@@ -104,7 +129,44 @@ template <integral2 T> inline GI<T> primeNormGI(T p)
     return {a, b};
 }
 
-/// Enumerates Gaussian integers with a given norm.
+/// Enumerates Gaussian integers with a given norm, using the given prime factorization.
+/// If `includeAll` is true, then both `(x, y)` and `(y, x)` will be reported. Otherwise, only `(x, y)` with `x ≥ y`
+/// will be reported.
+template <integral2 T = i64, integral2 Z, typename Fun>
+void enumGIWithNorm(const PF<Z> &fac, Fun callback, bool includeAll = false)
+{
+    // Check early termination condition
+    if (std::ranges::any_of(fac, [](auto &&pe) { return pe.first % 4 == 3 && pe.second % 2 != 0; }))
+        return;
+
+    auto const v = mapv(fac, [&](auto &&pe) {
+        auto &&[p, e] = pe;
+        return std::tuple{p, e, p % 4 == 3 ? GI<T>{} : primeNormGI((T)p)};
+    });
+    auto const loop = [&](this auto &&self, auto it, GI<T> z) -> void {
+        if (it == v.end())
+        {
+            auto const a = z.canonicalAssociate();
+            if (includeAll || a.re >= a.im)
+                callback(a);
+            return;
+        }
+        auto const [p, e, w] = *it;
+        if (p == 2)
+            self(it + 1, z * pow(w, e));
+        else if (p % 4 == 3)
+            self(it + 1, z * pow(p, e / 2));
+        else
+        {
+            GI<T> q = 1;
+            for (int i = 0; i <= e; ++i, q *= w.conj())
+                self(it + 1, z * pow(w, e - i) * q);
+        }
+    };
+    loop(v.begin(), {1, 0});
+}
+
+/// Enumerates Gaussian integers with a given norm. Use this if you want to precompute prime solutions up front.
 template <integral2 T = i64> class GINorms
 {
     std::vector<GI<T>> prime_solutions;
@@ -120,48 +182,33 @@ template <integral2 T = i64> class GINorms
     }
 
     /// Enumerates Gaussian integers with a given norm, using the given prime factorization.
-    template <integral2 Z, typename Fun> void enumerate(const PF<Z> &fac, Fun callback) const
+    template <integral2 Z, typename Fun> void enumerate(const PF<Z> &fac, Fun callback, bool includeAll = false) const
     {
         // Check early termination condition
         if (std::ranges::any_of(fac, [](auto &&pe) { return pe.first % 4 == 3 && pe.second % 2 != 0; }))
             return;
-        auto const loop = [&](this auto &&self, auto it, GI<T> z) -> void {
+        auto const loop = [&, the = this](this auto &&self, auto it, GI<T> z) -> void {
             if (it == fac.end())
             {
-                z = rep(z);
-                if (z.re >= z.im)
-                    callback(z);
+                auto const a = z.canonicalAssociate();
+                if (includeAll || a.re >= a.im)
+                    callback(a);
                 return;
             }
             auto const [p, e] = *it;
+            auto const w = the->prime_solutions[p];
             if (p == 2)
-                self(it + 1, z * pow(GI<T>{1, 1}, e));
+                self(it + 1, z * pow(w, e));
             else if (p % 4 == 3)
-            {
-                if (e % 2 == 0)
-                    self(it + 1, z * pow(p, e / 2));
-            }
+                self(it + 1, z * pow(p, e / 2));
             else
             {
-                auto const w = prime_solutions[p];
-                for (int i = 0; i <= e; ++i)
-                    self(it + 1, z * pow(w, e - i) * pow(w.conj(), i));
+                GI<T> q = 1;
+                for (int i = 0; i <= e; ++i, q *= w.conj())
+                    self(it + 1, z * pow(w, e - i) * q);
             }
         };
         loop(fac.begin(), {1, 0});
-    }
-
-  private:
-    /// Returns a multiple-of-90 degree rotation of z with positive coordinates.
-    static GI<T> rep(GI<T> z)
-    {
-        if (z.re > 0 && z.im >= 0)
-            return z;
-        if (z.im > 0 && z.re <= 0)
-            return {z.im, -z.re};
-        if (z.re < 0 && z.im <= 0)
-            return -z;
-        return {-z.im, z.re};
     }
 };
 } // namespace euler

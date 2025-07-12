@@ -634,20 +634,20 @@ auto localProductValue(size_t p1, Fun1 f1, size_t p2, Fun2 f2, SummatoryFun G, T
 
 /// Computes `∑ (k powerful), f(k) * G(n / k)` in O(√n) evaluations of G.
 /// f is given as a multiplicative function: (p, e) ↦ f(p^e).
-template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n)
+template <typename Fun, typename SummatoryFun, integral2 T, std::ranges::range Range>
+auto powerfulProductValue(Fun f, SummatoryFun G, T n, Range &&primes)
 {
     using H = half_integer_t<T>;
     using Tp = std::common_type_t<std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>,
                                   std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>>;
-    auto const ps = primeRange<H>(isqrt(n));
     return it::tree(
                std::tuple{T(1), 0UZ, Tp(1)},
                [&](auto &&t, auto rec) {
                    auto &&[k, i, acc] = t;
                    T const hq = fastDiv(n, k);
-                   for (size_t j = i; j < ps.size(); ++j)
+                   for (size_t j = i; j < primes.size(); ++j)
                    {
-                       H const p = ps[j];
+                       H const p = primes[j];
                        T const pp = T(p) * p;
                        if (pp > hq)
                            break;
@@ -662,7 +662,7 @@ template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProduct
                },
                [&](auto &&t) {
                    auto &&[k, i, acc] = t;
-                   return mulLeq(k, T(ps[i]) * ps[i], n);
+                   return mulLeq(k, T(primes[i]) * primes[i], n);
                })
         .map([&](auto &&t) {
             auto &&[k, i, acc] = t;
@@ -671,22 +671,29 @@ template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProduct
         .sum();
 }
 
+/// Computes `∑ (k powerful), f(k) * G(n / k)` in O(√n) evaluations of G.
+/// f is given as a multiplicative function: (p, e) ↦ f(p^e).
+template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n)
+{
+    return powerfulProductValue(f, G, n, primeRange<half_integer_t<T>>(isqrt(n)));
+}
+
 /// Computes `∑ (k r-powerful), f(k) * G(n / k)` in O(n^(1/r)) evaluations of G.
 /// f is given as a multiplicative function: (p, e) ↦ f(p^e).
-template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n, int r)
+template <typename Fun, typename SummatoryFun, integral2 T, std::ranges::range Range>
+auto powerfulProductValue(Fun f, SummatoryFun G, T n, int r, Range &&primes)
 {
     using H = half_integer_t<T>;
     using Tp = std::common_type_t<std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>,
                                   std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>>;
-    auto const ps = primeRange<H>(inth_root(n, r));
     return it::tree(
                std::tuple{T(1), 0UZ, Tp(1)},
                [&](auto &&t, auto rec) {
                    auto &&[k, i, acc] = t;
                    T const hq = fastDiv(n, k);
-                   for (size_t j = i; j < ps.size(); ++j)
+                   for (size_t j = i; j < primes.size(); ++j)
                    {
-                       H const p = ps[j];
+                       H const p = primes[j];
                        T const pp = pow(T(p), r);
                        if (pp > hq)
                            break;
@@ -701,13 +708,20 @@ template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProduct
                },
                [&](auto &&t) {
                    auto &&[k, i, acc] = t;
-                   return mulLeq(k, pow(T(ps[i]), r), n);
+                   return mulLeq(k, pow(T(primes[i]), r), n);
                })
         .map([&](auto &&t) {
             auto &&[k, i, acc] = t;
             return acc * G(fastDiv(n, k));
         })
         .sum();
+}
+
+/// Computes `∑ (k r-powerful), f(k) * G(n / k)` in O(n^(1/r)) evaluations of G.
+/// f is given as a multiplicative function: (p, e) ↦ f(p^e).
+template <typename Fun, typename SummatoryFun, integral2 T> auto powerfulProductValue(Fun f, SummatoryFun G, T n, int r)
+{
+    return powerfulProductValue(f, G, n, r, primeRange<half_integer_t<T>>(inth_root(n, r)));
 }
 
 template <typename Fun, integral2 T> inline auto productZeta_2s(Fun &&F, T n)

@@ -156,6 +156,8 @@ constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
     {
         // Allow negative exponents in this case
         bool const neg = exponent < 0;
+        if (neg)
+            exponent = -exponent;
         auto res = pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), Multiply(modulus));
         if (neg)
             return decltype(res)(modInverse(std::move(res), modulus));
@@ -176,7 +178,7 @@ template <typename T, integral2 E, typename M> constexpr auto powm(T base, E exp
                                            std::move(identity));
 }
 
-/// A version of modular exponentiation that handles overflow correctly.
+/// A version of modular exponentiation that does arithmetic in an integer of twice the size of T, to avoid overflow.
 template <typename T, integral2 E, typename M> constexpr auto powmSafe(T base, E exponent, M modulus, T identity = T(1))
 {
     return detail::powm<mod_multiplies_safe<M>>(std::move(base), std::move(exponent), std::move(modulus),

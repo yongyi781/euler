@@ -91,7 +91,6 @@ constexpr T totient(T n, SPFSieve &&spfs = {}) // Pass by value intentional
 template <integral2 Ta, integral2 Tp, integral2 Tt, typename SPFSieve = std::vector<int>>
 constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPFSieve &&spfs = {})
 {
-    using euler::gcd;
     using std::gcd;
     if (gcd(a, modulus) != 1)
         return 0;
@@ -110,7 +109,6 @@ constexpr Tt multiplicativeOrder(const Ta &a, const Tp &modulus, Tt totient, SPF
 /// @return The multiplicative order of `a` modulo `modulus`.
 template <integral2 Ta, integral2 Tp> constexpr Tp multiplicativeOrder(const Ta &a, const Tp &modulus)
 {
-    using euler::gcd;
     using std::gcd;
     if (gcd(a, modulus) != 1)
         return 0;

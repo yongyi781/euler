@@ -11,6 +11,11 @@ inline namespace euler
 /// Fenwick tree, also known as binary indexed tree.
 template <typename T> class FenwickTree
 {
+    std::vector<T> _data;
+
+    [[nodiscard]] static constexpr size_t parent(size_t i) noexcept { return i - (i & -i); }
+    [[nodiscard]] static constexpr size_t next(size_t i) noexcept { return i + (i & -i); }
+
   public:
     /// Creates an empty Fenwick tree.
     FenwickTree() = default;
@@ -102,11 +107,5 @@ template <typename T> class FenwickTree
     {
         return o << "Fenwick tree " << t.data();
     }
-
-  private:
-    std::vector<T> _data;
-
-    [[nodiscard]] static constexpr size_t parent(size_t i) noexcept { return i - (i & -i); }
-    [[nodiscard]] static constexpr size_t next(size_t i) noexcept { return i + (i & -i); }
 };
 } // namespace euler

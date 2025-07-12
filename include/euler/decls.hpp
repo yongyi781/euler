@@ -59,7 +59,7 @@ constexpr T pow(T base, U exponent)
     return pow(base, exponent, T{1}, std::multiplies{});
 }
 
-/// Returns whether `a * b <= c`, and always returns false if the multiplication overflows.
+/// Returns whether `a * b ≤ c`, and always returns false if the multiplication overflows.
 template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b, V c)
 {
     V x{};
@@ -126,15 +126,6 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
         return std::forward<Callable>(f)(std::forward<Args>(args)...);
     }
 }
-
-/// GCD for int128.
-constexpr int128_t gcd(int128_t m, int128_t n) noexcept { return boost::integer::gcd(m, n); }
-/// LCM for int128.
-constexpr int128_t lcm(int128_t m, int128_t n) noexcept { return boost::integer::lcm(m, n); }
-/// GCD for uint128.
-constexpr uint128_t gcd(uint128_t m, uint128_t n) noexcept { return boost::integer::gcd(m, n); }
-/// LCM for uint128.
-constexpr uint128_t lcm(uint128_t m, uint128_t n) noexcept { return boost::integer::lcm(m, n); }
 
 // Forward declarations of printing operators.
 #ifdef BOOST_HAS_INT128

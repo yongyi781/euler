@@ -7,6 +7,7 @@
 #include "euler/QD.hpp"
 #include "euler/Quadratic.hpp"
 #include "euler/SPF.hpp"
+#include "euler/SegmentTree.hpp"
 #include "euler/ZMod.hpp"
 #include "euler/ZModpp.hpp"
 #include "euler/algorithm.hpp"
