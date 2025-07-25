@@ -240,26 +240,36 @@ template <bool KnownDivides = false, typename T, typename U> constexpr int remov
 }
 
 /// Calculates the valuation of n with respect to a prime p.
-template <typename Tn, typename Tp> constexpr int valuation(Tn n, const Tp &p) // Pass by value intentional
+template <bool KnownDivides = false, typename T, typename U>
+constexpr int valuation(T n, const U &p) // Pass by value intentional
 {
-    return removeFactors(n, p);
+    return removeFactors<KnownDivides>(n, p);
+}
+
+/// Removes all factors of p from a number, and returns the result. The `knownDivides` template
+/// parameter is for performance optimization, skipping the first modulus check if it is known `p` divides `n` in
+/// advance.
+template <bool KnownDivides = false, typename T, typename U> constexpr T removedFactors(T n, const U &p)
+{
+    removeFactors<KnownDivides>(n, p);
+    return n;
 }
 
 /// @brief Calculates the p-adic valuation of n!.
 /// @param n A number.
 /// @param p A prime number.
 /// @return The p-adic valuation of n!.
-template <integral2 Tn, integral2 Tp> constexpr Tn factorialValuation(Tn n, const Tp &p) // Pass by value intentional
+template <integral2 T, integral2 U> constexpr T factorialValuation(T n, const U &p) // Pass by value intentional
 {
-    Tn total = 0;
+    T total = 0;
     while (n > 1)
         total += (n /= p);
     return total;
 }
 
 /// Calculates the p-adic valuation of binomial(n,k).
-template <integral2 Tn, integral2 Tk, integral2 Tp>
-constexpr std::common_type_t<Tn, Tk> binomValuation(const Tn &n, const Tk &k, const Tp &p)
+template <integral2 T, integral2 U, integral2 V>
+constexpr std::common_type_t<T, U> binomValuation(const T &n, const U &k, const V &p)
 {
     return factorialValuation(n, p) - factorialValuation(n - k, p) - factorialValuation(k, p);
 }

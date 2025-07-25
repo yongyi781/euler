@@ -38,4 +38,24 @@ void ifwht(std::vector<ZMod<M>> &v)
             for (size_t j = i; j < i + h; ++j)
                 std::tie(v[j], v[j + h]) = std::pair{(v[j] + v[j + h]) * inv2, (v[j] - v[j + h]) * inv2};
 }
+
+/// Perform the Walsh-Hadamard OR transform in-place.
+template <std::ranges::random_access_range Range> void fwht_or(Range &v)
+{
+    assert(std::has_single_bit(v.size()));
+    for (size_t h = 1; h < v.size(); h *= 2)
+        for (size_t i = 0; i < v.size(); i += 2 * h)
+            for (size_t j = i; j < i + h; ++j)
+                v[j + h] += v[j];
+}
+
+/// Perform the inverse Fast Walsh-Hadamard OR transform in-place.
+template <std::ranges::random_access_range Range> void ifwht_or(Range &v)
+{
+    assert(std::has_single_bit(v.size()));
+    for (size_t h = 1; h < v.size(); h *= 2)
+        for (size_t i = 0; i < v.size(); i += 2 * h)
+            for (size_t j = i; j < i + h; ++j)
+                v[j + h] -= v[j];
+}
 } // namespace euler

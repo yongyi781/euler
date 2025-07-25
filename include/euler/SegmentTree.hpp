@@ -15,6 +15,14 @@ template <typename Node> class SegmentTree
     /// Creates an empty segment tree of given size.
     constexpr SegmentTree(size_t n) : _data(2 * n) {}
 
+    /// Creates an empty segment tree of given size.
+    constexpr SegmentTree(size_t n, const Node &value) : _data(2 * n)
+    {
+        std::ranges::fill(_data.begin() + size(), _data.end(), value);
+        for (size_t i = size() - 1; i > 0; --i)
+            _data[i] = _data[2 * i] + _data[2 * i + 1];
+    }
+
     /// Creates a segment tree from a range of elements.
     template <std::ranges::sized_range Range> constexpr SegmentTree(Range &&init) : SegmentTree(init.size())
     {

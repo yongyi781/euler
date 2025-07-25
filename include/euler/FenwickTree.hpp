@@ -84,7 +84,7 @@ template <typename T> class FenwickTree
     {
         assert(j < size());
         if (i > j)
-            return 0;
+            return T{};
         return sum(j) - (i == 0 ? T{} : sum(i - 1));
     }
 
@@ -105,7 +105,11 @@ template <typename T> class FenwickTree
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const FenwickTree<T> &t)
     {
-        return o << "Fenwick tree " << t.data();
+        o << "Fenwick tree:\n  Values: [";
+        for (size_t i = 0; i < t.size(); i++)
+            o << (i == 0 ? "" : ", ") << t[i];
+        o << "]\n  Raw data: " << t.data() << '\n';
+        return o;
     }
 };
 } // namespace euler

@@ -7,6 +7,8 @@ inline namespace euler
 /// Type for universal recursive memoizer.
 template <typename Fun, typename... Args> struct memoize_t
 {
+    static_assert(std::is_invocable_v<Fun, std::reference_wrapper<memoize_t>, Args...>);
+
     using key_type = std::tuple<Args...>;
     using value_type = std::invoke_result_t<Fun, std::reference_wrapper<memoize_t>, Args...>;
 

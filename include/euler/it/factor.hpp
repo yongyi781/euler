@@ -48,13 +48,21 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
     /// Counts the number of divisors from the factorization.
     template <integral2 Z = T> constexpr Z countDivisors() const
     {
-        return map([](auto &&pe) { return Z(pe.second + 1); }).product();
+        return map([](auto &&pe) -> Z { return pe.second + 1; }).product();
     }
 
     /// Sums the divisors from the factorization.
     template <integral2 Z = T> constexpr Z sumDivisors() const
     {
-        return map([](auto &&pe) { return Z(pow(Z(pe.first), pe.second + 1) - 1) / Z(pe.first - 1); }).product();
+        return map([](auto &&pe) -> Z {
+                   auto &&[p, e] = pe;
+                   if (e == 1)
+                       return 1 + p;
+                   if (e == 2)
+                       return 1 + p + Z(p) * p;
+                   return (pow(Z(p), e + 1) - 1) / Z(p - 1);
+               })
+            .product();
     }
 
   private:
@@ -139,6 +147,12 @@ template <integral2 T> constexpr std::pair<T, T> sqfreeDecompose(T num)
         num /= q * q;
     });
     return {s, num};
+}
+
+/// Returns the radical of the given number.
+template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> T radical(T num, SPFSieve &&spfs = {})
+{
+    return it::factor{num, spfs}.map([](auto &&pe) { return pe.first; }).product();
 }
 
 /// Function to find smallest primitive root of p.

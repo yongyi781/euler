@@ -52,7 +52,7 @@ constexpr std::vector<TBase> digits(const integral2 auto &num, TBase base = 10)
     return result;
 }
 
-template <integral2 T, std::endian Endian = std::endian::little, std::ranges::range Range>
+template <integral2 T = i64, std::endian Endian = std::endian::little, std::ranges::range Range>
 constexpr T fromDigits(Range &&digits, int base = 10)
 {
     T res = 0;

@@ -15,56 +15,30 @@ template <std::integral T = int64_t> class SPF
     using half_integer_type = std::make_unsigned_t<half_integer_t<T>>;
 
     SPF() = default;
-    explicit SPF(T n) : spfOdd((n + 1) / 2, 0), smallPrimes(primeRange<half_integer_type>(3, isqrt(n)))
+    explicit SPF(T n) : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_integer_type>(3, isqrt(n)))
     {
-        T const m = (n + 1) / 2; // covers numbers 1,3,5,... up to n
-        // We ignore index 0 (number 1) and process indices [1, m).
-        // Partition these indices into segments.
-        int const segSize = 32768; // you can adjust this block size as needed
-        std::vector<std::pair<T, T>> segments;
-        for (T start = 1; start < m; start += segSize)
-            segments.emplace_back(start, std::min(m, start + segSize));
-
-        // Process each segment in parallel.
-        std::for_each(std::execution::par, segments.begin(), segments.end(), [&](const std::pair<T, T> &seg) {
-            T const L = seg.first;
-            T const R = seg.second; // R is not inclusive
-            // The segment covers odd numbers from:
-            //   segStart = 2*L + 1  up to  segEnd = 2*R + 1 (exclusive)
-            T const segStart = 2 * L + 1;
-            T const segEnd = 2 * R + 1;
-            // For each small prime p, mark its odd multiples in this segment.
-            for (half_integer_type const p : smallPrimes)
-            {
-                // Compute the first number to mark in this segment.
-                T startVal = p * p;
-                // If p*p is not less than the upper bound of the segment, nothing to mark.
-                if (startVal >= segEnd)
-                    break;
-                if (startVal < segStart)
+        tbb::parallel_for(
+            tbb::blocked_range(0UZ, spf_odd.size(), 65536UZ),
+            [&](tbb::blocked_range<size_t> r) {
+                size_t const seg_end = 2 * r.end();
+                for (size_t const p : small_primes)
                 {
-                    // Increase startVal in steps of 2*p until it's >= segStart.
-                    T const diff = segStart - startVal;
-                    T const k = (diff + 2 * p - 1) / (2 * p); // ceil(diff / (2*p))
-                    startVal += k * 2 * p;
+                    if (p * p >= seg_end)
+                        break;
+                    size_t const lj = std::max(p * p / 2, (2 * r.begin() + p) / (2 * p) * p + p / 2);
+                    for (size_t j = lj; j < r.end(); j += p)
+                        if (spf_odd[j] == 0)
+                            spf_odd[j] = p;
                 }
-                // Mark every odd multiple of p in [startVal, segEnd)
-                for (T x = startVal; x < segEnd; x += 2 * p)
-                {
-                    T const idx = (x - 1) / 2;
-                    // Only update if not already marked (ensuring the smallest prime factor remains)
-                    if (spfOdd[idx] == 0)
-                        spfOdd[idx] = p;
-                }
-            }
-        });
+            },
+            tbb::simple_partitioner{});
     }
 
     /// Returns whether the SPF sieve is empty.
-    [[nodiscard]] bool empty() const noexcept { return spfOdd.empty(); }
+    [[nodiscard]] bool empty() const noexcept { return spf_odd.empty(); }
 
     /// Returns the effective size of this SPF sieve, which is 1 more than the max valid input to this sieve.
-    [[nodiscard]] size_t size() const noexcept { return spfOdd.size() * 2 + 1; }
+    [[nodiscard]] size_t size() const noexcept { return spf_odd.size() * 2 + 1; }
 
     /// Returns the smallest prime factor for any x (1 ≤ x ≤ size()).
     [[nodiscard]] T operator[](T n) const
@@ -73,7 +47,7 @@ template <std::integral T = int64_t> class SPF
             return 0;
         if (n % 2 == 0)
             return 2;
-        return spfOdd[n / 2] == 0 ? n : spfOdd[n / 2];
+        return spf_odd[n / 2] == 0 ? n : spf_odd[n / 2];
     }
 
     /// Returns whether the given number is prime. Requires 1 ≤ n ≤ size().
@@ -400,10 +374,10 @@ template <std::integral T = int64_t> class SPF
     }
 
   private:
-    // spfOdd[i] holds the smallest prime factor for number (2*i + 1).
+    // spf_odd[i] holds the smallest prime factor for number (2*i + 1).
     // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
-    std::vector<half_integer_type> spfOdd;
-    std::vector<half_integer_type> smallPrimes; // Odd primes up to sqrt(n).
+    std::vector<half_integer_type> spf_odd;
+    std::vector<half_integer_type> small_primes; // Odd primes up to sqrt(n).
 };
 
 /// Sieve for the divisor counting function.
