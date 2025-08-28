@@ -10,6 +10,11 @@ inline namespace euler
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.
 template <std::integral T = int64_t> class SPF
 {
+    // spf_odd[i] holds the smallest prime factor for number (2*i + 1).
+    // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
+    std::vector<std::make_unsigned_t<half_integer_t<T>>> spf_odd;
+    std::vector<std::make_unsigned_t<half_integer_t<T>>> small_primes; // Odd primes up to sqrt(n).
+
   public:
     // Only need to store integer half the size of the input!
     using half_integer_type = std::make_unsigned_t<half_integer_t<T>>;
@@ -372,12 +377,6 @@ template <std::integral T = int64_t> class SPF
     {
         return sieveCompletelyAdditive([](T) -> uint8_t { return 1; }, limit);
     }
-
-  private:
-    // spf_odd[i] holds the smallest prime factor for number (2*i + 1).
-    // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
-    std::vector<half_integer_type> spf_odd;
-    std::vector<half_integer_type> small_primes; // Odd primes up to sqrt(n).
 };
 
 /// Sieve for the divisor counting function.

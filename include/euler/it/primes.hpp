@@ -11,6 +11,9 @@ namespace it
 /// Enumerates primes, using the primesieve library.
 class primes : public it_base
 {
+    int64_t _start = 2;
+    int64_t _stop = std::numeric_limits<int64_t>::max();
+
   public:
     using value_type = int64_t;
 
@@ -28,10 +31,6 @@ class primes : public it_base
                 return result_break;
         return result_continue;
     }
-
-  private:
-    int64_t _start = 2;
-    int64_t _stop = std::numeric_limits<int64_t>::max();
 };
 } // namespace it
 

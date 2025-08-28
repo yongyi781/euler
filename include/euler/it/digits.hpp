@@ -9,6 +9,9 @@ namespace it
 /// Enumerates the digits of a number in a specified base, which must be ≥ 2.
 template <integral2 T = int64_t, integral2 TBase = int> class digits : public it_base
 {
+    T _n;
+    TBase _base;
+
   public:
     using value_type = TBase;
 
@@ -34,10 +37,6 @@ template <integral2 T = int64_t, integral2 TBase = int> class digits : public it
         }
         return result_continue;
     }
-
-  private:
-    T _n;
-    TBase _base;
 };
 } // namespace it
 

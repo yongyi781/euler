@@ -7,6 +7,88 @@ inline namespace euler
 /// A class to compute binomial coefficients mod prime powers.
 class BinomialModPrimePower
 {
+    int64_t _p = 1, _pe = 1;
+    int _e = 0;
+
+    // p^k
+    std::vector<int64_t> pPower;
+
+    // First kind
+    std::vector<std::vector<int64_t>> stirling;
+
+    // (p-1)!^k
+    std::vector<int64_t> pstirling;
+
+    // factorials and its inverse, but without the factor p
+    std::vector<int64_t> fact, ifact;
+    // p-adic valuation of factorial
+    std::vector<int> pfact;
+
+    std::vector<int64_t> lagrangeCoeff;
+
+    std::vector<int64_t> prods;
+
+    // Computes (np+1)(np+2) ... (np+m) % p^e
+    // with m < p
+    [[nodiscard]] int64_t risingFactorial(int64_t n, int64_t m) const
+    {
+        int64_t ret = 0;
+        int64_t pn = 1;
+        int const ep = (int)(_e < _p ? _e : _p);
+        for (int j = 0; j < ep; ++j)
+        {
+            ret = (int64_t)(((__int128)stirling[m + 1][j + 1] * pn + ret) % _pe);
+            pn = (int64_t)((__int128)pn * _p * n % _pe);
+        }
+
+        return ret;
+    }
+
+    [[nodiscard]] int64_t lagrangeInterpolate(int64_t ndp) const
+    {
+        int const len = _e * 2 - 1;
+        int64_t ptot = 0;
+
+        std::vector pfactorsnum(len, 0);
+        std::vector prenum(len, (int64_t)0);
+        std::vector sufnum(len, (int64_t)0);
+
+        for (int i = 0; i < len; ++i)
+        {
+            int64_t num = ndp - i;
+            pfactorsnum[i] = 0;
+            while (num % _p == 0)
+            {
+                num /= _p;
+                ++pfactorsnum[i];
+            }
+            ptot += pfactorsnum[i];
+            prenum[i] = sufnum[i] = num;
+
+            if (i > 0)
+                prenum[i] = (int64_t)((__int128)prenum[i - 1] * prenum[i] % _pe);
+        }
+
+        for (int i = len - 2; i >= 0; --i)
+            sufnum[i] = (int64_t)((__int128)sufnum[i] * sufnum[i + 1] % _pe);
+
+        int64_t sum = 0;
+        for (int j = 0; j < len; ++j)
+        {
+            int const j2 = len - 1 - j;
+            int64_t const pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
+
+            if (pfactor >= _e)
+                continue;
+
+            auto numerator = (int64_t)((__int128)(j > 0 ? prenum[j - 1] : 1) * (j < len - 1 ? sufnum[j + 1] : 1) % _pe);
+
+            sum = (int64_t)(((__int128)numerator * lagrangeCoeff[j] % _pe * pPower[pfactor] + sum) % _pe);
+        }
+
+        return sum;
+    }
+
   public:
     // O(p*min(e, p) + e^2)
     BinomialModPrimePower(int64_t p, int e) : _p(p), _e(e), fact(e * 2 - 1), ifact(e * 2 - 1), pfact(e * 2 - 1)
@@ -124,88 +206,5 @@ class BinomialModPrimePower
     }
 
     int64_t operator()(int64_t n, int64_t r) const { return binomial(n, r); }
-
-  private:
-    int64_t _p = 1, _pe = 1;
-    int _e = 0;
-
-    // p^k
-    std::vector<int64_t> pPower;
-
-    // First kind
-    std::vector<std::vector<int64_t>> stirling;
-
-    // (p-1)!^k
-    std::vector<int64_t> pstirling;
-
-    // factorials and its inverse, but without the factor p
-    std::vector<int64_t> fact, ifact;
-    // p-adic valuation of factorial
-    std::vector<int> pfact;
-
-    std::vector<int64_t> lagrangeCoeff;
-
-    std::vector<int64_t> prods;
-
-    // Computes (np+1)(np+2) ... (np+m) % p^e
-    // with m < p
-    [[nodiscard]] int64_t risingFactorial(int64_t n, int64_t m) const
-    {
-        int64_t ret = 0;
-        int64_t pn = 1;
-        int const ep = (int)(_e < _p ? _e : _p);
-        for (int j = 0; j < ep; ++j)
-        {
-            ret = (int64_t)(((__int128)stirling[m + 1][j + 1] * pn + ret) % _pe);
-            pn = (int64_t)((__int128)pn * _p * n % _pe);
-        }
-
-        return ret;
-    }
-
-    [[nodiscard]] int64_t lagrangeInterpolate(int64_t ndp) const
-    {
-        int const len = _e * 2 - 1;
-        int64_t ptot = 0;
-
-        std::vector pfactorsnum(len, 0);
-        std::vector prenum(len, (int64_t)0);
-        std::vector sufnum(len, (int64_t)0);
-
-        for (int i = 0; i < len; ++i)
-        {
-            int64_t num = ndp - i;
-            pfactorsnum[i] = 0;
-            while (num % _p == 0)
-            {
-                num /= _p;
-                ++pfactorsnum[i];
-            }
-            ptot += pfactorsnum[i];
-            prenum[i] = sufnum[i] = num;
-
-            if (i > 0)
-                prenum[i] = (int64_t)((__int128)prenum[i - 1] * prenum[i] % _pe);
-        }
-
-        for (int i = len - 2; i >= 0; --i)
-            sufnum[i] = (int64_t)((__int128)sufnum[i] * sufnum[i + 1] % _pe);
-
-        int64_t sum = 0;
-        for (int j = 0; j < len; ++j)
-        {
-            int const j2 = len - 1 - j;
-            int64_t const pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
-
-            if (pfactor >= _e)
-                continue;
-
-            auto numerator = (int64_t)((__int128)(j > 0 ? prenum[j - 1] : 1) * (j < len - 1 ? sufnum[j + 1] : 1) % _pe);
-
-            sum = (int64_t)(((__int128)numerator * lagrangeCoeff[j] % _pe * pPower[pfactor] + sum) % _pe);
-        }
-
-        return sum;
-    }
 };
 } // namespace euler

@@ -10,6 +10,8 @@ namespace it
 /// Gets lines from a file.
 class lines : public it_base
 {
+    std::string _fileName;
+
   public:
     using value_type = std::string;
 
@@ -23,9 +25,6 @@ class lines : public it_base
                 return it::result_break;
         return it::result_continue;
     }
-
-  private:
-    std::string _fileName;
 };
 } // namespace it
 } // namespace euler

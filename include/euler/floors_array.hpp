@@ -12,6 +12,10 @@ inline namespace euler
 /// Usage: `floors_array(n)` or `floors_array(n, s)`.
 template <typename T = int64_t> class floors_array
 {
+    size_t _n = 0;
+    std::vector<T> _up;
+    std::vector<T> _down;
+
   public:
     /// s should be 1 less than the size of the small values array.
     constexpr floors_array() = default;
@@ -155,11 +159,6 @@ template <typename T = int64_t> class floors_array
     {
         return o << "{\n  n: " << S._n << "\n  up: " << S._up << "\n  down: " << S._down << "\n}";
     }
-
-  private:
-    size_t _n = 0;
-    std::vector<T> _up;
-    std::vector<T> _down;
 };
 
 /// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * f(p)` for `k` of the form `⌊limit / i⌋`. Here, `f` must be

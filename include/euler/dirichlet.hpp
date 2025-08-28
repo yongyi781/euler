@@ -30,6 +30,9 @@ concept dirichlet_type = is_dirichlet<std::decay_t<T>>::value;
 /// A class representing a special Dirichlet series that does not require any storage.
 template <typename Fun, typename SFun> class SpecialDirichlet
 {
+    Fun m_f;
+    SFun m_F;
+
   public:
     constexpr SpecialDirichlet(Fun f, SFun F) : m_f(std::move(f)), m_F(std::move(F)) {}
 
@@ -53,15 +56,44 @@ template <typename Fun, typename SFun> class SpecialDirichlet
                                 }) -
                Tp(sum(s)) * other.sum(s);
     }
-
-  private:
-    Fun m_f;
-    SFun m_F;
 };
 
 /// Class for computing Dirichlet series summatory functions, where `up` has size O((n / log(n))^(2/3)).
 template <typename T> class Dirichlet
 {
+    size_t _n = 0;
+    std::vector<T> _up;
+    std::vector<T> _down;
+    std::vector<size_t> _quotients;
+
+    template <dirichlet_type Dir> T sumTerm1(const Dir &other, size_t i, uint32_t j) const
+    {
+        if constexpr (requires { other.down(i * j); })
+            return value(j) * other.down(i * j) + down(i * j) * other.value(j);
+        return value(j) * other.sum(quotient(i * j)) + down(i * j) * other.value(j);
+    }
+
+    template <dirichlet_type Dir> T sumTerm2(const Dir &other, const libdivide::divider<size_t> &i, uint32_t j) const
+    {
+        size_t const kdivj = quotient(j) / i;
+        return value(j) * other.up(kdivj) + up(kdivj) * other.value(j);
+    }
+
+    /// One step of the divison algorithm by ζ(s). Internal use only.
+    template <dirichlet_type Dir> void divideStep(const Dir &other, uint32_t i)
+    {
+        size_t const k = quotient(i);
+        uint32_t const s = isqrt(k);
+        uint32_t const u = (_down.size() - 1) / i;
+        libdivide::divider<size_t> const fasti(i);
+        down(i) -= (up(1) - up(0)) * T(other.sum(k));
+        down(i) -= sumMaybeParallel(2, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); });
+        down(i) -= sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); });
+        down(i) += up(s) * T(other.up(s));
+        if (other.value(1) != 1)
+            down(i) /= other.value(1);
+    }
+
   public:
     Dirichlet() = default;
 
@@ -551,40 +583,6 @@ template <typename T> class Dirichlet
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Dirichlet &S)
     {
         return o << "{\n  n: " << S._n << "\n  up: " << S._up << "\n  down: " << S._down << "\n}";
-    }
-
-  private:
-    size_t _n = 0;
-    std::vector<T> _up;
-    std::vector<T> _down;
-    std::vector<size_t> _quotients;
-
-    template <dirichlet_type Dir> T sumTerm1(const Dir &other, size_t i, uint32_t j) const
-    {
-        if constexpr (requires { other.down(i * j); })
-            return value(j) * other.down(i * j) + down(i * j) * other.value(j);
-        return value(j) * other.sum(quotient(i * j)) + down(i * j) * other.value(j);
-    }
-
-    template <dirichlet_type Dir> T sumTerm2(const Dir &other, const libdivide::divider<size_t> &i, uint32_t j) const
-    {
-        size_t const kdivj = quotient(j) / i;
-        return value(j) * other.up(kdivj) + up(kdivj) * other.value(j);
-    }
-
-    /// One step of the divison algorithm by ζ(s). Internal use only.
-    template <dirichlet_type Dir> void divideStep(const Dir &other, uint32_t i)
-    {
-        size_t const k = quotient(i);
-        uint32_t const s = isqrt(k);
-        uint32_t const u = (_down.size() - 1) / i;
-        libdivide::divider<size_t> const fasti(i);
-        down(i) -= (up(1) - up(0)) * T(other.sum(k));
-        down(i) -= sumMaybeParallel(2, u, [&](uint32_t j) -> T { return sumTerm1(other, i, j); });
-        down(i) -= sumMaybeParallel(u + 1, s, [&](uint32_t j) -> T { return sumTerm2(other, fasti, j); });
-        down(i) += up(s) * T(other.up(s));
-        if (other.value(1) != 1)
-            down(i) /= other.value(1);
     }
 };
 

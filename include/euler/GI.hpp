@@ -176,7 +176,7 @@ template <integral2 T = i64> class GINorms
 
     GINorms(size_t prime_limit) : prime_solutions(prime_limit)
     {
-        auto const ps = it::primes(prime_limit).filter([](i64 p) { return p % 4 != 3; }).to();
+        auto const ps = it::primes(2, prime_limit).filter([](i64 p) { return p % 4 != 3; }).to();
         std::for_each(std::execution::par, ps.begin(), ps.end(),
                       [&](i64 p) { prime_solutions[p] = primeNormGI((T)p); });
     }

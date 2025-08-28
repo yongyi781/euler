@@ -255,16 +255,13 @@ template <bool KnownDivides = false, typename T, typename U> constexpr T removed
     return n;
 }
 
-/// @brief Calculates the p-adic valuation of n!.
-/// @param n A number.
-/// @param p A prime number.
-/// @return The p-adic valuation of n!.
+/// Calculates the p-adic valuation of n!.
 template <integral2 T, integral2 U> constexpr T factorialValuation(T n, const U &p) // Pass by value intentional
 {
-    T total = 0;
+    T res = 0;
     while (n > 1)
-        total += (n /= p);
-    return total;
+        res += (n /= p);
+    return res;
 }
 
 /// Calculates the p-adic valuation of binomial(n,k).

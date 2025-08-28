@@ -25,6 +25,8 @@ class cfrac_base : public it::it_base
 /// Makes a continued fraction out of a list of numbers.
 template <std::ranges::view V> class from_terms : public cfrac_base
 {
+    V _terms;
+
   public:
     using value_type = std::ranges::range_value_t<V>;
 
@@ -38,9 +40,6 @@ template <std::ranges::view V> class from_terms : public cfrac_base
                 return it::result_break;
         return it::result_continue;
     }
-
-  private:
-    V _terms;
 };
 
 template <std::ranges::range Range> from_terms(Range &&) -> from_terms<std::views::all_t<Range>>;
@@ -120,6 +119,9 @@ template <integral2 T> class quadratic : public cfrac_base
 /// A periodic continued fraction.
 template <integral2 T> class periodic : public cfrac_base
 {
+    std::vector<T> _leadingTerms;
+    std::vector<T> _periodicTerms;
+
   public:
     using value_type = T;
 
@@ -154,10 +156,6 @@ template <integral2 T> class periodic : public cfrac_base
         ss << "]";
         return std::move(ss).str();
     }
-
-  private:
-    std::vector<T> _leadingTerms;
-    std::vector<T> _periodicTerms;
 };
 
 /// The continued fraction of Euler's constant e.
@@ -187,6 +185,8 @@ constexpr e_t e;
 /// The continued fraction of a rational number.
 template <integral2 T> class rational : public cfrac_base
 {
+    T numerator, denominator;
+
   public:
     using value_type = T;
 
@@ -208,14 +208,13 @@ template <integral2 T> class rational : public cfrac_base
         }
         return it::result_continue;
     }
-
-  private:
-    T numerator, denominator;
 };
 
 /// The continued fraction of a floating-point number.
 template <integral2 Z = int64_t, typename T = double> class floating_point : public cfrac_base
 {
+    T _value;
+
   public:
     using value_type = Z;
 
@@ -241,14 +240,13 @@ template <integral2 Z = int64_t, typename T = double> class floating_point : pub
         }
         return it::result_continue;
     }
-
-  private:
-    T _value;
 };
 
 /// Enumerates the convergents of the given continued fraction.
 template <typename T, it::enumerable CFrac> class convergents_t : public it::it_base
 {
+    CFrac _cfrac;
+
   public:
     using value_type = std::pair<T, T>;
 
@@ -268,9 +266,6 @@ template <typename T, it::enumerable CFrac> class convergents_t : public it::it_
             return it::callbackResult(f, std::pair{h, k});
         });
     }
-
-  private:
-    CFrac _cfrac;
 };
 
 /// Makes a periodic continued fraction for sqrt(d). This one allocates but should be faster
@@ -298,6 +293,8 @@ template <integral2 T> constexpr periodic<T> sqrtAsPeriodic(const T &d)
 /// Enumerates solutions to the Pell equation x^2 - d*y^2 = 1.
 template <integral2 T> class pell_solutions : public it::it_base
 {
+    T _d;
+
   public:
     using value_type = std::pair<T, T>;
 
@@ -315,9 +312,6 @@ template <integral2 T> class pell_solutions : public it::it_base
             return it::callbackResult(f, std::forward<decltype(r)>(r));
         });
     }
-
-  private:
-    T _d;
 };
 } // namespace cfrac
 

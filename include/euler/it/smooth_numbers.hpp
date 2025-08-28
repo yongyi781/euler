@@ -10,6 +10,11 @@ namespace it
 /// Enumerates smooth numbers up to a given limit.
 template <std::ranges::view V, integral2 T> class smooth_numbers : public it_base
 {
+    using It = std::ranges::iterator_t<const V>;
+
+    V _primes;
+    T _limit;
+
   public:
     using value_type = T;
 
@@ -29,12 +34,6 @@ template <std::ranges::view V, integral2 T> class smooth_numbers : public it_bas
             },
             [&](auto &&x) { return mulLeq(x.first, *x.second, _limit); })([&](auto &&x) { return f(x.first); });
     }
-
-  private:
-    using It = std::ranges::iterator_t<const V>;
-
-    V _primes;
-    T _limit;
 };
 
 template <std::ranges::range Range, integral2 T>
@@ -44,6 +43,11 @@ smooth_numbers(Range &&, T) -> smooth_numbers<std::views::all_t<Range>, T>;
 /// Usage: `smooth_numbers_factored(<primes>, <limit>)`.
 template <std::ranges::view V, integral2 T> class smooth_numbers_factored : public it_base
 {
+    using It = std::ranges::iterator_t<const V>;
+
+    V _primes;
+    T _limit;
+
   public:
     using value_type = std::pair<T, PF<T>>;
     using value_reference_type = std::pair<T, const PF<T> &>;
@@ -81,12 +85,6 @@ template <std::ranges::view V, integral2 T> class smooth_numbers_factored : publ
             [&](auto &&x) { return mulLeq(get<0>(x), *get<2>(x), _limit); })(
             [&](auto &&x) { return f(value_reference_type{get<0>(x), get<1>(x)}); });
     }
-
-  private:
-    using It = std::ranges::iterator_t<const V>;
-
-    V _primes;
-    T _limit;
 };
 
 template <std::ranges::range Range, integral2 T>
@@ -95,6 +93,11 @@ smooth_numbers_factored(Range &&, T) -> smooth_numbers_factored<std::views::all_
 /// Enumerates squarefree smooth numbers up to a given limit.
 template <std::ranges::view V, integral2 T> class squarefree_smooth_numbers : public it_base
 {
+    using It = std::ranges::iterator_t<const V>;
+
+    V _primes;
+    T _limit;
+
   public:
     using value_type = T;
 
@@ -115,12 +118,6 @@ template <std::ranges::view V, integral2 T> class squarefree_smooth_numbers : pu
             [&](auto &&x) { return x.second != std::ranges::end(_primes) && mulLeq(x.first, *x.second, _limit); })(
             [&](auto &&x) { return f(x.first); });
     }
-
-  private:
-    using It = std::ranges::iterator_t<const V>;
-
-    V _primes;
-    T _limit;
 };
 
 template <std::ranges::range Range, integral2 T>

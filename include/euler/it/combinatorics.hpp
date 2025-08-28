@@ -9,6 +9,9 @@ namespace it
 /// Enumerates all possible combinations of `k` elements from a range.
 template <std::ranges::view V> class combinations : public it_base
 {
+    V _range;
+    size_t _k{};
+
   public:
     using element_type = std::ranges::range_value_t<V>;
     using value_type = std::vector<element_type>;
@@ -90,10 +93,6 @@ template <std::ranges::view V> class combinations : public it_base
     {
         return to<Cont<value_type>>(n);
     }
-
-  private:
-    V _range;
-    size_t _k{};
 };
 
 template <std::ranges::range Range> combinations(Range &&, size_t) -> combinations<std::views::all_t<Range>>;
@@ -101,6 +100,9 @@ template <std::ranges::range Range> combinations(Range &&, size_t) -> combinatio
 /// Enumerates all possible combinations of `k` elements from a range, with replacement.
 template <std::ranges::view V> class combinations_with_replacement : public it_base
 {
+    V _range;
+    size_t _k{};
+
   public:
     using element_type = std::ranges::range_value_t<V>;
     using value_type = std::vector<element_type>;
@@ -184,10 +186,6 @@ template <std::ranges::view V> class combinations_with_replacement : public it_b
     {
         return to<Cont<value_type>>(n);
     }
-
-  private:
-    V _range;
-    size_t _k{};
 };
 
 template <std::ranges::range Range>
@@ -196,6 +194,8 @@ combinations_with_replacement(Range &&, size_t) -> combinations_with_replacement
 /// Enumerates all possible permutations of `k` elements from a range. The range must be sorted.
 template <std::ranges::view V> class permutations : public it_base
 {
+    combinations<V> _combs;
+
   public:
     using value_type = combinations<V>::value_type;
 
@@ -215,9 +215,6 @@ template <std::ranges::view V> class permutations : public it_base
             return result_continue;
         });
     }
-
-  private:
-    combinations<V> _combs;
 };
 
 template <std::ranges::range Range> permutations(Range &&, size_t) -> permutations<std::views::all_t<Range>>;
@@ -225,6 +222,8 @@ template <std::ranges::range Range> permutations(Range &&, size_t) -> permutatio
 /// The `k`-fold self-Cartesian product of a range.
 template <std::ranges::view V> class permutations_with_replacement : public it_base
 {
+    combinations_with_replacement<V> _combs;
+
   public:
     using value_type = combinations_with_replacement<V>::value_type;
 
@@ -243,9 +242,6 @@ template <std::ranges::view V> class permutations_with_replacement : public it_b
             return result_continue;
         });
     }
-
-  private:
-    combinations_with_replacement<V> _combs;
 };
 
 template <std::ranges::range Range>
@@ -254,6 +250,9 @@ permutations_with_replacement(Range &&, size_t) -> permutations_with_replacement
 /// The `k` fold self-Cartesian product of a range. This one is faster than non-sorted for smaller values of `k`.
 template <std::ranges::view V> class power : public it_base
 {
+    V _base;
+    size_t _k{};
+
   public:
     using value_type = std::vector<std::ranges::range_value_t<V>>;
 
@@ -334,10 +333,6 @@ template <std::ranges::view V> class power : public it_base
     {
         return to<Cont<value_type>>(n);
     }
-
-  private:
-    V _base;
-    size_t _k{};
 };
 
 template <std::ranges::range Range> power(Range &&, size_t) -> power<std::views::all_t<Range>>;
@@ -347,26 +342,14 @@ template <std::ranges::view V>
     requires std::ranges::range<std::ranges::range_value_t<V>>
 class product : public it_base
 {
-  public:
-    using value_type = std::vector<std::ranges::range_value_t<std::ranges::range_value_t<V>>>;
-
-    product() = default;
-    constexpr product(V items) : _items(std::move(items)) {}
-
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
-    {
-        value_type combination(_items.size());
-        return _enumerate(combination, std::ranges::begin(_items), _items.end(), combination.begin(), f);
-    }
-
-  private:
     using It = std::ranges::iterator_t<const V>;
-    using CIt = value_type::iterator;
+    using CIt = std::vector<std::ranges::range_value_t<std::ranges::range_value_t<V>>>::iterator;
 
     V _items;
 
-    template <std::invocable<value_type> Fun>
-    constexpr auto _enumerate(value_type &combination, It it, It end, CIt cit, Fun f) const
+    template <std::invocable<std::vector<std::ranges::range_value_t<std::ranges::range_value_t<V>>>> Fun>
+    constexpr auto _enumerate(std::vector<std::ranges::range_value_t<std::ranges::range_value_t<V>>> &combination,
+                              It it, It end, CIt cit, Fun f) const
     {
         if (cit == combination.end())
             return callbackResult(f, combination);
@@ -378,11 +361,26 @@ class product : public it_base
         }
         return result_continue;
     }
+
+  public:
+    using value_type = std::vector<std::ranges::range_value_t<std::ranges::range_value_t<V>>>;
+
+    product() = default;
+    constexpr product(V items) : _items(std::move(items)) {}
+
+    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    {
+        value_type combination(_items.size());
+        return _enumerate(combination, std::ranges::begin(_items), _items.end(), combination.begin(), f);
+    }
 };
 
 /// Cartesian product of two enumerables
 template <enumerable E1, enumerable E2> class product_it : public it_base
 {
+    E1 _e1;
+    E2 _e2;
+
   public:
     using value_type = std::pair<typename E1::value_type, typename E2::value_type>;
 
@@ -393,10 +391,6 @@ template <enumerable E1, enumerable E2> class product_it : public it_base
     {
         return _e1([&](auto &&x) { return _e2([&](auto &&y) { return f(value_type{x, y}); }); });
     }
-
-  private:
-    E1 _e1;
-    E2 _e2;
 };
 
 template <std::ranges::range Range> product(Range &&) -> product<std::views::all_t<Range>>;
@@ -404,6 +398,8 @@ template <std::ranges::range Range> product(Range &&) -> product<std::views::all
 /// Enumerates all subsets of a range. The range must have fewer than 64 elements.
 template <std::ranges::view V> class powerset : public it_base
 {
+    V _range;
+
   public:
     using value_type = std::vector<std::ranges::range_value_t<V>>;
 
@@ -427,9 +423,6 @@ template <std::ranges::view V> class powerset : public it_base
         }
         return result_continue;
     }
-
-  private:
-    V _range;
 };
 
 template <std::ranges::range Range> powerset(Range &&) -> powerset<std::views::all_t<Range>>;
@@ -439,6 +432,27 @@ template <std::ranges::range Range> powerset(Range &&) -> powerset<std::views::a
 /// The number of tuples is `binomial(n + k - 1, k - 1) = binomial(n + k - 1, n)`.
 template <integral2 T> class tuples_with_sum : public it_base
 {
+    T _total = 0;
+    size_t _length = 0;
+
+    template <std::invocable<std::vector<T>> Fun>
+    constexpr result_t _enumerate(std::vector<T> &t, size_t index, T total, Fun f) const
+    {
+        for (T i = 1; i <= total; ++i)
+        {
+            t[index] = i;
+            t.back() = total - i;
+            if (!callbackResult(f, t))
+                return result_break;
+            if (total - i > 0)
+                for (size_t index2 = t.size() - 2; index2 > index; index2--)
+                    if (!_enumerate(t, index2, total - i, f))
+                        return result_break;
+            t[index] = 0;
+        }
+        return result_continue;
+    }
+
   public:
     using value_type = std::vector<T>;
 
@@ -462,33 +476,37 @@ template <integral2 T> class tuples_with_sum : public it_base
                 return result_break;
         return result_continue;
     }
-
-  private:
-    T _total = 0;
-    size_t _length = 0;
-
-    template <std::invocable<value_type> Fun>
-    constexpr result_t _enumerate(value_type &t, size_t index, T total, Fun f) const
-    {
-        for (T i = 1; i <= total; ++i)
-        {
-            t[index] = i;
-            t.back() = total - i;
-            if (!callbackResult(f, t))
-                return result_break;
-            if (total - i > 0)
-                for (size_t index2 = t.size() - 2; index2 > index; index2--)
-                    if (!_enumerate(t, index2, total - i, f))
-                        return result_break;
-            t[index] = 0;
-        }
-        return result_continue;
-    }
 };
 
 /// Enumerates all partitions of `n`. Takes about 2.4 ns per partition generated.
 template <std::integral T> class partitions : public it_base
 {
+    T _n;
+
+    template <std::invocable<std::vector<T>> Fun> constexpr result_t output(std::vector<T> &partition, T n, Fun f) const
+    {
+        partition.push_back(n);
+        auto res = callbackResult(f, partition);
+        partition.pop_back();
+        return res;
+    }
+
+    template <std::invocable<std::vector<T>> Fun>
+    constexpr result_t _enumerate(std::vector<T> &partition, T n, Fun f) const
+    {
+        T lb = partition.empty() ? 1 : partition.back();
+        for (T i = n / 2; i >= lb; --i)
+        {
+            partition.push_back(i);
+            if (!output(partition, n - i, f))
+                return result_break;
+            if (i <= n / 3 && !_enumerate(partition, n - i, f))
+                return result_break;
+            partition.pop_back();
+        }
+        return result_continue;
+    }
+
   public:
     using value_type = std::vector<T>;
 
@@ -530,32 +548,6 @@ template <std::integral T> class partitions : public it_base
             }
         }
         return p[_n];
-    }
-
-  private:
-    T _n;
-
-    template <std::invocable<value_type> Fun> constexpr result_t output(value_type &partition, T n, Fun f) const
-    {
-        partition.push_back(n);
-        auto res = callbackResult(f, partition);
-        partition.pop_back();
-        return res;
-    }
-
-    template <std::invocable<value_type> Fun> constexpr result_t _enumerate(value_type &partition, T n, Fun f) const
-    {
-        T lb = partition.empty() ? 1 : partition.back();
-        for (T i = n / 2; i >= lb; --i)
-        {
-            partition.push_back(i);
-            if (!output(partition, n - i, f))
-                return result_break;
-            if (i <= n / 3 && !_enumerate(partition, n - i, f))
-                return result_break;
-            partition.pop_back();
-        }
-        return result_continue;
     }
 };
 } // namespace it

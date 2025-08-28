@@ -11,6 +11,12 @@ inline namespace euler
 // Triangular vector. Consists of indices `(i, j)` where `j ≤ i`.
 template <typename T> class triangular_vector
 {
+    size_t _height = 0;
+    std::vector<T> _data;
+
+    /// Gets the linear index corresponding to a coordinate `(i, j)`.
+    [[nodiscard]] static constexpr size_t toIndex(size_t i, size_t j) noexcept { return (i * (i + 1) / 2) + j; }
+
   public:
     using value_type = T;
     using iterator = std::vector<T>::iterator;
@@ -79,13 +85,6 @@ template <typename T> class triangular_vector
         }
         return o << std::move(ss).str();
     }
-
-  private:
-    size_t _height = 0;
-    std::vector<T> _data;
-
-    /// Gets the linear index corresponding to a coordinate `(i, j)`.
-    [[nodiscard]] static constexpr size_t toIndex(size_t i, size_t j) noexcept { return (i * (i + 1) / 2) + j; }
 };
 #endif
 } // namespace euler

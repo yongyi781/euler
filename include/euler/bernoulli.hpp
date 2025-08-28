@@ -22,6 +22,10 @@ template <typename T> std::vector<T> bernoulliPlus(size_t k)
 /// Stores Bernoulli+ numbers up to k, with the ability to compute power sums up to k.
 template <typename T> class Bernoulli
 {
+    std::vector<T> B;
+    std::vector<T> invs;
+    std::vector<std::vector<T>> binom_table;
+
   public:
     using value_type = T;
 
@@ -89,10 +93,5 @@ template <typename T> class Bernoulli
             o << "B[" << i << "] = " << b[i] << "\n";
         return o;
     }
-
-  private:
-    std::vector<value_type> B;
-    std::vector<value_type> invs;
-    std::vector<std::vector<value_type>> binom_table;
 };
 } // namespace euler

@@ -17,6 +17,33 @@ namespace it
 template <std::ranges::view Vp, std::ranges::view Vs, integral2 T>
 class nums_with_ordered_factorization_shape : public it_base
 {
+    using Itp = std::ranges::iterator_t<const Vp>;
+    using Its = std::ranges::iterator_t<const Vs>;
+    using Tp = std::ranges::range_value_t<Vp>;
+    using Ts = std::ranges::range_value_t<Vs>;
+
+    Vp _primes;
+    Vs _shape;
+    T _limit;
+
+    template <std::invocable<T> Fun> constexpr result_t _enumerate(Itp itp, Its its, T current, Fun f) const
+    {
+        if (its == _shape.end())
+            return callbackResult(f, current);
+        Ts e = *its;
+        Ts eTotal = std::accumulate(its, _shape.end(), Ts(0));
+        T bound = (T)std::pow(_limit / current, 1.0 / eTotal);
+        for (; itp != std::ranges::end(_primes); ++itp)
+        {
+            Tp p = *itp;
+            if (p > bound)
+                break;
+            if (!_enumerate(itp + 1, its + 1, current * pow(T(p), e), f))
+                return it::result_break;
+        }
+        return it::result_continue;
+    }
+
   public:
     using value_type = T;
 
@@ -56,34 +83,6 @@ class nums_with_ordered_factorization_shape : public it_base
     {
         return it_base::reduce(std::move(init), std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
     }
-
-  private:
-    using Itp = std::ranges::iterator_t<const Vp>;
-    using Its = std::ranges::iterator_t<const Vs>;
-    using Tp = std::ranges::range_value_t<Vp>;
-    using Ts = std::ranges::range_value_t<Vs>;
-
-    Vp _primes;
-    Vs _shape;
-    T _limit;
-
-    template <std::invocable<value_type> Fun> constexpr result_t _enumerate(Itp itp, Its its, T current, Fun f) const
-    {
-        if (its == _shape.end())
-            return callbackResult(f, current);
-        Ts e = *its;
-        Ts eTotal = std::accumulate(its, _shape.end(), Ts(0));
-        T bound = (T)std::pow(_limit / current, 1.0 / eTotal);
-        for (; itp != std::ranges::end(_primes); ++itp)
-        {
-            Tp p = *itp;
-            if (p > bound)
-                break;
-            if (!_enumerate(itp + 1, its + 1, current * pow(T(p), e), f))
-                return it::result_break;
-        }
-        return it::result_continue;
-    }
 };
 
 template <std::ranges::range Range1, std::ranges::range Range2, integral2 T>
@@ -101,6 +100,12 @@ nums_with_ordered_factorization_shape(Range1 &&, Range2 &&, T)
 /// * `shape` must be sorted ascending.
 template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_with_factorization_shape : public it_base
 {
+    using Ts = std::ranges::range_value_t<Vs>;
+
+    Vp _primes;
+    Vs _shape;
+    T _limit;
+
   public:
     using value_type = T;
 
@@ -139,13 +144,6 @@ template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_wi
     {
         return it_base::reduce(std::move(init), std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
     }
-
-  private:
-    using Ts = std::ranges::range_value_t<Vs>;
-
-    Vp _primes;
-    Vs _shape;
-    T _limit;
 };
 
 template <std::ranges::range Range1, std::ranges::range Range2, integral2 T>
@@ -165,6 +163,41 @@ nums_with_factorization_shape(Range1 &&, Range2 &&, T)
 /// This is an alternative implementation. It might be faster in some cases.
 template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_with_factorization_shape2 : public it_base
 {
+    using Itp = decltype(std::declval<Vp>().cbegin());
+    using Its = decltype(std::declval<Vs>().cbegin());
+    using Tp = std::ranges::range_value_t<Vp>;
+
+    Vp _primes;
+    Vs _shape;
+    T _limit;
+
+    template <std::invocable<T> Fun>
+    constexpr result_t _enumerate(Itp itp, Its its, std::vector<Tp> &usedPrimes, T current, Fun f) const
+    {
+        if (its == _shape.end())
+            return callbackResult(f, current);
+        auto e = *its;
+        auto bound = _limit / current;
+        for (; itp != std::ranges::end(_primes); ++itp)
+        {
+            auto p = *itp;
+            T pe = pow(T(p), e);
+            if (pe > bound)
+                break;
+            if (std::ranges::contains(usedPrimes, p))
+                continue;
+            usedPrimes.push_back(p);
+            Itp itp2 = std::ranges::begin(_primes);
+            // If next shape entry is same as previous, start from itp + 1.
+            if (its + 1 != _shape.end() && *(its + 1) == e)
+                itp2 = itp + 1;
+            if (!_enumerate(itp2, its + 1, usedPrimes, current * pe, f))
+                return it::result_break;
+            usedPrimes.pop_back();
+        }
+        return it::result_continue;
+    }
+
   public:
     using value_type = T;
 
@@ -211,42 +244,6 @@ template <std::ranges::view Vp, std::ranges::view Vs, integral2 T> class nums_wi
     [[nodiscard]] U reduce(U init, BinaryOp &&op, UnaryOp &&f = {}) const
     {
         return it_base::reduce(std::move(init), std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
-    }
-
-  private:
-    using Itp = decltype(std::declval<Vp>().cbegin());
-    using Its = decltype(std::declval<Vs>().cbegin());
-    using Tp = std::ranges::range_value_t<Vp>;
-
-    Vp _primes;
-    Vs _shape;
-    T _limit;
-
-    template <std::invocable<value_type> Fun>
-    constexpr result_t _enumerate(Itp itp, Its its, std::vector<Tp> &usedPrimes, T current, Fun f) const
-    {
-        if (its == _shape.end())
-            return callbackResult(f, current);
-        auto e = *its;
-        auto bound = _limit / current;
-        for (; itp != std::ranges::end(_primes); ++itp)
-        {
-            auto p = *itp;
-            T pe = pow(T(p), e);
-            if (pe > bound)
-                break;
-            if (std::ranges::contains(usedPrimes, p))
-                continue;
-            usedPrimes.push_back(p);
-            Itp itp2 = std::ranges::begin(_primes);
-            // If next shape entry is same as previous, start from itp + 1.
-            if (its + 1 != _shape.end() && *(its + 1) == e)
-                itp2 = itp + 1;
-            if (!_enumerate(itp2, its + 1, usedPrimes, current * pe, f))
-                return it::result_break;
-            usedPrimes.pop_back();
-        }
-        return it::result_continue;
     }
 };
 

@@ -11,6 +11,13 @@ inline namespace euler
 /// 2D vector.
 template <typename T> class vector2d
 {
+    size_t _dim0 = 0;
+    size_t _dim1 = 0;
+    std::vector<T> _data;
+
+    /// Gets the linear index corresponding to a coordinate `(i, j)`.
+    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j) const noexcept { return _dim1 * i + j; }
+
   public:
     using value_type = T;
     using iterator = std::vector<T>::iterator;
@@ -91,14 +98,6 @@ template <typename T> class vector2d
         }
         return o << std::move(ss).str();
     }
-
-  private:
-    size_t _dim0 = 0;
-    size_t _dim1 = 0;
-    std::vector<T> _data;
-
-    /// Gets the linear index corresponding to a coordinate `(i, j)`.
-    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j) const noexcept { return _dim1 * i + j; }
 };
 #endif
 } // namespace euler

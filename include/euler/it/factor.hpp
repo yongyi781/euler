@@ -12,6 +12,9 @@ namespace it
 /// Enumerates the prime factorization of a number.
 template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class factor : public it_base
 {
+    T _n;
+    std::reference_wrapper<const SPFSieve> _spfs;
+
   public:
     using value_type = PrimePower<T>;
 
@@ -64,10 +67,6 @@ template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>> class fac
                })
             .product();
     }
-
-  private:
-    T _n;
-    std::reference_wrapper<const SPFSieve> _spfs;
 };
 } // namespace it
 

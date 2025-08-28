@@ -13,6 +13,28 @@ namespace it
 /// `divisors(factor(n))`.
 template <std::ranges::view V> class divisors_t : public it_base
 {
+    using It = std::ranges::iterator_t<const V>;
+    V _factorization;
+
+    template <typename Fun>
+    result_t _enumerate(It it, It end, const std::ranges::range_value_t<V>::first_type &current, Fun f) const
+    {
+        if (!callbackResult(f, current))
+            return result_break;
+        for (; it != end; ++it)
+        {
+            auto &&[p, e] = *it;
+            value_type n = current;
+            for (int i = 1; i <= e; ++i)
+            {
+                n *= p;
+                if (!_enumerate(std::ranges::next(it), end, n, f))
+                    return result_break;
+            }
+        }
+        return result_continue;
+    }
+
   public:
     using value_type = std::ranges::range_value_t<V>::first_type;
 
@@ -44,28 +66,6 @@ template <std::ranges::view V> class divisors_t : public it_base
                 return T(pow(T(pe.first), pe.second + 1) - 1) / T(pe.first - 1);
             })
             .product();
-    }
-
-  private:
-    using It = std::ranges::iterator_t<const V>;
-    V _factorization;
-
-    template <typename Fun> result_t _enumerate(It it, It end, const value_type &current, Fun f) const
-    {
-        if (!callbackResult(f, current))
-            return result_break;
-        for (; it != end; ++it)
-        {
-            auto &&[p, e] = *it;
-            value_type n = current;
-            for (int i = 1; i <= e; ++i)
-            {
-                n *= p;
-                if (!_enumerate(std::ranges::next(it), end, n, f))
-                    return result_break;
-            }
-        }
-        return result_continue;
     }
 };
 

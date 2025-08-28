@@ -12,6 +12,11 @@ template <integral2 auto M, bool SafeMul = (uint128_t)M >= std::numeric_limits<d
     requires(M > 0 && M <= std::numeric_limits<decltype(M)>::max() / 2)
 class ZMod
 {
+    decltype(M) _value;
+
+    // Shortcut the modulus operation if we know value is between 0 and M-1.
+    constexpr ZMod(bool /*unused*/, const decltype(M) &value) : _value(value) {}
+
   public:
     using value_type = decltype(M);
     static constexpr value_type modulus = M;
@@ -253,12 +258,6 @@ class ZMod
         return it::range(T(0), r - 1).map([&](auto k) { return ZMod{n - k}; }).product() /
                it::range(T(0), r - 1).map([&](auto k) { return ZMod{k + 1}; }).product();
     }
-
-  private:
-    value_type _value;
-
-    // Shortcut the modulus operation if we know value is between 0 and M-1.
-    constexpr ZMod(bool /*unused*/, const value_type &value) : _value(value) {}
 };
 
 template <integral2 auto M> constexpr size_t hash_value(const ZMod<M> &n) { return boost::hash_value(n.value()); }

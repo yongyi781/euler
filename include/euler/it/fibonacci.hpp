@@ -9,6 +9,8 @@ namespace it
 /// The Fibonacci sequence with initial values `a` (default: 0) and `b` (default: 1).
 template <typename T = int64_t> class fibonacci : public it_base
 {
+    T _a, _b;
+
   public:
     using value_type = T;
 
@@ -44,9 +46,6 @@ template <typename T = int64_t> class fibonacci : public it_base
 
     /// Deleted because this enumerable is guaranteed to be infinite.
     constexpr auto product() const = delete;
-
-  private:
-    T _a, _b;
 };
 } // namespace it
 } // namespace euler

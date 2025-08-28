@@ -12,6 +12,11 @@ namespace it
 /// Usage: `powerful_numbers_factored(<N>)`.
 class powerful_numbers_factored : public it_base
 {
+    using It = std::vector<int64_t>::const_iterator;
+
+    int64_t _limit = 0;
+    std::vector<int64_t> _primes;
+
   public:
     using value_type = std::pair<int64_t, PF<int64_t>>;
     using value_reference_type = std::pair<int64_t, const PF<int64_t> &>;
@@ -56,12 +61,6 @@ class powerful_numbers_factored : public it_base
                 return mulLeq(n, *i, _limit);
             })([&](auto &&x) { return f(value_reference_type{get<0>(x), get<1>(x)}); });
     }
-
-  private:
-    using It = std::vector<int64_t>::const_iterator;
-
-    int64_t _limit = 0;
-    std::vector<int64_t> _primes;
 };
 } // namespace it
 } // namespace euler

@@ -6,6 +6,8 @@ inline namespace euler
 { /// Prime factorization class.
 template <typename T = int64_t> class PF
 {
+    std::vector<PrimePower<T>> _data;
+
   public:
     using value_type = PrimePower<T>;
     using container_type = std::vector<value_type>;
@@ -233,8 +235,5 @@ template <typename T = int64_t> class PF
         }
         return o;
     }
-
-  private:
-    container_type _data;
 };
 } // namespace euler

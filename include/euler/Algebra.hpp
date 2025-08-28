@@ -10,6 +10,8 @@ template <typename T, typename R = int64_t, std::invocable<T, T> auto BinaryOp =
           template <typename...> class Map = std::map>
 class Algebra
 {
+    Map<T, R> _m;
+
   public:
     using map_type = Map<T, R>;
 
@@ -140,9 +142,6 @@ class Algebra
     {
         return o << x.str();
     }
-
-  private:
-    map_type _m;
 };
 
 // Overrides multiplication with truncation.

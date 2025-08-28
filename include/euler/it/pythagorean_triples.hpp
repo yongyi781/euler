@@ -9,17 +9,6 @@ namespace it
 /// Enumerates primitive Pythaogrean triples. Takes about 7 ns per triple. Fast fast!
 template <integral2 T = int64_t> class primitive_pythagorean_triples : public it_base
 {
-  public:
-    using value_type = std::array<T, 3>;
-
-    primitive_pythagorean_triples() = default;
-    constexpr primitive_pythagorean_triples(T limit) : _limit(limit) {}
-
-    template <typename Fun> constexpr result_t operator()(Fun f) const { return _enumerate(T(3), T(4), T(5), f); }
-
-    [[nodiscard]] constexpr T limit() const { return _limit; }
-
-  private:
     T _limit;
 
     template <typename Fun> constexpr result_t _enumerate(T a, T b, T c, Fun f) const
@@ -44,11 +33,23 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples : public it
         }
         return result_continue;
     }
+
+  public:
+    using value_type = std::array<T, 3>;
+
+    primitive_pythagorean_triples() = default;
+    constexpr primitive_pythagorean_triples(T limit) : _limit(limit) {}
+
+    template <typename Fun> constexpr result_t operator()(Fun f) const { return _enumerate(T(3), T(4), T(5), f); }
+
+    [[nodiscard]] constexpr T limit() const { return _limit; }
 };
 
 /// Enumerates primitive Pythaogrean triples. Takes about 27 ns per triple.
 template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public it_base
 {
+    T _limit;
+
   public:
     using value_type = std::array<T, 3>;
 
@@ -74,9 +75,6 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
     }
 
     constexpr T limit() const { return _limit; }
-
-  private:
-    T _limit;
 };
 
 /// Enumerates Pythaogrean triples. Takes about 0.5 ns per triple if using the faster version
@@ -84,6 +82,8 @@ template <integral2 T = int64_t> class primitive_pythagorean_triples2 : public i
 template <typename T = int64_t, typename P = primitive_pythagorean_triples<T>>
 class pythagorean_triples : public it_base
 {
+    P base;
+
   public:
     using value_type = P::value_type;
 
@@ -101,9 +101,6 @@ class pythagorean_triples : public it_base
             return result_continue;
         });
     }
-
-  private:
-    P base;
 };
 } // namespace it
 } // namespace euler

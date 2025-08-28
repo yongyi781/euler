@@ -566,17 +566,17 @@ template <typename T, std::invocable<T> Fun> period_result findPeriod(Fun f, T a
 /// Sums a known periodic function by taking advantage of the period.
 template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z period, Z start, Z stop)
 {
-    using T = decltype(fn(Z(0)));
+    using T = decltype(auto(fn(Z(0))));
     T total = sum(start, std::min(stop, preperiod - 1), [&](auto &&i) -> decltype(auto) { return fn(i); });
     T mid = 0;
     start = std::max(preperiod, start);
     Z const l = (stop - start + 1) % period + start - 1;
     for (Z i = start; i <= std::min(stop, start + period - 1); ++i)
     {
-        auto res = fn(i);
-        mid += res;
+        auto y = fn(i);
+        mid += y;
         if (i <= l)
-            total += res;
+            total += y;
     }
     return total + (stop - start + 1) / period * mid;
 }

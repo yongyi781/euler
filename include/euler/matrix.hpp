@@ -11,6 +11,8 @@ template <typename T, size_t M, size_t N = M> class Matrix;
 /// A stack-allocated vector class.
 template <typename T, size_t N> class Vector
 {
+    std::array<T, N> _data{};
+
   public:
     using value_type = T;
     using iterator = std::array<T, N>::iterator;
@@ -176,9 +178,6 @@ template <typename T, size_t N> class Vector
             result += x * x;
         return sqrt(result);
     }
-
-  private:
-    std::array<T, N> _data;
 };
 
 template <typename T, typename... U>
@@ -216,6 +215,8 @@ template <std::size_t I, typename T, std::size_t N>
 /// A stack-allocated matrix with compile-time constant size.
 template <typename T, size_t M, size_t N> class Matrix
 {
+    std::array<std::array<T, N>, M> _data{};
+
   public:
     [[nodiscard]] Matrix() = default;
     [[nodiscard]] constexpr Matrix(std::array<std::array<T, N>, M> data) : _data(std::move(data)) {}
@@ -445,14 +446,13 @@ template <typename T, size_t M, size_t N> class Matrix
         }
         return o << std::move(ss).str();
     }
-
-  private:
-    std::array<std::array<T, N>, M> _data{};
 };
 
 /// A stack-allocated symmetric matrix with compile-time constant size.
 template <typename T, size_t N> class SymmetricMatrix
 {
+    std::array<T, N *(N + 1) / 2> _data{};
+
   public:
     static constexpr size_t size = N * (N + 1) / 2;
 
@@ -612,9 +612,6 @@ template <typename T, size_t N> class SymmetricMatrix
     {
         return o << x._data;
     }
-
-  private:
-    std::array<T, size> _data;
 };
 
 template <typename T> using Matrix2 = Matrix<T, 2>;

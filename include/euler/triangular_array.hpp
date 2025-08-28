@@ -10,6 +10,13 @@ inline namespace euler
 // Triangular array. Consists of indices `(i, j)` where `j ≤ i`.
 template <typename T, size_t N> class triangular_array
 {
+    std::array<T, N *(N + 1) / 2> _data;
+
+    static constexpr size_t toIndex(size_t i, size_t j) noexcept
+    {
+        return j <= i ? (i * (i + 1) / 2) + j : (j * (j + 1) / 2) + i;
+    }
+
   public:
     using iterator = std::array<T, N *(N + 1) / 2>::iterator;
     using const_iterator = std::array<T, N *(N + 1) / 2>::const_iterator;
@@ -43,14 +50,6 @@ template <typename T, size_t N> class triangular_array
             o << '\n';
         }
         return o;
-    }
-
-  private:
-    std::array<T, N *(N + 1) / 2> _data;
-
-    static constexpr size_t toIndex(size_t i, size_t j) noexcept
-    {
-        return j <= i ? (i * (i + 1) / 2) + j : (j * (j + 1) / 2) + i;
     }
 };
 #endif

@@ -9,6 +9,8 @@ namespace it
 /// Enumerates the Farey sequence of rationals with a bounded denominator between 0 and 1, inclusive.
 template <integral2 T> class farey_sequence : public it::it_base
 {
+    T _n;
+
   public:
     using value_type = std::pair<T, T>;
 
@@ -29,9 +31,6 @@ template <integral2 T> class farey_sequence : public it::it_base
         }
         return it::result_continue;
     }
-
-  private:
-    T _n;
 };
 } // namespace it
 } // namespace euler

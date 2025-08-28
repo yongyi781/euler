@@ -8,6 +8,26 @@ inline namespace euler
 /// Modulus is a template parameter for compile time optimization benefits.
 template <integral2 auto M, bool ComputeInverse = true> class FactorialMod
 {
+    using T = decltype(M);
+
+    std::vector<ZMod<M>> fact;
+    std::vector<ZMod<M>> invFact;
+
+    template <execution_policy Exec> void computeFactorials(Exec &&exec)
+    {
+        fact[0] = 1;
+        std::transform_inclusive_scan(std::forward<Exec>(exec), counting_iterator(T(1)),
+                                      counting_iterator(T(fact.size())), std::next(fact.begin()), std::multiplies{},
+                                      [](T x) { return ZMod<M>(x); });
+    }
+
+    template <execution_policy Exec> void computeInverseFactorials(Exec &&exec)
+    {
+        std::transform_exclusive_scan(std::forward<Exec>(exec), counting_iterator(T(0)),
+                                      counting_iterator(T(invFact.size())), invFact.rbegin(), ~fact.back(),
+                                      std::multiplies{}, [&](T x) { return ZMod<M>(invFact.size() - 1 - x); });
+    }
+
   public:
     using value_type = ZMod<M>;
 
@@ -63,26 +83,5 @@ template <integral2 auto M, bool ComputeInverse = true> class FactorialMod
     }
 
     void resize(size_t newSize) { resize(std::execution::par, newSize); }
-
-  private:
-    using T = decltype(M);
-
-    std::vector<value_type> fact;
-    std::vector<value_type> invFact;
-
-    template <execution_policy Exec> void computeFactorials(Exec &&exec)
-    {
-        fact[0] = 1;
-        std::transform_inclusive_scan(std::forward<Exec>(exec), counting_iterator(T(1)),
-                                      counting_iterator(T(fact.size())), std::next(fact.begin()), std::multiplies{},
-                                      [](T x) { return value_type(x); });
-    }
-
-    template <execution_policy Exec> void computeInverseFactorials(Exec &&exec)
-    {
-        std::transform_exclusive_scan(std::forward<Exec>(exec), counting_iterator(T(0)),
-                                      counting_iterator(T(invFact.size())), invFact.rbegin(), ~fact.back(),
-                                      std::multiplies{}, [&](T x) { return value_type(invFact.size() - 1 - x); });
-    }
 };
 } // namespace euler

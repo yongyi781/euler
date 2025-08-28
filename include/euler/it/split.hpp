@@ -9,6 +9,9 @@ namespace it
 /// Splits a string at a character. TODO: make this work for wstrings too.
 class split : public it_base
 {
+    std::string _s;
+    char _d;
+
   public:
     using value_type = std::string;
 
@@ -22,10 +25,6 @@ class split : public it_base
                 return it::result_break;
         return it::result_continue;
     }
-
-  private:
-    std::string _s;
-    char _d;
 };
 } // namespace it
 } // namespace euler

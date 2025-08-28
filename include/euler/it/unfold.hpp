@@ -15,6 +15,9 @@ template <typename T, typename Fn>
     requires(std::invocable<Fn, T> || std::invocable<Fn, T, size_t>)
 class unfold : public it_base
 {
+    T _a0;
+    Fn _fn;
+
   public:
     using value_type = T;
 
@@ -72,10 +75,6 @@ class unfold : public it_base
 
     /// Deleted because this enumerable is guaranteed to be infinite.
     constexpr auto product() const = delete;
-
-  private:
-    T _a0;
-    Fn _fn;
 };
 } // namespace it
 } // namespace euler

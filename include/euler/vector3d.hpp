@@ -11,6 +11,17 @@ inline namespace euler
 /// 3D vector.
 template <typename T> class vector3d
 {
+    size_t _dim0 = 0;
+    size_t _dim1 = 0;
+    size_t _dim2 = 0;
+    std::vector<T> _data;
+
+    /// Gets the linear index corresponding to a coordinate `(i, j, k)`.
+    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j, size_t k) const noexcept
+    {
+        return k + _dim2 * (j + _dim1 * i);
+    }
+
   public:
     using value_type = T;
     using iterator = std::vector<T>::iterator;
@@ -107,18 +118,6 @@ template <typename T> class vector3d
             ss << '\n';
         }
         return o << std::move(ss).str();
-    }
-
-  private:
-    size_t _dim0 = 0;
-    size_t _dim1 = 0;
-    size_t _dim2 = 0;
-    std::vector<T> _data;
-
-    /// Gets the linear index corresponding to a coordinate `(i, j, k)`.
-    [[nodiscard]] constexpr size_t toIndex(size_t i, size_t j, size_t k) const noexcept
-    {
-        return k + _dim2 * (j + _dim1 * i);
     }
 };
 #endif

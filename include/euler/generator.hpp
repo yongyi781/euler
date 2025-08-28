@@ -37,8 +37,15 @@ template <typename T> class generator
         T value_;
     };
 
-  public:
     using promise_type = promise;
+    using handle_type = std::coroutine_handle<promise_type>;
+
+    friend class iterator;
+    explicit generator(handle_type handle) noexcept : handle_(handle) {}
+
+    handle_type handle_ = nullptr;
+
+  public:
     class sentinel
     {
     };
@@ -46,6 +53,10 @@ template <typename T> class generator
     class iterator
     {
         using handle_type = std::coroutine_handle<promise_type>;
+        friend class generator;
+        explicit iterator(handle_type handle) : handle_(handle) {}
+
+        handle_type handle_;
 
       public:
         using difference_type = std::ptrdiff_t;
@@ -69,7 +80,7 @@ template <typename T> class generator
 
         friend bool operator==(iterator const &it, sentinel /*unused*/) noexcept
         {
-            return (!it.handle_ || it.handle_.done());
+            return !it.handle_ || it.handle_.done();
         }
 
         iterator &operator++()
@@ -83,15 +94,7 @@ template <typename T> class generator
         void operator++(int) { (void)this->operator++(); }
 
         T &operator*() const { return handle_.promise().value_; }
-
-      private:
-        friend class generator;
-        explicit iterator(handle_type handle) : handle_(handle) {}
-
-        handle_type handle_;
     };
-
-    using handle_type = std::coroutine_handle<promise_type>;
 
     generator() noexcept = default;
     ~generator()
@@ -120,12 +123,6 @@ template <typename T> class generator
     sentinel end() const noexcept { return {}; }
 
     void swap(generator &other) noexcept { std::swap(handle_, other.handle_); }
-
-  private:
-    friend class iterator;
-    explicit generator(handle_type handle) noexcept : handle_(handle) {}
-
-    handle_type handle_ = nullptr;
 };
 } // namespace euler
 

@@ -378,6 +378,9 @@ template <enumerable E, std::invocable<typename E::value_type> Fn>
     requires(!std::is_void_v<std::invoke_result_t<Fn, typename E::value_type>>)
 class map_t : public it_base
 {
+    E _base;
+    Fn _fn;
+
   public:
     using value_type = std::remove_cvref_t<std::invoke_result_t<Fn, typename E::value_type>>;
 
@@ -408,15 +411,13 @@ class map_t : public it_base
         return _base.reduce(std::move(init), std::forward<BinaryOp>(op),
                             [&](auto &&x) { return f(std::invoke(_fn, std::forward<decltype(x)>(x))); });
     }
-
-  private:
-    E _base;
-    Fn _fn;
 };
 
 /// Return elements from the enumerable until it is exhausted. Then repeat the sequence indefinitely.
 template <enumerable E> class cycle_t : public it_base
 {
+    E _base;
+
   public:
     using value_type = E::value_type;
 
@@ -448,9 +449,6 @@ template <enumerable E> class cycle_t : public it_base
 
     /// Deleted because this enumerable is guaranteed to be infinite.
     constexpr auto product() const = delete;
-
-  private:
-    E _base;
 };
 
 template <std::ranges::range Range> cycle_t(Range &&) -> cycle_t<std::views::all_t<Range>>;
@@ -458,6 +456,9 @@ template <std::ranges::range Range> cycle_t(Range &&) -> cycle_t<std::views::all
 /// Takes the first `n` elements of this enumerable.
 template <enumerable E> class take_t : public it_base
 {
+    E _base;
+    size_t _n{};
+
   public:
     using value_type = E::value_type;
 
@@ -475,15 +476,14 @@ template <enumerable E> class take_t : public it_base
         });
         return result;
     }
-
-  private:
-    E _base;
-    size_t _n{};
 };
 
 /// Takes while the predicate is true.
 template <enumerable E, std::predicate<typename E::value_type> Pred> class take_while_t : public it_base
 {
+    E _base;
+    Pred _pred;
+
   public:
     using value_type = E::value_type;
 
@@ -500,15 +500,14 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class take_
         });
         return result;
     }
-
-  private:
-    E _base;
-    Pred _pred;
 };
 
 /// Drops the first `n` elements of this enumerable.
 template <enumerable E> class drop_t : public it_base
 {
+    E _base;
+    size_t _n{};
+
   public:
     using value_type = E::value_type;
 
@@ -524,15 +523,14 @@ template <enumerable E> class drop_t : public it_base
             return callbackResult(f, std::forward<decltype(x)>(x));
         });
     }
-
-  private:
-    E _base;
-    size_t _n{};
 };
 
 /// Drops while the predicate is true.
 template <enumerable E, std::predicate<typename E::value_type> Pred> class drop_while_t : public it_base
 {
+    E _base;
+    Pred _pred;
+
   public:
     using value_type = E::value_type;
 
@@ -549,10 +547,6 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class drop_
             return callbackResult(f, std::forward<decltype(x)>(x));
         });
     }
-
-  private:
-    E _base;
-    Pred _pred;
 };
 
 /// An iterator that both filters and maps.
@@ -560,6 +554,9 @@ template <enumerable E, std::invocable<typename E::value_type> Fn>
     requires is_optional<std::invoke_result_t<Fn, typename E::value_type>>
 class filter_map_t : public it_base
 {
+    E _base;
+    Fn _fn;
+
   public:
     using value_type = std::invoke_result_t<Fn, typename E::value_type>::value_type;
 
@@ -573,15 +570,14 @@ class filter_map_t : public it_base
             return !o.has_value() || callbackResult(f, *o);
         });
     }
-
-  private:
-    E _base;
-    Fn _fn;
 };
 
 /// Take while the predicate is true.
 template <enumerable E, std::predicate<typename E::value_type> Pred> class filter_t : public it_base
 {
+    E _base;
+    Pred _pred;
+
   public:
     using value_type = E::value_type;
 
@@ -596,15 +592,13 @@ template <enumerable E, std::predicate<typename E::value_type> Pred> class filte
             return callbackResult(f, std::forward<decltype(x)>(x));
         });
     }
-
-  private:
-    E _base;
-    Pred _pred;
 };
 
 /// Numbers items from 0 onwards.
 template <enumerable E> class enumerate_t : public it_base
 {
+    E _base;
+
   public:
     using value_type = std::pair<size_t, typename E::value_type>;
 
@@ -619,15 +613,15 @@ template <enumerable E> class enumerate_t : public it_base
 
     /// This has the same size as the base enumerable.
     [[nodiscard]] constexpr size_t size() const { return std::ranges::size(_base); }
-
-  private:
-    E _base;
 };
 
 /// Outputs unique elements.
 template <template <typename...> typename Set, enumerable E, std::invocable<typename E::value_type> Proj>
 class unique_t : public it_base
 {
+    E _base;
+    Proj _proj;
+
   public:
     using value_type = E::value_type;
 
@@ -648,15 +642,13 @@ class unique_t : public it_base
             return it::result_continue;
         });
     }
-
-  private:
-    E _base;
-    Proj _proj;
 };
 
 /// Wraps a `std::ranges::view` as an enumerable.
 template <std::ranges::view V> class wrap : public it_base
 {
+    V _base;
+
   public:
     using value_type = std::ranges::range_value_t<V>;
 
@@ -695,9 +687,6 @@ template <std::ranges::view V> class wrap : public it_base
         return std::transform_reduce(std::ranges::begin(_base), std::ranges::end(_base), std::move(init),
                                      std::forward<BinaryOp>(op), std::forward<UnaryOp>(f));
     }
-
-  private:
-    V _base;
 };
 
 template <std::ranges::range Range> wrap(Range &&) -> wrap<std::views::all_t<Range>>;
@@ -705,6 +694,10 @@ template <std::ranges::range Range> wrap(Range &&) -> wrap<std::views::all_t<Ran
 /// Iterates over the interval `[begin, begin + step, ..., end]`.
 template <integral2 T> class range : public it_base
 {
+    T _begin;
+    T _end;
+    T _step;
+
   public:
     using value_type = T;
 
@@ -824,11 +817,6 @@ template <integral2 T> class range : public it_base
             return std::nullopt;
         return res.value * _step + _begin;
     }
-
-  private:
-    T _begin;
-    T _end;
-    T _step;
 };
 
 template <integral2 TBegin, integral2 TEnd> range(TBegin, TEnd) -> range<std::common_type_t<TBegin, TEnd>>;

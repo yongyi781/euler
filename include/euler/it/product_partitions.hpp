@@ -9,22 +9,10 @@ namespace it
 /// Enumerates all product partitions of `n`.
 template <integral2 T> class product_partitions : public it_base
 {
-  public:
-    using value_type = std::vector<T>;
-
-    product_partitions() = default;
-    constexpr product_partitions(T n) : _n(std::move(n)) {}
-
-    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
-    {
-        value_type partition;
-        return _enumerate(partition, _n, f);
-    }
-
-  private:
     T _n;
 
-    template <std::invocable<value_type> Fun> constexpr result_t _enumerate(value_type &partition, T n, Fun f) const
+    template <std::invocable<std::vector<T>> Fun>
+    constexpr result_t _enumerate(std::vector<T> &partition, T n, Fun f) const
     {
         partition.push_back(n);
         if (!callbackResult(f, partition))
@@ -43,6 +31,18 @@ template <integral2 T> class product_partitions : public it_base
             }
         }
         return result_continue;
+    }
+
+  public:
+    using value_type = std::vector<T>;
+
+    product_partitions() = default;
+    constexpr product_partitions(T n) : _n(std::move(n)) {}
+
+    template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
+    {
+        value_type partition;
+        return _enumerate(partition, _n, f);
     }
 };
 } // namespace it

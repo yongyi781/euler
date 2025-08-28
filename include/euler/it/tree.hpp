@@ -14,6 +14,10 @@ constexpr auto pred_true = [](auto &&) { return true; };
 template <typename T, std::invocable<T, result_t(T)> Fun, std::predicate<T> Pred = decltype(pred_true)>
 class tree : public it_base
 {
+    T _root;
+    Fun _childrenFun;
+    Pred _hasChildren;
+
   public:
     using value_type = T;
 
@@ -54,11 +58,6 @@ class tree : public it_base
         }
         return result_continue;
     }
-
-  private:
-    T _root;
-    Fun _childrenFun;
-    Pred _hasChildren;
 };
 
 /// Enumerates a virtual tree. This version enumerates recursively and in preorder traversal order.
@@ -66,6 +65,21 @@ class tree : public it_base
 template <typename T, std::invocable<T, result_t(T)> Fun, std::predicate<T> Pred = decltype(pred_true)>
 class tree_preorder : public it_base
 {
+    T _root;
+    Fun _childrenFun;
+    Pred _hasChildren;
+
+    template <std::invocable<T> Callback> constexpr result_t dfs(T node, Callback f) const
+    {
+        return callbackResult(_childrenFun, std::move(node), [&](T child) -> result_t {
+            if (!callbackResult(f, child))
+                return result_break;
+            if (!std::invoke(_hasChildren, child))
+                return result_continue;
+            return dfs(std::move(child), f);
+        });
+    }
+
   public:
     using value_type = T;
 
@@ -93,22 +107,6 @@ class tree_preorder : public it_base
         if (!callbackResult(f, _root))
             return result_break;
         return dfs(_root, std::move(f));
-    }
-
-  private:
-    T _root;
-    Fun _childrenFun;
-    Pred _hasChildren;
-
-    template <std::invocable<T> Callback> constexpr result_t dfs(T node, Callback f) const
-    {
-        return callbackResult(_childrenFun, std::move(node), [&](T child) -> result_t {
-            if (!callbackResult(f, child))
-                return result_break;
-            if (!std::invoke(_hasChildren, child))
-                return result_continue;
-            return dfs(std::move(child), f);
-        });
     }
 };
 } // namespace it

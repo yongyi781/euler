@@ -128,13 +128,10 @@ template <integral2 TMod> struct mod_multiplies_safe
 template <integral2 T, integral2 U> constexpr auto modInverse(T a, U m)
 {
     using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % m)));
-    auto [g, s, _] = xgcd(mod(a, m), m);
-    if (g > 1)
+    auto const [g, s, _] = xgcd(mod(a, m), m);
+    if (g != 1)
         return Tp{};
-    // s might not be in the range 0 ≤ s < m, let's fix that:
-    if (s < 0 || s >= m)
-        s += m;
-    return s;
+    return s < 0 ? s + m : s;
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
