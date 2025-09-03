@@ -142,9 +142,7 @@ std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> 
 /// Function object for min.
 struct minimum
 {
-    template <typename T, typename U>
-    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b)))
-        -> decltype(std::min(std::forward<T>(a), std::forward<U>(b)))
+    template <typename T, typename U> constexpr auto operator()(T &&a, U &&b) const
     {
         return std::min(std::forward<T>(a), std::forward<U>(b));
     }
@@ -153,9 +151,7 @@ struct minimum
 /// Function object for max.
 struct maximum
 {
-    template <typename T, typename U>
-    constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) + std::forward<U>(b)))
-        -> decltype(std::max(std::forward<T>(a), std::forward<U>(b)))
+    template <typename T, typename U> constexpr auto operator()(T &&a, U &&b) const
     {
         return std::max(std::forward<T>(a), std::forward<U>(b));
     }
