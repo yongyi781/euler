@@ -314,9 +314,14 @@ template <integral2 T> constexpr std::string bin(T n) { return to_string(std::mo
 /// Converts an integral number to its binary representation padded to the given width.
 template <integral2 T> constexpr std::string bin(T n, int width)
 {
+    bool neg = n < 0;
+    if (neg)
+        n = -n;
     auto res = to_string(std::move(n), 2);
     if ((int)res.size() < width)
         res = std::string(width - res.size(), '0') + res;
+    if (neg)
+        res = '-' + res;
     return res;
 }
 
