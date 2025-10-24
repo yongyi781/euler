@@ -37,45 +37,47 @@ class Algebra
     {
         if (auto it = _m.find(t); it != _m.end())
             return it->second;
-        return 0;
+        return {};
     }
 
-    template <typename Self> constexpr Self &&operator+=(this Self &&self, const Self &other)
+    template <typename Self> constexpr Self &operator+=(const Self &other)
     {
         for (auto &&[t, r] : other._m)
         {
-            auto it = self._m.find(t);
-            if (it == self._m.end())
-                self._m[t] = r;
+            auto it = _m.find(t);
+            if (it == _m.end())
+                _m[t] = r;
             else if (it->second == -r)
-                self._m.erase(it);
+                _m.erase(it);
             else
                 it->second += r;
         }
-        return std::forward<Self>(self);
+        return *this;
     }
-    template <typename Self> constexpr Self operator+(this Self self, const Self &other)
+    template <typename Self> constexpr Self operator+(this Self left, const Self &right)
     {
-        return Self{std::move(self)} += other;
+        left += right;
+        return left;
     }
 
-    template <typename Self> constexpr Self &&operator-=(this Self &&self, const Self &other)
+    template <typename Self> constexpr Self &operator-=(const Self &other)
     {
         for (auto &&[t, r] : other._m)
         {
-            auto it = self._m.find(t);
-            if (it == self._m.end())
-                self._m[t] = -r;
+            auto it = _m.find(t);
+            if (it == _m.end())
+                _m[t] = -r;
             else if (it->second == r)
-                self._m.erase(it);
+                _m.erase(it);
             else
                 it->second -= r;
         }
-        return std::forward<Self>(self);
+        return *this;
     }
-    template <typename Self> constexpr Self operator-(this Self self, const Self &other)
+    template <typename Self> constexpr Self operator-(this Self left, const Self &right)
     {
-        return Self{std::move(self)} -= other;
+        left -= right;
+        return left;
     }
 
     constexpr Algebra operator*(const Algebra &other) const
@@ -84,7 +86,7 @@ class Algebra
         for (auto &&[t1, r1] : _m)
             for (auto &&[t2, r2] : other._m)
                 m[BinaryOp(t1, t2)] += r1 * r2;
-        return {m};
+        return {std::move(m)};
     }
     constexpr Algebra &operator*=(const Algebra &other) { return *this = *this * other; }
 
@@ -93,31 +95,30 @@ class Algebra
         map_type m{};
         for (auto &&[t, r] : _m)
             m[t] = -r;
-        return {m};
+        return {std::move(m)};
     }
 
     constexpr bool operator==(const Algebra &other) const { return _m == other._m; }
     constexpr bool operator!=(const Algebra &other) const { return _m != other._m; }
 
-    /// Returns the modular exponentiation of this number.
-    template <typename Self, integral2 U> [[nodiscard]] constexpr Self pow(this Self &&self, U exponent)
+    /// Exponentiation.
+    template <typename Self, integral2 U> [[nodiscard]] constexpr Self pow(this Self self, U exponent)
     {
         using A = std::decay_t<Self>;
         assert(exponent >= 0);
         if (exponent == 0)
             return A::one();
         A x = A::one();
-        A y = std::forward<Self>(self);
         while (true)
         {
             if (exponent & 1)
             {
-                x *= y;
+                x *= self;
                 if (exponent == 1)
                     break;
             }
             exponent >>= 1;
-            y *= y;
+            self *= self;
         }
         return x;
     }

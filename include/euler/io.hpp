@@ -194,17 +194,23 @@ inline constexpr size_t defaultPrintLimit = 100;
 template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename T>
 std::basic_ostream<CharT, Traits> &
 print(T &&x, size_t /* limit */ = defaultPrintLimit, std::basic_ostream<CharT, Traits> &o = std::cout,
-      std::string_view /* delimiter */ = ", ", std::string_view /* open */ = "[", std::string_view /* close */ = "]")
+      std::basic_string_view<CharT> /* delimiter */ = ", ", std::basic_string_view<CharT> /* open */ = "[",
+      std::basic_string_view<CharT> /* close */ = "]")
 {
-    return o << std::forward<T>(x);
+    if constexpr (std::same_as<std::remove_cvref_t<T>, signed char> ||
+                  std::same_as<std::remove_cvref_t<T>, unsigned char>)
+        return o << (int)x;
+    else
+        return o << x;
 }
 
 /// Prints a range.
-template <typename CharT = char, typename Traits = std::char_traits<CharT>, std::ranges::range Range>
+template <typename CharT = char, typename Traits = std::char_traits<CharT>, std::ranges::input_range Range>
     requires(!is_string<Range>)
 std::basic_ostream<CharT, Traits> &
 print(Range &&r, size_t limit = defaultPrintLimit, std::basic_ostream<CharT, Traits> &o = std::cout,
-      std::string_view delimiter = ", ", std::string_view open = "[", std::string_view close = "]")
+      std::basic_string_view<CharT> delimiter = ", ", std::basic_string_view<CharT> open = "[",
+      std::basic_string_view<CharT> close = "]")
 {
     std::basic_ostringstream<CharT, Traits> ss;
     ss.flags(o.flags());
@@ -236,8 +242,8 @@ print(Range &&r, size_t limit = defaultPrintLimit, std::basic_ostream<CharT, Tra
 template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename Rep, typename Period>
 std::basic_ostream<CharT, Traits> &
 print(std::chrono::duration<Rep, Period> duration, size_t /*unused*/ = defaultPrintLimit,
-      std::basic_ostream<CharT, Traits> &o = std::cout, std::string_view /*delimiter*/ = ", ",
-      std::string_view /*open*/ = "[", std::string_view /*close*/ = "]")
+      std::basic_ostream<CharT, Traits> &o = std::cout, std::basic_string_view<CharT> /*delimiter*/ = ", ",
+      std::basic_string_view<CharT> /*open*/ = "[", std::basic_string_view<CharT> /*close*/ = "]")
 {
     std::basic_ostringstream<CharT, Traits> ss;
     ss.flags(o.flags());
@@ -257,11 +263,12 @@ print(std::chrono::duration<Rep, Period> duration, size_t /*unused*/ = defaultPr
 }
 
 /// Prints anything and a newline.
-template <typename CharT = char, typename Traits = std::char_traits<CharT>, typename T>
+template <typename T, typename CharT = char, typename Traits = std::char_traits<CharT>>
     requires(!is_string<T>)
 std::basic_ostream<CharT, Traits> &
 println(T &&x, size_t limit = defaultPrintLimit, std::basic_ostream<CharT, Traits> &o = std::cout,
-        std::string_view delimiter = ", ", std::string_view open = "[", std::string_view close = "]")
+        std::basic_string_view<CharT> delimiter = ", ", std::basic_string_view<CharT> open = "[",
+        std::basic_string_view<CharT> close = "]")
 {
     return print(std::forward<T>(x), limit, o, delimiter, open, close) << "\n";
 }
@@ -272,7 +279,7 @@ template <typename CharT = char, typename Traits = std::char_traits<CharT>, std:
 std::basic_ostream<CharT, Traits> &printLines(Range &&r, size_t limit = defaultPrintLimit,
                                               std::basic_ostream<CharT, Traits> &o = std::cout)
 {
-    return println(std::forward<Range>(r), limit, o, "\n", "", "");
+    return println(std::forward<Range>(r), limit, o, {"\n"}, {""}, {""});
 }
 } // namespace io
 
