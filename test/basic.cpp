@@ -301,7 +301,6 @@ inline void testModUnsignedModulus()
 
 int main()
 {
-    auto t1 = now();
     testModUnsignedModulus();
     testModmul();
     testZMod();
@@ -320,5 +319,4 @@ int main()
     testIsqrt();
     testBinom();
     testModInverseUnsigned();
-    println(now() - t1);
 }

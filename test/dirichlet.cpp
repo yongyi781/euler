@@ -19,5 +19,4 @@ int main()
 
     int64_t const N2 = pow((int64_t)10, 9);
     assertEqual(dirichlet::totient(N2)[N2], 303963551173008414);
-    pass("dirichlet");
 }

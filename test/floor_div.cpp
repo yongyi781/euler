@@ -93,4 +93,5 @@ int main()
 {
     testFloorDiv();
     testFastDiv();
+    pass("floor_div");
 }

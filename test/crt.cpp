@@ -10,5 +10,4 @@ int main()
     assertEqual(crt(0, 5, 1, 7), 5);
     assertEqual(crt(vector{1}, vector{5}), 1);
     assertEqual(crt(vector{1, 2, 3}, vector{7, 8, 9}), 498);
-    pass("CRT");
 }

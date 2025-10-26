@@ -44,5 +44,4 @@ int main()
 {
     testPF1();
     testPF2();
-    pass("PF");
 }

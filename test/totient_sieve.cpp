@@ -15,5 +15,4 @@ int main()
     assertEqual(sum(totientSieve(INT64_C(1000000))), 303963552392);
     assertEqual(sum(totientSieve(INT64_C(10000000))), 30396356427242);
     assertEqual(sum(totientSieve(INT64_C(100000000))), 3039635516365908);
-    pass("totient_sieve");
 }

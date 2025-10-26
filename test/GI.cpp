@@ -68,8 +68,6 @@ void testGIDivision()
     auto [q_orig, r_orig] = g1_orig.div(g2_orig);
     assertEqual(GI<int>{-1, 2}, q_orig, "Original Test Quotient");
     assertEqual(GI<int>{-1, 0}, r_orig, "Original Test Remainder");
-
-    pass("Division");
 }
 
 void testPrimeNormGI()
@@ -81,7 +79,6 @@ void testPrimeNormGI()
         auto const g = primeNormGI(p);
         assertEqual(g.norm(), p, p);
     }
-    pass("Prime Norm");
 }
 
 int main()

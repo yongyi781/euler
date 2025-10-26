@@ -27,5 +27,4 @@ int main()
         auto res2 = sum(n / 2, n, fn);
         assertEqual(res1, res2);
     }
-    pass("findPeriod");
 }

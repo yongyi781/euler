@@ -10,5 +10,4 @@ int main()
     vector const expected{0, 0, 5, 7, 11, 14, 16, 17, 22, 28};
     assertEqual(partialSum(execution::par, v), expected);
     assertEqual(partialSum(v), expected);
-    pass("partial_sum");
 }
