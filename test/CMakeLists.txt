@@ -1,20 +1,20 @@
 cmake_minimum_required(VERSION 3.30)
 project(euler VERSION 0.1.0 LANGUAGES CXX)
+find_package(primecount REQUIRED)
 find_package(TBB)
 
 set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 
-include_directories(../include SYSTEM C:/Tools/include)
-if(CMAKE_CXX_PLATFORM_ID STREQUAL "Windows")
-    message("Adding Windows-specific headers")
-    include_directories(SYSTEM C:/Tools/boost_1_84_0 C:/Tools/gmp/include)
-    link_directories(SYSTEM C:/Tools/primecount-msvc/lib)
-else()
-    link_directories(SYSTEM C:/Tools/lib)
-    link_libraries(stdc++exp TBB::tbb gmp)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    add_compile_options(-march=native)
 endif()
-link_libraries(primecount primesieve)
+
+include_directories(../include)
+link_libraries(primecount::primecount primesieve::primesieve gmp)
+
+if (TBB_FOUND)
+    link_libraries(TBB::tbb)
+endif()
 
 include(CTest)
 enable_testing()
