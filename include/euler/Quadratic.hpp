@@ -9,7 +9,7 @@
 #include "modular_arithmetic.hpp"
 #include "types.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Quadratic equation, with methods to solve mod primes and powers of primes. Precondition: gcd(a, b, c) = 1.
 struct Quadratic

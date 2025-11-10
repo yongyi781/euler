@@ -4,7 +4,7 @@
 #include "../prime.hpp"
 #include "tree.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

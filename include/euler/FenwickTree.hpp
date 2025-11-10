@@ -6,7 +6,7 @@
 
 #include "io.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Fenwick tree, also known as binary indexed tree.
 template <typename T> class FenwickTree

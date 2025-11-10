@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <stdexcept>
 
-inline namespace euler
+namespace euler
 {
 /// Converts a string to a number in a constant-evaluated context.
 template <typename T> consteval T fromString(const char *str)

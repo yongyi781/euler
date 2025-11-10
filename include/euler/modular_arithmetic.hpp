@@ -3,7 +3,7 @@
 #include "decls.hpp"
 #include <boost/multiprecision/gmp.hpp>
 
-inline namespace euler
+namespace euler
 {
 /// Holds a result of the extended Euclidean algorithm, which is a triple (g, s, t).
 template <typename T> struct euclidean_result_t

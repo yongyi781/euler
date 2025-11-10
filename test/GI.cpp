@@ -3,6 +3,7 @@
 #include "test.hpp"
 
 using namespace std;
+using namespace euler;
 
 void testGIDivision()
 {

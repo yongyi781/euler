@@ -2,7 +2,7 @@
 
 #include "ZMod.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Class to compute factorials and binomial coefficients modulo a compile-time constant modulus.
 /// Modulus is a template parameter for compile time optimization benefits.

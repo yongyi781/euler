@@ -5,7 +5,7 @@
 #include <boost/unordered/unordered_flat_map.hpp>
 #include <ranges>
 
-inline namespace euler
+namespace euler
 {
 constexpr int64_t primePiUpperBound(int64_t n)
 {

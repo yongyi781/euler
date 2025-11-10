@@ -8,7 +8,7 @@
 #include "decls.hpp"
 #include "it/base.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Returns the range [begin, end], possibly transformed by a function if given.
 template <integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun = std::identity>

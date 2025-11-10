@@ -4,7 +4,7 @@
 #include "it/base.hpp"
 #include "prime.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Class for integers modulo a modulus. The modulus must be a compile-time constant.
 /// @tparam SafeMul whether to use safe multiplication.
@@ -237,7 +237,7 @@ class ZMod
         if (r <= 0 || n == 0)
             return ZMod(r == 0);
         if (n < 0)
-            return ::pow(-1, r) * binomial(exec, r - n - 1, r);
+            return euler::pow(-1, r) * binomial(exec, r - n - 1, r);
         if (r > n)
             return 0;
         r = std::min(r, n - r);
@@ -251,7 +251,7 @@ class ZMod
         if (r <= 0 || n == 0)
             return ZMod(r == 0);
         if (n < 0)
-            return ::pow(-1, r) * binomial(r - n - 1, r);
+            return euler::pow(-1, r) * binomial(r - n - 1, r);
         if (r > n)
             return 0;
         r = std::min(r, n - r);
@@ -263,7 +263,8 @@ class ZMod
 template <integral2 auto M> constexpr size_t hash_value(const ZMod<M> &n) { return boost::hash_value(n.value()); }
 } // namespace euler
 
-template <integral2 auto M>
-class boost::multiprecision::number_category<ZMod<M>> : public boost::multiprecision::number_category<decltype(M)>
+template <euler::integral2 auto M>
+class boost::multiprecision::number_category<euler::ZMod<M>>
+    : public boost::multiprecision::number_category<decltype(M)>
 {
 };

@@ -4,7 +4,7 @@
 #include "euler/PF.hpp"
 #include <primesieve/iterator.hpp>
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

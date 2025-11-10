@@ -6,14 +6,12 @@
 #include <cstdint>
 #include <ranges>
 
-inline namespace euler
-{
 /// @defgroup Stateless iterators
 ///
 /// This file implements iterators via callbacks. Clang is very good at optimizing these. However, these iterators
 /// cannot be paused, so some constructs are not possible, such as zipping two of these. (It is still possible zip one
 /// of these with a classic iterator, though.)
-namespace it
+namespace euler::it
 {
 enum result_t : uint8_t
 {
@@ -823,8 +821,6 @@ template <integral2 TBegin, integral2 TEnd> range(TBegin, TEnd) -> range<std::co
 
 template <integral2 TBegin, integral2 TEnd, integral2 TStep>
 range(TBegin, TEnd, TStep) -> range<std::common_type_t<TBegin, TEnd, TStep>>;
-} // namespace it
-
 // Some helper functions
 
 /// Prints an enumerable to a stream.
@@ -841,4 +837,4 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
     });
     return o;
 }
-} // namespace euler
+} // namespace euler::it

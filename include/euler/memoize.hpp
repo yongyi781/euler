@@ -2,7 +2,7 @@
 
 #include <boost/unordered/unordered_flat_map.hpp>
 
-inline namespace euler
+namespace euler
 {
 /// Type for universal recursive memoizer.
 template <typename Fun, typename... Args> struct memoize_t

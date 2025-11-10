@@ -3,7 +3,7 @@
 #include "euler/ZMod.hpp"
 #include <ranges>
 
-inline namespace euler
+namespace euler
 {
 /// Perform the Walsh-Hadamard transform in-place.
 template <std::ranges::random_access_range Range> void fwht(Range &v)

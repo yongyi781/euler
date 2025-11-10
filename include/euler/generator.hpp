@@ -4,7 +4,7 @@
 #include <ranges>
 #include <utility>
 
-inline namespace euler
+namespace euler
 {
 template <typename T> class generator
 {

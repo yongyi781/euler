@@ -3,7 +3,7 @@
 #include "ZMod.hpp"
 #include "prime.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Specialized class for integers modulo prime powers.
 template <std::integral auto P, std::integral auto E>

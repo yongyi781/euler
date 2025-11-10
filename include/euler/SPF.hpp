@@ -4,7 +4,7 @@
 #include "it/factor.hpp"
 #include "prime.hpp"
 
-inline namespace euler
+namespace euler
 {
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.

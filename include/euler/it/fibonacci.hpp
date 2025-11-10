@@ -2,7 +2,7 @@
 
 #include "base.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

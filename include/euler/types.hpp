@@ -38,7 +38,7 @@ struct is_signed<boost::multiprecision::number<Backend, ExpressionTemplates>> : 
 };
 } // namespace std
 
-inline namespace euler
+namespace euler
 {
 #ifdef __SIZEOF_INT128__
 using int128_t = __int128;
@@ -166,16 +166,16 @@ using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
-using i128 = int128_t;
-using i256 = int256_t;
-using i512 = int512_t;
-using i1024 = int1024_t;
+using i128 = euler::int128_t;
+using i256 = euler::int256_t;
+using i512 = euler::int512_t;
+using i1024 = euler::int1024_t;
 
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using u128 = uint128_t;
-using u256 = uint256_t;
-using u512 = uint512_t;
-using u1024 = uint1024_t;
+using u128 = euler::uint128_t;
+using u256 = euler::uint256_t;
+using u512 = euler::uint512_t;
+using u1024 = euler::uint1024_t;

@@ -2,7 +2,7 @@
 
 #include "prime.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// A class to compute binomial coefficients mod prime powers.
 class BinomialModPrimePower

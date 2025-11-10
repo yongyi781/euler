@@ -2,7 +2,7 @@
 
 #include "combinatorics.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

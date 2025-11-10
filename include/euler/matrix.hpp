@@ -4,7 +4,7 @@
 #include "modular_arithmetic.hpp"
 #include <array>
 
-inline namespace euler
+namespace euler
 {
 template <typename T, size_t M, size_t N = M> class Matrix;
 
@@ -598,13 +598,13 @@ template <typename T, size_t N> class SymmetricMatrix
     /// Returns the power of an SymmetricMatrix to an integer.
     [[nodiscard]] constexpr SymmetricMatrix pow(integral2 auto exponent) const
     {
-        return ::pow(*this, std::move(exponent), identity(), std::multiplies{});
+        return euler::pow(*this, std::move(exponent), identity(), std::multiplies{});
     }
 
     /// Returns the power of an SymmetricMatrix to an integer.
     [[nodiscard]] constexpr SymmetricMatrix powm(integral2 auto exponent, integral2 auto modulus) const
     {
-        return ::powm(*this, std::move(exponent), std::move(modulus), identity());
+        return euler::powm(*this, std::move(exponent), std::move(modulus), identity());
     }
 
     template <typename CharT, typename Traits>
@@ -656,14 +656,14 @@ template <typename T, size_t N> constexpr size_t hash_value(const Vector<T, N> &
 namespace std
 {
 /// Partial specialization for Vector
-template <typename T, size_t N> struct tuple_size<Vector<T, N>> : public integral_constant<size_t, N>
+template <typename T, size_t N> struct tuple_size<euler::Vector<T, N>> : public integral_constant<size_t, N>
 {
 };
 
 /// Partial specialization for Vector
 template <size_t I, typename T, size_t N>
     requires(I < N)
-struct tuple_element<I, Vector<T, N>>
+struct tuple_element<I, euler::Vector<T, N>>
 {
     using type = T;
 };

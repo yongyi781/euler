@@ -3,7 +3,7 @@
 #include "../prime.hpp"
 #include "factor.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

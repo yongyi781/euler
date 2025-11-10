@@ -2,7 +2,7 @@
 
 #include "types.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Returns a base raised to an integer power. The type of the base needs a multiplication operation
 /// defined on it.
@@ -111,6 +111,20 @@ template <integral2 T> constexpr T inth_root(T x, int n)
     return s;
 }
 
+/// Finds the largest `e` such that `b^e ≤ n`.
+template <integral2 T, integral2 U> constexpr int floor_log(T n, U b)
+{
+    if (n < b)
+        return 0;
+    if (n < b * b)
+        return 1;
+    int e = 1;
+    T x = b;
+    for (; mulLeq(x, b, n); x *= b, ++e)
+        ;
+    return e;
+}
+
 /// Invoke a callable object, and returns true if the callable returns void.
 template <typename Callable, typename... Args>
     requires std::invocable<Callable, Args...>
@@ -127,17 +141,27 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
     }
 }
 
-// Forward declarations of printing operators.
-#ifdef BOOST_HAS_INT128
-template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const int128_t &x);
-template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const uint128_t &x);
-template <typename CharT, typename Traits>
-std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, int128_t &x);
-template <typename CharT, typename Traits>
-std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, uint128_t &x);
-#endif
+/// Converts any integral type to a string in the specified base.
+template <integral2 T> constexpr std::string to_string(T n, int base = 10)
+{
+    bool const neg = n < 0;
+    if (neg)
+        n = -n;
+    static constexpr std::string_view digits =
+        R"(0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()[]{}-+=;:'",./<>?\)";
+    assert((size_t)base <= digits.size());
+    std::string s(1 + std::max(0, floor_log(n, base) + neg), '0');
+    if (neg)
+        s[0] = '-';
+    auto it = s.rbegin();
+    // it::digits(n, base)([&](int d) { *it++ = digits[d]; });
+    while (n)
+    {
+        *it++ = digits[n % base];
+        n /= base;
+    }
+    return s;
+}
 
 /// Function object for min.
 struct minimum
@@ -172,3 +196,15 @@ inline void setConsoleToUtf8()
 #endif
 }
 } // namespace euler
+
+template <typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, i128 x)
+{
+    return o << euler::to_string(x);
+}
+
+template <typename CharT, typename Traits>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, u128 x)
+{
+    return o << euler::to_string(x);
+}

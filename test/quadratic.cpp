@@ -4,6 +4,7 @@
 #include "test.hpp"
 
 using namespace std;
+using namespace euler;
 
 inline auto testModpe(i64 a, i64 b, i64 c, i64 p)
 {

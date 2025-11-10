@@ -3,7 +3,7 @@
 #include "base.hpp"
 #include <fstream>
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

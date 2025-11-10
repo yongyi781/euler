@@ -5,7 +5,7 @@
 #include "../prime.hpp"
 #include "base.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace it
 {

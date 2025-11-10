@@ -11,7 +11,7 @@
 #include <primesieve.hpp>
 #include <ranges>
 
-inline namespace euler
+namespace euler
 {
 namespace detail
 {

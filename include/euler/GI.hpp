@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <utility>
 
-inline namespace euler
+namespace euler
 {
 /// Gaussian integer type.
 template <integral2 T> struct GI

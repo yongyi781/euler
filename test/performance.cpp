@@ -5,7 +5,7 @@
 #include <boost/rational.hpp>
 
 using namespace std;
-using Int = int64_t;
+using namespace euler;
 
 /** Safe but slower version. */
 template <typename T> constexpr auto powmSafe2(const T &base, const integral2 auto &exponent, integral2 auto modulus)
@@ -261,14 +261,14 @@ inline void compareModInv(int trials = 10000000)
     compare(
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
-            Int const modulus = static_cast<Int>(10627) * 10627;
+            i64 const modulus = static_cast<i64>(10627) * 10627;
             if (x % modulus == 0)
                 return (int64_t)0;
             return modInverse(x, modulus);
         },
         [](auto &rng, auto &dist) {
             auto x = dist(rng);
-            Int const modulus = static_cast<Int>(10627) * 10627;
+            i64 const modulus = static_cast<i64>(10627) * 10627;
             if (x % modulus == 0)
                 return (int64_t)0;
             return powm(x, modulus * (modulus - 1) - 1, modulus);
@@ -458,7 +458,7 @@ inline auto powmTest2()
     int4096_t const exponent = ((int4096_t)1) << 4095;
     // cout << exponent << endl;
     int64_t const modulus = 1e18;
-    auto result = ::powm(base, exponent, modulus);
+    auto result = powm(base, exponent, modulus);
     return result;
 }
 

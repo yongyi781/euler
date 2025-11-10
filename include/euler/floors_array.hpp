@@ -6,7 +6,7 @@
 #include "prime.hpp"
 #include <ranges>
 
-inline namespace euler
+namespace euler
 {
 /// An efficient sparse array whose keys are floors ⌊N/i⌋ for i >= 1.
 /// Usage: `floors_array(n)` or `floors_array(n, s)`.

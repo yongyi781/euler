@@ -6,7 +6,7 @@
 #include "matrix.hpp"
 #include "types.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Quadratic diophantine equation.
 class QD
@@ -301,7 +301,8 @@ class QD
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const QD &q)
     {
-        return o << "QD: " << std::vector{q.a, q.b, q.c, q.d, q.e, q.f} << " (disc = " << q.disc() << ")";
+        return o << "QD: " << q.a << "x^2 + " << q.b << "xy + " << q.c << "y^2 + " << q.d << "x + " << q.e << "y + "
+                 << q.f << " (disc = " << q.disc() << ")";
     }
 };
 } // namespace euler

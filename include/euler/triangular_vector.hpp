@@ -5,7 +5,7 @@
 #include <ostream>
 #include <vector>
 
-inline namespace euler
+namespace euler
 {
 #ifdef __cpp_multidimensional_subscript
 // Triangular vector. Consists of indices `(i, j)` where `j ≤ i`.

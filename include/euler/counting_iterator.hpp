@@ -2,7 +2,7 @@
 
 #include <iterator>
 
-inline namespace euler
+namespace euler
 {
 // Removes the dependency on boost::counting_iterator.
 template <typename T> struct counting_iterator

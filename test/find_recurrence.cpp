@@ -5,6 +5,7 @@
 #include "test.hpp"
 
 using namespace std;
+using namespace euler;
 
 int main()
 {

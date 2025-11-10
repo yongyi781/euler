@@ -2,7 +2,7 @@
 
 #include "math.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Generate the B + 1 numbers (B(1) = 1/2) up to `k`.
 template <typename T> std::vector<T> bernoulliPlus(size_t k)

@@ -3,7 +3,7 @@
 #include "algorithm.hpp"
 #include "modular_arithmetic.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Finds a linear recurrence for `v` using the Berlekamp-Massey algorithm. Returns the characteristic polynomial as a
 /// list.

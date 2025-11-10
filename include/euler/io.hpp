@@ -2,13 +2,35 @@
 
 #include <chrono>
 #include <fstream>
+#include <iostream>
 
 #include "decls.hpp"
-#include "it/digits.hpp"
 
-inline namespace euler
+#ifdef BOOST_HAS_INT128
+template <typename CharT, typename Traits>
+std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, __int128 &x)
 {
-inline constexpr auto now = std::chrono::high_resolution_clock::now;
+    boost::multiprecision::int128_t a;
+    is >> a;
+    x = (i128)a;
+    return is;
+}
+
+template <typename CharT, typename Traits>
+std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, unsigned __int128 &x)
+{
+    boost::multiprecision::int128_t a;
+    is >> a;
+    x = (u128)a;
+    return is;
+}
+#endif
+
+template <typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::nullopt_t /*unused*/)
+{
+    return o << "none";
+}
 
 template <typename CharT, typename Traits, typename T, typename U>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::pair<T, U> &v);
@@ -19,12 +41,46 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 template <typename CharT, typename Traits, typename T>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::optional<T> &x);
 
-template <typename CharT, typename Traits, typename T>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::nullopt_t /*unused*/);
-
 template <typename CharT, typename Traits, std::ranges::range Range>
-    requires(!is_string<Range>)
+    requires(!euler::is_string<Range>)
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Range &r);
+
+template <typename CharT, typename Traits, typename T, typename U>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::pair<T, U> &v)
+{
+    std::basic_ostringstream<CharT, Traits> ss;
+    ss.flags(o.flags());
+    ss.imbue(o.getloc());
+    ss.precision(o.precision());
+    ss << '(' << v.first << ", " << v.second << ')';
+    return o << std::move(ss).str();
+}
+
+template <typename CharT, typename Traits, typename... Args>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::tuple<Args...> &t)
+{
+    std::basic_ostringstream<CharT, Traits> ss;
+    ss.flags(o.flags());
+    ss.imbue(o.getloc());
+    ss.precision(o.precision());
+    bool first = true;
+    ss << '(';
+    apply([&](auto &&...args) { ((ss << (first ? "" : ", ") << args, first = false), ...); }, t);
+    ss << ')';
+    return o << std::move(ss).str();
+}
+
+template <typename CharT, typename Traits, typename T>
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::optional<T> &x)
+{
+    if (x)
+        return o << *x;
+    return o << "none";
+}
+
+namespace euler
+{
+inline constexpr auto now = std::chrono::high_resolution_clock::now;
 
 // Function to calculate the display width of a UTF-8 character
 constexpr int charWidth(char32_t c)
@@ -112,77 +168,6 @@ constexpr size_t displayWidth(std::string_view str)
     }
 
     return width;
-}
-
-#ifdef BOOST_HAS_INT128
-template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const int128_t &x)
-{
-    return o << boost::multiprecision::int128_t(x);
-}
-
-template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const uint128_t &x)
-{
-    return o << boost::multiprecision::uint128_t(x);
-}
-
-template <typename CharT, typename Traits>
-std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, int128_t &x)
-{
-    boost::multiprecision::int128_t a;
-    is >> a;
-    x = (int128_t)a;
-    return is;
-}
-
-template <typename CharT, typename Traits>
-std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> &is, uint128_t &x)
-{
-    boost::multiprecision::int128_t a;
-    is >> a;
-    x = (uint128_t)a;
-    return is;
-}
-#endif
-
-template <typename CharT, typename Traits, typename T, typename U>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::pair<T, U> &v)
-{
-    std::basic_ostringstream<CharT, Traits> ss;
-    ss.flags(o.flags());
-    ss.imbue(o.getloc());
-    ss.precision(o.precision());
-    ss << '(' << v.first << ", " << v.second << ')';
-    return o << std::move(ss).str();
-}
-
-template <typename CharT, typename Traits, typename... Args>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::tuple<Args...> &t)
-{
-    std::basic_ostringstream<CharT, Traits> ss;
-    ss.flags(o.flags());
-    ss.imbue(o.getloc());
-    ss.precision(o.precision());
-    bool first = true;
-    ss << '(';
-    apply([&](auto &&...args) { ((ss << (first ? "" : ", ") << args, first = false), ...); }, t);
-    ss << ')';
-    return o << std::move(ss).str();
-}
-
-template <typename CharT, typename Traits, typename T>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const std::optional<T> &x)
-{
-    if (x)
-        return o << *x;
-    return o << "none";
-}
-
-template <typename CharT, typename Traits, typename T>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, std::nullopt_t /*unused*/)
-{
-    return o << "none";
 }
 
 // Need to hide behind a namespace to avoid name collision with std::print.
@@ -282,31 +267,17 @@ std::basic_ostream<CharT, Traits> &printLines(Range &&r, size_t limit = defaultP
     return println(std::forward<Range>(r), limit, o, {"\n"}, {""}, {""});
 }
 } // namespace io
+} // namespace euler
 
 template <typename CharT, typename Traits, std::ranges::range Range>
-    requires(!is_string<Range>)
+    requires(!euler::is_string<Range>)
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Range &r)
 {
-    return io::print(r, io::defaultPrintLimit, o);
+    return euler::io::print(r, euler::io::defaultPrintLimit, o);
 }
 
-/// Converts any integral type to a string in the specified base.
-template <integral2 T> constexpr std::string to_string(T n, int base = 10)
+namespace euler
 {
-    bool neg = n < 0;
-    if (neg)
-        n = -n;
-    static constexpr std::string_view digits =
-        R"(0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()[]{}-+=;:'",./<>?\)";
-    assert((size_t)base <= digits.size());
-    std::string s(std::max(1UZ, countDigits(n, base) + neg), '0');
-    if (neg)
-        s[0] = '-';
-    auto it = s.rbegin();
-    it::digits(n, base)([&](int d) { *it++ = digits[d]; });
-    return s;
-}
-
 /// Converts a duration to a friendly string.
 template <typename Rep, typename Period> constexpr std::string to_string(const std::chrono::duration<Rep, Period> &d)
 {

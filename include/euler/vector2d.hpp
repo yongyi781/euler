@@ -5,7 +5,7 @@
 #include <sstream>
 #include <vector>
 
-inline namespace euler
+namespace euler
 {
 #ifdef __cpp_multidimensional_subscript
 /// 2D vector.

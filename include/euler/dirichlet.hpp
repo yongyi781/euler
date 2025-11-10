@@ -7,7 +7,7 @@
 #include "libdivide.h"
 #include "literals.hpp"
 
-inline namespace euler
+namespace euler
 {
 template <typename T = int64_t> class Dirichlet;
 template <typename Fun, typename SFun> class SpecialDirichlet;
@@ -876,7 +876,7 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_linear(int a, int b, size_
 {
     assert(a > 1);
     size_t const s = inth_root(n, a);
-    auto const mu = mobiusSieve(inth_root(n, a));
+    auto const mu = mobiusSieve(s);
     auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
     partialSumInPlace(sieve);

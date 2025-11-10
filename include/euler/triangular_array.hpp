@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <ostream>
 
-inline namespace euler
+namespace euler
 {
 #ifdef __cpp_multidimensional_subscript
 // Triangular array. Consists of indices `(i, j)` where `j ≤ i`.
@@ -34,6 +34,14 @@ template <typename T, size_t N> class triangular_array
 
     [[nodiscard]] constexpr iterator end() noexcept { return _data.end(); }
     [[nodiscard]] constexpr const_iterator end() const noexcept { return _data.end(); }
+
+    [[nodiscard]] constexpr std::array<T, N *(N + 1) / 2> &data() noexcept { return _data; }
+    [[nodiscard]] constexpr const std::array<T, N *(N + 1) / 2> &data() const noexcept { return _data; }
+
+    /// `i`th row.
+    constexpr std::span<T> operator[](size_t i) noexcept { return {_data.data() + i * (i + 1) / 2, i + 1}; }
+    /// `i`th row.
+    constexpr std::span<const T> operator[](size_t i) const noexcept { return {_data.data() + i * (i + 1) / 2, i + 1}; }
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o,

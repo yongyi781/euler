@@ -4,7 +4,7 @@
 #include "io.hpp"
 #include "it.hpp"
 
-inline namespace euler
+namespace euler
 {
 namespace cfrac
 {

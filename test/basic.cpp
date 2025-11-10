@@ -4,7 +4,7 @@
 #include "test.hpp"
 
 using namespace std;
-using Int = int64_t;
+using namespace euler;
 
 inline void testWithRandomInputs(auto f, int maxBinaryDigits = 32)
 {
@@ -134,10 +134,10 @@ inline void testMobius()
 
 inline void testBinom()
 {
-    std::vector<std::vector<Int>> C(100, std::vector<Int>(100, 0));
+    std::vector<std::vector<i64>> C(100, std::vector<i64>(100, 0));
     C[0][0] = 1;
 
-    Int mod = (1e7 + 19);
+    i64 mod = (1e7 + 19);
     mod *= mod;
 
     BinomialModPrimePower const binom(1e7 + 19, 2);
@@ -167,7 +167,7 @@ inline void testUtils()
 
 inline void testEnumCombinations()
 {
-    Int total = 0;
+    i64 total = 0;
     it::combinations(range(1, 100), 3)([&](auto &&) { ++total; });
     assert(total == 161700);
     pass("Enum combinations");
@@ -175,8 +175,8 @@ inline void testEnumCombinations()
 
 inline void testBisections()
 {
-    auto f = [](Int x) { return x * (x + 1) / 2; };
-    auto g = [](Int x) { return x / 1000; };
+    auto f = [](i64 x) { return x * (x + 1) / 2; };
+    auto g = [](i64 x) { return x / 1000; };
 
     assert(bisectionLowerBound(f, 15, 0, 1'000'000) == 5);
     assert(bisectionUpperBound(f, 15, 0, 1'000'000) == 6);
@@ -232,7 +232,7 @@ inline void testIsqrt()
 {
     testWithRandomInputs(
         [](auto &&rng, auto &&dist) {
-            Int const a = abs(dist(rng)) + 1;
+            i64 const a = abs(dist(rng)) + 1;
             bool const ok = isqrt(a * a + 1) == a && isqrt(a * a - 1) == a - 1 && isqrt(a * a) == a;
             if (!ok)
                 fail("isqrt");
@@ -255,7 +255,7 @@ inline void testModmul()
         [](auto &&rng, auto &&dist) {
             int const a = dist(rng);
             int const b = dist(rng);
-            bool const ok = modmul(a, b, m) == (Int)a * b % m;
+            bool const ok = modmul(a, b, m) == (i64)a * b % m;
             if (!ok)
                 fail("modmul is wrong for a = "s + to_string(a));
         },
@@ -271,7 +271,7 @@ inline void testZMod()
             int const a = dist(rng);
             int const b = dist(rng);
             Z const x = Z(a) * b;
-            bool const ok = x.value() == mod((Int)a * b, Z::modulus);
+            bool const ok = x.value() == mod((i64)a * b, Z::modulus);
             if (!ok)
                 fail("ZMod is wrong for a = "s + to_string(a));
         },

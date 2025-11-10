@@ -2,7 +2,7 @@
 
 #include "euler/matrix.hpp"
 
-inline namespace euler
+namespace euler
 {
 /// Convert from OKLCH to RGB.
 /// @param l Lightness, between 0 and 1.

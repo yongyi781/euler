@@ -4,6 +4,7 @@
 #include "test.hpp"
 
 using namespace std;
+using namespace euler;
 
 void testPF1()
 {

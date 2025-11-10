@@ -4,7 +4,7 @@
 #include <ranges>
 #include <vector>
 
-inline namespace euler
+namespace euler
 {
 /// A segment tree for an arbitrary monoid.
 template <typename Node> class SegmentTree
