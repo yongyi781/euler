@@ -34,7 +34,7 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
     T y = std::move(base);
     while (true)
     {
-        if (exponent & 1)
+        if ((exponent & 1) != 0)
         {
             x = op(std::move(x), y);
             if (exponent == 1)

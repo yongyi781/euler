@@ -38,8 +38,6 @@ struct is_signed<boost::multiprecision::number<Backend, ExpressionTemplates>> : 
 };
 } // namespace std
 
-namespace euler
-{
 #ifdef __SIZEOF_INT128__
 using int128_t = __int128;
 using uint128_t = unsigned __int128;
@@ -47,12 +45,12 @@ using uint128_t = unsigned __int128;
 using int128_t = boost::multiprecision::int128_t;
 using uint128_t = boost::multiprecision::uint128_t;
 #endif
-using boost::multiprecision::int1024_t;
+using boost::multiprecision::cpp_int;
+using boost::multiprecision::cpp_rational;
 using boost::multiprecision::int256_t;
 using boost::multiprecision::int512_t;
-using boost::multiprecision::uint1024_t;
-using boost::multiprecision::uint256_t;
-using boost::multiprecision::uint512_t;
+
+using boost::multiprecision::int1024_t;
 using int2048_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
     2048, 2048, boost::multiprecision::signed_magnitude, boost::multiprecision::unchecked, void>>;
 using int4096_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
@@ -60,12 +58,16 @@ using int4096_t = boost::multiprecision::number<boost::multiprecision::cpp_int_b
 using int8192_t = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<
     8192, 8192, boost::multiprecision::signed_magnitude, boost::multiprecision::unchecked, void>>;
 using boost::container::static_vector;
-using boost::multiprecision::cpp_int;
-using boost::multiprecision::cpp_rational;
+
 using boost::multiprecision::mpf_float;
 using boost::multiprecision::mpq_rational;
 using boost::multiprecision::mpz_int;
+using boost::multiprecision::uint1024_t;
+using boost::multiprecision::uint256_t;
+using boost::multiprecision::uint512_t;
 
+namespace euler
+{
 template <typename T> using PrimePower = std::pair<T, int>;
 
 template <typename T> struct double_integer
@@ -166,16 +168,16 @@ using i8 = int8_t;
 using i16 = int16_t;
 using i32 = int32_t;
 using i64 = int64_t;
-using i128 = euler::int128_t;
-using i256 = euler::int256_t;
-using i512 = euler::int512_t;
-using i1024 = euler::int1024_t;
+using i128 = int128_t;
+using i256 = int256_t;
+using i512 = int512_t;
+using i1024 = int1024_t;
 
 using u8 = uint8_t;
 using u16 = uint16_t;
 using u32 = uint32_t;
 using u64 = uint64_t;
-using u128 = euler::uint128_t;
-using u256 = euler::uint256_t;
-using u512 = euler::uint512_t;
-using u1024 = euler::uint1024_t;
+using u128 = uint128_t;
+using u256 = uint256_t;
+using u512 = uint512_t;
+using u1024 = uint1024_t;
