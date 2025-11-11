@@ -200,11 +200,23 @@ inline void setConsoleToUtf8()
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, i128 x)
 {
-    return o << euler::to_string(x);
+    auto const f = o.flags();
+    int base = 10;
+    if (f & std::ios_base::hex)
+        base = 16;
+    else if (f & std::ios_base::oct)
+        base = 8;
+    return o << euler::to_string(x, base);
 }
 
 template <typename CharT, typename Traits>
 std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, u128 x)
 {
-    return o << euler::to_string(x);
+    auto const f = o.flags();
+    int base = 10;
+    if (f & std::ios_base::hex)
+        base = 16;
+    else if (f & std::ios_base::oct)
+        base = 8;
+    return o << euler::to_string(x, base);
 }
