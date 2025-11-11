@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.30)
 project(euler VERSION 0.1.0 LANGUAGES CXX)
+include(CTest)
+
 find_package(primecount REQUIRED)
 find_package(TBB)
 
@@ -15,9 +17,6 @@ link_libraries(primecount::primecount primesieve::primesieve gmp)
 if (TBB_FOUND)
     link_libraries(TBB::tbb)
 endif()
-
-include(CTest)
-enable_testing()
 
 file(GLOB sources *.cpp)
 
