@@ -131,7 +131,7 @@ template <integral2 T, integral2 U> constexpr auto modInverse(T a, U m)
     auto const [g, s, _] = xgcd(mod(a, m), m);
     if (g != 1)
         return Tp{};
-    return s < 0 ? s + m : s;
+    return s + m < m ? s + m : s;
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
@@ -148,7 +148,6 @@ namespace detail
 template <typename Multiply, typename T, integral2 E, typename M>
 constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
 {
-    assert(modulus > 0);
     if constexpr (integral2<T>)
     {
         // Allow negative exponents in this case

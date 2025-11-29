@@ -55,8 +55,28 @@ template <std::integral T = int64_t> class SPF
         return spf_odd[n / 2] == 0 ? n : spf_odd[n / 2];
     }
 
-    /// Returns whether the given number is prime. Requires 1 ≤ n ≤ size().
+    /// Returns whether the given number is prime. Requires `1 ≤ n ≤ size()`.
     [[nodiscard]] bool isPrime(T n) const { return (*this)[n] == n; }
+
+    /// Returns the largest prime factor of `n`.
+    [[nodiscard]] T lpf(T n) const
+    {
+        T res = 0;
+        if (n % 2 == 0)
+        {
+            res = 2;
+            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
+        }
+        while (n != 1)
+        {
+            auto const p = (*this)[n];
+            n /= p;
+            while ((*this)[n] == p)
+                n /= p;
+            res = p;
+        }
+        return res;
+    }
 
     /// Returns the radical of the given number. Requires 1 ≤ n ≤ size().
     [[nodiscard]] T radical(T n) const
@@ -137,9 +157,9 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns the number of distinct prime factors of the given number. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] uint32_t omega(T n) const
+    [[nodiscard]] u32 omega(T n) const
     {
-        uint32_t res = 0;
+        u32 res = 0;
         if (n % 2 == 0)
         {
             ++res;
@@ -157,9 +177,9 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Returns the number of prime factors of the given number, with multiplicity. Requires 1 ≤ n ≤ size().
-    [[nodiscard]] uint32_t Omega(T n) const
+    [[nodiscard]] u32 Omega(T n) const
     {
-        uint32_t res = 0;
+        u32 res = 0;
         if (n % 2 == 0)
         {
             int const e = std::countr_zero(std::make_unsigned_t<T>(n));
@@ -302,13 +322,36 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
+    /// Creates a sieve from a multiplicative function in O(n log log n) time.
+    [[nodiscard]] std::vector<T> lpfSieve(T limit) const
+    {
+        assert(limit < size());
+        std::vector<T> res(limit + 1, 1);
+        res[0] = 0;
+        res[2] = 2;
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1 && res[i] != 0)
+            {
+                T const p = (*this)[n];
+                int const e = removeFactors<true>(n, p);
+                res[i] = p;
+            }
+        });
+        it::range(4, limit, 2)(std::execution::par, [&](T i) {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            res[i] = res[i >> e];
+        });
+        return res;
+    }
+
     /// Sieve for the divisor counting function in O(n log log n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
     {
         return sieve([&](T, int e) -> U { return e + 1; }, limit);
     }
 
-    /// Sieve for the σ₁ function, the divisor sum function in O(n log log n) time.
+    /// Sieve for the σ₁ function, the divisor sum function, in O(n log log n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorSumSieve(T limit) const
     {
         std::vector<U> sieve(limit + 1, 1);
@@ -332,6 +375,34 @@ template <std::integral T = int64_t> class SPF
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
             auto e = std::countr_zero(std::make_unsigned_t<T>(i));
             sieve[i] = ((T(1) << (e + 1)) - 1) * sieve[i >> e];
+        });
+        return sieve;
+    }
+
+    /// Sieve for the σ₂ function, the divisor square sum function, in O(n log log n) time.
+    template <typename U = T> [[nodiscard]] std::vector<U> divisorSum2Sieve(T limit) const
+    {
+        std::vector<U> sieve(limit + 1, 1);
+        sieve[0] = 0;
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1)
+            {
+                T const p = (*this)[n];
+                n /= p;
+                T q = p * p, S = 1 + p * p;
+                while ((*this)[n] == p)
+                {
+                    q *= p * p;
+                    n /= p;
+                    S += q;
+                }
+                sieve[i] *= S;
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) {
+            auto e = std::countr_zero(std::make_unsigned_t<T>(i));
+            sieve[i] = ((T(1) << 2 * (e + 1)) - 1) / 3 * sieve[i >> e];
         });
         return sieve;
     }

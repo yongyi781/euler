@@ -125,7 +125,9 @@ class ZMod
         return o << x._value;
     }
 
-    constexpr value_type value() const { return _value; }
+    /// Returns a mutable reference to the internal value. Handle with care!
+    constexpr value_type &value() { return _value; }
+    constexpr const value_type &value() const { return _value; }
     constexpr value_type balancedValue() const { return _value <= M / 2 ? _value : -(M - _value); }
 
     /// Returns the multiplicative inverse of this number.

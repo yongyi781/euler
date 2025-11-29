@@ -148,7 +148,7 @@ inline void testBinom()
         for (int j = 1; j <= i; ++j)
         {
             C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % mod;
-            assertEqual(C[i][j], binom(i, j));
+            assertEqual(binom(i, j), C[i][j]);
         }
     }
     pass("Binomial mod prime power");
@@ -281,10 +281,16 @@ inline void testZMod()
 
 inline void testModInverseUnsigned()
 {
-    uint64_t const a = 235098327;
+    uint64_t const a = 235'098'327;
     uint64_t const b = 1'000'000'007;
     uint64_t const res = modInverse(a, b);
+    assert(res < b);
     assertEqual(res * a % b, 1);
+
+    u64 const n = 477'804'180'607;
+    u64 const p = 2'000'000'011;
+    assertEqual(modInverse(n, p), 1971889291);
+
     pass("testModInverseUnsigned");
 }
 

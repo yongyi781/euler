@@ -35,19 +35,18 @@ constexpr auto range(T begin, U end, V step, Fun f = {})
     using Tp = std::common_type_t<T, U, V>;
     using FT = std::remove_cvref_t<std::invoke_result_t<Fun, Tp>>;
 
-    Tp b = begin;
-    Tp e = end;
-    Tp s = step;
+    Tp const b = begin;
+    Tp const e = end;
 
-    if (s == 0 || (s > 0 && e < b) || (s < 0 && e > b))
+    if (step == 0 || (step > 0 && e < b) || (step < 0 && e > b))
         return std::vector<FT>{};
-    std::vector<FT> result((size_t)((e - b) / s + 1));
+    std::vector<FT> result((size_t)(step > 0 ? (e - b + step) / step : (b - e - step) / -step));
     auto it = result.begin();
-    if (s > 0)
-        for (Tp i = b; i <= e; i += s)
+    if (step > 0)
+        for (Tp i = b; i <= e; i += step)
             *it++ = std::invoke(f, i);
     else
-        for (Tp i = b; i >= e; i += s)
+        for (Tp i = b; i >= e; i += step)
             *it++ = std::invoke(f, i);
     return result;
 }
@@ -388,7 +387,7 @@ constexpr U bisectionLowerBound(Fun f, const T &target, U low, U high)
         return low;
     while (high - low > 1)
     {
-        U mid = low + (high - low) / 2;
+        U const mid = low + (high - low) / 2;
         if (f(mid) < target)
             low = mid;
         else
@@ -405,7 +404,7 @@ constexpr U bisectionUpperBound(Fun f, const T &target, U low, U high)
         return low;
     while (high - low > 1)
     {
-        U mid = low + (high - low) / 2;
+        U const mid = low + (high - low) / 2;
         if (f(mid) > target)
             high = mid;
         else
@@ -415,10 +414,10 @@ constexpr U bisectionUpperBound(Fun f, const T &target, U low, U high)
 }
 
 /// Finds a root of the function `f`.
-template <typename T, std::invocable<T> Fun> constexpr T findRoot(Fun f, T low, T high, size_t maxSteps = 1000)
+template <typename T, std::invocable<T> Fun> constexpr T findRoot(Fun f, T low, T high, size_t max_steps = 1000)
 {
-    auto fl = f(low);
-    auto fh = f(high);
+    auto const fl = f(low);
+    auto const fh = f(high);
     if (fl == 0)
         return low;
     if (fh == 0)
@@ -427,17 +426,36 @@ template <typename T, std::invocable<T> Fun> constexpr T findRoot(Fun f, T low, 
         throw std::domain_error("Function has same sign at endpoints");
     if (fl > 0)
         std::swap(low, high);
-    while (maxSteps-- > 0)
+    while (max_steps-- > 0)
     {
-        T mid = (low + high) / 2;
-        if (low == mid || high == mid || f(mid) == 0)
+        T const mid = low + (high - low) / 2;
+        auto const y = f(mid);
+        if (low == mid || high == mid || y == 0)
             return mid;
-        if (f(mid) < 0)
+        if (y < 0)
             low = mid;
         else
             high = mid;
     }
     return high;
+}
+
+/// Minimizes a unimodal function `f` on a real interval `[low, high]`.
+/// @param max_steps Controls precision: error ~ (high - low) * (2/3)^iterations.
+template <typename T, std::invocable<T> Fun> T ternarySearch(Fun f, T low, T high, size_t max_steps = 200)
+{
+    while (max_steps-- > 0)
+    {
+        T const m1 = low + (high - low) / 3;
+        T const m2 = high - (high - low) / 3;
+        if (m1 == m2)
+            break;
+        if (f(m2) < f(m1))
+            low = m1; // minimum is in [m1, high]
+        else
+            high = m2; // minimum is in [low, m2]
+    }
+    return (low + high) / 2;
 }
 
 template <std::ranges::range Range> constexpr void flatten(Range &&v, std::ranges::range auto &out)

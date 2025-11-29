@@ -62,12 +62,19 @@ constexpr T pow(T base, U exponent)
 /// Returns whether `a * b ≤ c`, and always returns false if the multiplication overflows.
 template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b, V c)
 {
-    V x{};
+    if constexpr (std::integral<T> || !std::integral<U>)
+    {
+        V x{};
 #if defined(__clang__) || defined(__GNUC__)
-    return !__builtin_mul_overflow(a, b, &x) && x <= c;
+        return !__builtin_mul_overflow(a, b, &x) && x <= c;
 #else
-    return !std::_Mul_overflow(V(a), V(b), x) && x <= c;
+        return !std::_Mul_overflow(V(a), V(b), x) && x <= c;
 #endif
+    }
+    else
+    {
+        return a * b <= c;
+    }
 }
 
 /// Computes the integral square root of a number.
@@ -142,22 +149,22 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
 }
 
 /// Converts any integral type to a string in the specified base.
-template <integral2 T> constexpr std::string to_string(T n, int base = 10)
+template <integral2 T> constexpr std::string to_string(T n, int base = 10, bool lowercase = false)
 {
     bool const neg = n < 0;
     if (neg)
         n = -n;
-    static constexpr std::string_view digits =
-        R"(0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()[]{}-+=;:'",./<>?\)";
+    std::string_view const digits =
+        lowercase ? R"(0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()[]{}-+=;:'",./<>?\)"
+                  : R"(0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()[]{}-+=;:'",./<>?\)";
     assert((size_t)base <= digits.size());
     std::string s(1 + std::max(0, floor_log(n, base) + neg), '0');
     if (neg)
         s[0] = '-';
     auto it = s.rbegin();
-    // it::digits(n, base)([&](int d) { *it++ = digits[d]; });
     while (n)
     {
-        *it++ = digits[n % base];
+        *it++ = digits[(int)(n % base)];
         n /= base;
     }
     return s;

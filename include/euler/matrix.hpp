@@ -24,6 +24,12 @@ template <typename T, size_t N> class Vector
     template <typename... U> [[nodiscard]] constexpr Vector(U... data) : _data{data...} {}
 
     [[nodiscard]] constexpr static Vector zero() { return {}; }
+    [[nodiscard]] constexpr static Vector ones()
+    {
+        Vector res{};
+        std::ranges::fill(res._data, 1);
+        return res;
+    }
 
     [[nodiscard]] constexpr T &operator[](size_t i) { return _data[i]; }
     [[nodiscard]] constexpr const T &operator[](size_t i) const { return _data[i]; }
@@ -168,15 +174,20 @@ template <typename T, size_t N> class Vector
         return {a2 * b3 - a3 * b2, a3 * b1 - a1 * b3, a1 * b2 - a2 * b1};
     }
 
+    /// Returns the norm squared of the vector.
+    [[nodiscard]] constexpr T normSquared() const
+    {
+        T result{};
+        for (auto const x : _data)
+            result += x * x;
+        return result;
+    }
+
     /// Returns the norm of the vector.
     [[nodiscard]] constexpr auto norm() const
     {
         using std::sqrt;
-
-        T result{};
-        for (auto const x : _data)
-            result += x * x;
-        return sqrt(result);
+        return sqrt(normSquared());
     }
 };
 
@@ -266,7 +277,7 @@ template <typename T, size_t M, size_t N> class Matrix
     /// Accesses the ith row, by const reference.
     [[nodiscard]] constexpr const std::array<T, N> &operator[](size_t i) const { return _data[i]; }
 
-    template <typename U> constexpr Matrix &operator+=(const Matrix<U, M, N> &other)
+    constexpr Matrix &operator+=(const Matrix &other)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
@@ -274,13 +285,13 @@ template <typename T, size_t M, size_t N> class Matrix
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Matrix operator+(Matrix left, const Matrix<U, M, N> &right)
+    [[nodiscard]] constexpr friend Matrix operator+(Matrix left, const Matrix &right)
     {
         left += right;
         return left;
     }
 
-    template <typename U> constexpr Matrix &operator-=(const Matrix<U, M, N> &other)
+    constexpr Matrix &operator-=(const Matrix &other)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
@@ -288,14 +299,13 @@ template <typename T, size_t M, size_t N> class Matrix
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Matrix operator-(Matrix left, const Matrix<U, M, N> &right)
+    [[nodiscard]] constexpr friend Matrix operator-(Matrix left, const Matrix &right)
     {
         left -= right;
         return left;
     }
 
-    template <typename U, size_t P>
-    [[nodiscard]] constexpr Matrix<T, M, P> operator*(const Matrix<U, N, P> &other) const
+    template <size_t P> [[nodiscard]] constexpr Matrix<T, M, P> operator*(const Matrix<T, N, P> &other) const
     {
         Matrix<T, M, P> result{};
         for (size_t i = 0; i < M; ++i)
@@ -304,7 +314,7 @@ template <typename T, size_t M, size_t N> class Matrix
                     result[i, j] += _data[i][k] * other[k, j];
         return result;
     }
-    template <typename U, size_t P> constexpr Matrix<T, M, P> &operator*=(const Matrix<U, N, P> &other)
+    template <size_t P> constexpr Matrix<T, M, P> &operator*=(const Matrix<T, N, P> &other)
     {
         return *this = *this * other;
     }
@@ -424,6 +434,30 @@ template <typename T, size_t M, size_t N> class Matrix
         }
         else
             throw std::runtime_error("det for 4x4 or higher is not implemented");
+    }
+
+    /// Applies a Gauss-Jordan symmetric pivot around `(pi, pj)`.
+    void symmetricPivot(size_t pi, size_t pj)
+    {
+        assert(pi < N);
+        assert(pj < N);
+        T const z = (*this)[pi, pj] = 1 / (*this)[pi, pj];
+        for (size_t j = 0; j < N; ++j)
+        {
+            if (j == pj)
+                continue;
+            auto &w = (*this)[pi, j];
+            if (w == 0)
+                continue;
+            w *= -z;
+            for (size_t i = 0; i < N; ++i)
+                if (i != pi)
+                    (*this)[i, j] += w * (*this)[i, pj];
+        }
+
+        for (size_t i = 0; i < N; ++i)
+            if (i != pi)
+                (*this)[i, pj] *= z;
     }
 
     template <typename CharT, typename Traits>

@@ -516,6 +516,12 @@ template <std::integral T> class partitions : public it_base
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
         value_type partition;
+        if (_n == 0)
+        {
+            if (!callbackResult(f, partition))
+                return result_break;
+            return result_continue;
+        }
         partition.reserve(_n);
         if (!output(partition, _n, f))
             return result_break;

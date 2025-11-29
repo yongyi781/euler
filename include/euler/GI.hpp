@@ -15,14 +15,17 @@ template <integral2 T> struct GI
 
     constexpr GI(T real = {}, T imag = {}) : re(std::move(real)), im(std::move(imag)) {}
 
-    template <integral2 U> constexpr GI<T> operator+(const GI<U> &other) const
+    template <integral2 U> constexpr friend auto operator+(const GI<T> &left, const GI<U> &right)
     {
-        return {re + T(other.re), im + T(other.im)};
+        using V = std::common_type_t<T, U>;
+        return GI<V>{V(left.re + right.re), V(left.im + right.im)};
     }
     template <integral2 U> constexpr GI<T> &operator+=(const GI<U> &other) { return *this = *this + other; }
-    template <integral2 U> constexpr GI<T> operator-(const GI<U> &other) const
+
+    template <integral2 U> constexpr friend auto operator-(const GI<T> &left, const GI<U> &right)
     {
-        return {re - T(other.re), im - T(other.im)};
+        using V = std::common_type_t<T, U>;
+        return GI<V>{V(left.re - right.re), V(left.im - right.im)};
     }
     template <integral2 U> constexpr GI<T> &operator-=(const GI<U> &other) { return *this = *this - other; }
     template <integral2 U> constexpr GI<T> operator*(const GI<U> &other) const
