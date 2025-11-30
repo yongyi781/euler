@@ -19,9 +19,21 @@ template <typename T, size_t N> class Vector
     using const_iterator = std::array<T, N>::const_iterator;
     static constexpr size_t length = N;
 
-    [[nodiscard]] Vector() = default;
-    [[nodiscard]] constexpr Vector(std::array<T, N> data) : _data(std::move(data)) {}
-    template <typename... U> [[nodiscard]] constexpr Vector(U... data) : _data{data...} {}
+    Vector() = default;
+    constexpr explicit Vector(const std::array<T, N> &data) : _data(data) {}
+    template <typename... U>
+        requires(sizeof...(U) <= N && (std::convertible_to<U, T> && ...))
+    constexpr explicit(sizeof...(U) <= 1) Vector(U... values) : _data{values...}
+    {
+    }
+
+    template <typename U>
+        requires std::constructible_from<T, const U &>
+    constexpr explicit(!std::convertible_to<const U &, T>) Vector(const Vector<U, N> &other)
+    {
+        for (size_t i = 0; i < N; ++i)
+            _data[i] = T(other[i]);
+    }
 
     [[nodiscard]] constexpr static Vector zero() { return {}; }
     [[nodiscard]] constexpr static Vector ones()
@@ -34,40 +46,40 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr T &operator[](size_t i) { return _data[i]; }
     [[nodiscard]] constexpr const T &operator[](size_t i) const { return _data[i]; }
 
-    template <typename U> constexpr Vector &operator+=(const Vector<U, N> &other)
+    constexpr Vector &operator+=(const Vector &other)
     {
         for (size_t i = 0; i < N; ++i)
             _data[i] += other._data[i];
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Vector operator+(Vector left, const Vector<U, N> &right)
+    [[nodiscard]] constexpr friend Vector operator+(Vector left, const Vector &right)
     {
         left += right;
         return left;
     }
 
-    template <typename U> constexpr Vector &operator-=(const Vector<U, N> &other)
+    constexpr Vector &operator-=(const Vector &other)
     {
         for (size_t i = 0; i < N; ++i)
             _data[i] -= other._data[i];
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Vector operator-(Vector left, const Vector<U, N> &right)
+    [[nodiscard]] constexpr friend Vector operator-(Vector left, const Vector &right)
     {
         left -= right;
         return left;
     }
 
-    template <typename U> constexpr Vector &operator*=(U value)
+    constexpr Vector &operator*=(T value)
     {
         for (auto &x : _data)
             x *= value;
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Vector operator*(Vector v, U value)
+    [[nodiscard]] constexpr friend Vector operator*(Vector v, T value)
     {
         v *= value;
         return v;
@@ -75,38 +87,37 @@ template <typename T, size_t N> class Vector
 
     [[nodiscard]] constexpr friend Vector operator*(T t, Vector v) { return v * t; }
 
-    template <typename U> constexpr Vector &operator/=(U value)
+    constexpr Vector &operator/=(T value)
     {
         for (auto &x : _data)
             x /= value;
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Vector operator/(Vector v, U value)
+    [[nodiscard]] constexpr friend Vector operator/(Vector v, T value)
     {
         v /= value;
         return v;
     }
 
-    template <typename U> constexpr Vector &operator%=(U value)
+    constexpr Vector &operator%=(T value)
     {
         for (auto &x : _data)
             x %= value;
         return *this;
     }
 
-    template <typename U> [[nodiscard]] constexpr friend Vector operator%(Vector v, U value)
+    [[nodiscard]] constexpr friend Vector operator%(Vector v, T value)
     {
         v %= value;
         return v;
     }
 
-    [[nodiscard]] constexpr Vector operator-() const
+    [[nodiscard]] constexpr Vector operator-(this Vector v)
     {
-        Vector result{};
         for (size_t i = 0; i < N; ++i)
-            result._data[i] = -_data[i];
-        return result;
+            v._data[i] = -v._data[i];
+        return v;
     }
 
     [[nodiscard]] constexpr Vector operator+() const { return *this; }
@@ -189,11 +200,37 @@ template <typename T, size_t N> class Vector
         using std::sqrt;
         return sqrt(normSquared());
     }
+
+    /// Returns the primitive direction of this vector. The result is a vector in the same direction whose components
+    /// have gcd(|v[0]|, ..., |v[N-1]|) = 1 and whose first nonzero component is > 0.
+    /// Precondition: v is nonzero.
+    [[nodiscard]] constexpr Vector slope(this Vector v)
+    {
+        using std::gcd;
+
+        T g = v[0];
+        for (size_t i = 1; i < N; ++i)
+            g = gcd(g, v[i]);
+        assert(g != 0);
+        for (size_t i = 0; i < N; ++i)
+            v[i] /= g;
+        // Choose a canonical sign: first nonzero coordinate is positive
+        for (size_t i = 0; i < N; ++i)
+        {
+            if (v[i] < 0)
+            {
+                for (size_t j = 0; j < N; ++j)
+                    v[j] = -v[j];
+                break;
+            }
+            if (v[i] > 0)
+                break;
+        }
+        return v;
+    }
 };
 
-template <typename T, typename... U>
-    requires(std::is_same_v<T, U> && ...)
-Vector(T, U...) -> Vector<T, 1 + sizeof...(U)>;
+template <typename T, typename... U> Vector(T &&, U &&...) -> Vector<std::common_type_t<T, U...>, 1 + sizeof...(U)>;
 
 template <std::size_t I, typename T, std::size_t N>
     requires(I < N)
@@ -223,15 +260,28 @@ template <std::size_t I, typename T, std::size_t N>
     return std::move(get<I>(v));
 }
 
-/// A stack-allocated matrix with compile-time constant size.
+/// A stack-allocated matrix with compile-time constant size. M rows, N columns.
 template <typename T, size_t M, size_t N> class Matrix
 {
     std::array<std::array<T, N>, M> _data{};
 
   public:
-    [[nodiscard]] Matrix() = default;
-    [[nodiscard]] constexpr Matrix(std::array<std::array<T, N>, M> data) : _data(std::move(data)) {}
-    template <std::invocable<size_t, size_t> Fun> [[nodiscard]] constexpr Matrix(Fun f)
+    Matrix() = default;
+    constexpr explicit Matrix(const std::array<std::array<T, N>, M> &data) : _data(data) {}
+    constexpr explicit Matrix(std::initializer_list<std::initializer_list<T>> values)
+    {
+        assert(values.size() <= M && "Must have at most M rows");
+        size_t i = 0;
+        for (auto &&x : values)
+        {
+            assert(x.size() <= N && "Must have at most N columns");
+            std::ranges::copy(x, _data[i].begin());
+            ++i;
+        }
+    }
+    template <std::invocable<size_t, size_t> Fun>
+        requires std::convertible_to<std::invoke_result_t<Fun, size_t, size_t>, T>
+    constexpr Matrix(Fun f)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
@@ -239,11 +289,10 @@ template <typename T, size_t M, size_t N> class Matrix
     }
 
     /// Makes a multiple of the identity matrix.
-    template <typename U>
-        requires(M == N && std::convertible_to<U, T>)
-    [[nodiscard]] constexpr Matrix(U scalar)
+    constexpr Matrix(T scalar)
+        requires(M == N)
     {
-        for (size_t i = 0; i < N; ++i)
+        for (size_t i = 0; i < M; ++i)
             _data[i][i] = scalar;
     }
 
@@ -259,7 +308,7 @@ template <typename T, size_t M, size_t N> class Matrix
     [[nodiscard]] constexpr static Matrix elementary(size_t i, size_t j, T value = 1)
         requires(M == N)
     {
-        assert(i >= 0 && i < M && j >= 0 && j < N);
+        assert(i < M && j < N);
         auto result = identity();
         result._data[i][j] = value;
         return result;
@@ -494,7 +543,7 @@ template <typename T, size_t N> class SymmetricMatrix
     [[nodiscard]] constexpr SymmetricMatrix(std::array<T, size> data) : _data(std::move(data)) {}
 
     /// Makes a multiple of the identity symmetric matrix.
-    [[nodiscard]] constexpr SymmetricMatrix(T scalar) : _data{}
+    [[nodiscard]] constexpr SymmetricMatrix(T scalar)
     {
         for (size_t i = 0; i < N; ++i)
             (*this)[i, i] = scalar;
@@ -648,15 +697,6 @@ template <typename T, size_t N> class SymmetricMatrix
     }
 };
 
-template <typename T> using Matrix2 = Matrix<T, 2>;
-using Matrix2i = Matrix<int, 2>;
-using Matrix2ll = Matrix<int64_t, 2>;
-using Matrix2i128 = Matrix<int128_t, 2>;
-template <typename T> using Matrix3 = Matrix<T, 3>;
-using Matrix3i = Matrix<int, 3>;
-using Matrix3ll = Matrix<int64_t, 3>;
-using Matrix3i128 = Matrix<int128_t, 3>;
-
 /// Returns the coefficient of `x^n` in `(∑ i ∈ [0..M-1], a[i] * x^i) / (∑ i ∈ [0..N-1], b[i] * x^i)`.
 /// Requires `M < N`.
 template <integral2 T, integral2 U, size_t M, size_t N>
@@ -685,6 +725,11 @@ template <typename T, size_t N> constexpr size_t hash_value(const Vector<T, N> &
 {
     return boost::hash_value(v.data());
 }
+
+template <typename T> using Vector2 = Vector<T, 2>;
+template <typename T> using Vector3 = Vector<T, 3>;
+template <typename T> using Matrix2 = Matrix<T, 2, 2>;
+template <typename T> using Matrix3 = Matrix<T, 3, 3>;
 } // namespace euler
 
 namespace std
