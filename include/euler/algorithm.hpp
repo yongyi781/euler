@@ -4,6 +4,8 @@
 #include <random>
 #include <set>
 
+#include <boost/unordered/unordered_flat_map.hpp>
+
 #include "counting_iterator.hpp"
 #include "decls.hpp"
 #include "it/base.hpp"
@@ -684,7 +686,8 @@ template <typename T> T fetch_max(std::atomic<T> &a, T b, std::memory_order m = 
     return __atomic_fetch_max((T *)&a, b, (int)m); // NOLINT
 }
 
-/// Sums a function over the nodes of a binary tree.
+/// Sums a function over the nodes of a binary tree. The `Node` type must have functions `left`, `right`, and `height`.
+/// The `height` function is compared with `limit` to determine when to stop.
 template <typename Node, typename T, typename Fun> auto sumBinaryTree(Node root, T limit, Fun f)
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, Node>>;
@@ -709,7 +712,8 @@ template <typename Node, typename T, typename Fun> auto sumBinaryTree(Node root,
     return res;
 }
 
-/// Sums a function over the nodes of a binary tree in parallel.
+/// Sums a function over the nodes of a binary tree in parallel. The `Node` type must have functions `left`, `right`,
+/// and `height`. The `height` function is compared with `limit` to determine when to stop.
 template <typename Node, typename T, typename U, typename Fun>
 auto sumBinaryTree(Node root, T limit, U parallelThreshold, Fun f)
 {
@@ -728,5 +732,52 @@ auto sumBinaryTree(Node root, T limit, U parallelThreshold, Fun f)
     else if (do_right)
         right_res = sumBinaryTree(*right, limit, parallelThreshold, f);
     return f(root) + left_res + right_res;
+}
+
+/// Returns the index of the first element in the sorted range `r` that is `≥ value`, or `size(r)` if no such element
+/// exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> first_ge(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
+}
+
+/// Returns the index of the first element in the sorted range `r` that is `> value`, or `size(r)` if no such element
+/// exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> first_gt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
+}
+
+/// Returns the index of the last element in the sorted range `r` that is `≤ value`, or `-1` if no such element exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> last_le(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
+}
+
+/// Returns the index of the last element in the sorted range `r` that is `< value`, or `-1` if no such element exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> last_lt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
+}
+
+/// Constructs a map from each element of `r` to its index in `r`.
+template <std::ranges::random_access_range Range> [[nodiscard]] constexpr auto indexMap(Range &&r)
+{
+    using Key = std::ranges::range_value_t<Range>;
+    using Index = std::ranges::range_size_t<Range>;
+    auto const n = std::ranges::size(r);
+    boost::unordered_flat_map<Key, Index> res;
+    res.reserve(n);
+    for (Index i = 0; i < n; ++i)
+        res[r[i]] = i;
+    return res;
 }
 } // namespace euler
