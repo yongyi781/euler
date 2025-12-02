@@ -113,7 +113,7 @@ template <integral2 T> constexpr bool miller(const T &n, std::initializer_list<u
             }
             if (++j == k)
                 return false;
-            y = modmul(y, y, n);
+            y = mulmod(y, y, n);
         }
     }
     return true;
@@ -147,7 +147,7 @@ template <integral2 T> bool millerRabin(const T &n, size_t trials)
             }
             if (++j == k)
                 return false;
-            y = modmul(y, y, n);
+            y = mulmod(y, y, n);
         }
     }
     return true;

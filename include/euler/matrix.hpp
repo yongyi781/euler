@@ -699,7 +699,7 @@ template <typename T, size_t N> class SymmetricMatrix
 
 /// Returns the coefficient of `x^n` in `(∑ i ∈ [0..M-1], a[i] * x^i) / (∑ i ∈ [0..N-1], b[i] * x^i)`.
 /// Requires `M < N`.
-template <integral2 T, integral2 U, size_t M, size_t N>
+template <typename T, typename U, size_t M, size_t N>
     requires(M < N)
 auto seriesCoefficient(const std::array<T, M> &a, const std::array<T, N> &b, U n)
 {

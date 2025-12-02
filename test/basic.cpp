@@ -27,7 +27,7 @@ inline void testModInverse()
             if (gcd(a, m) != 1)
                 return;
             auto const result = modInverse(a, m);
-            auto const product = mod(modmul(result, a, m), m);
+            auto const product = mod(mulmod(result, a, m), m);
             if ((m == 1 && product != 0) || (m != 1 && product != 1))
                 fail("modInverse: "s + to_string(a) + " mod " + to_string(m));
         },
@@ -255,12 +255,12 @@ inline void testModmul()
         [](auto &&rng, auto &&dist) {
             int const a = dist(rng);
             int const b = dist(rng);
-            bool const ok = modmul(a, b, m) == (i64)a * b % m;
+            bool const ok = mulmod(a, b, m) == (i64)a * b % m;
             if (!ok)
-                fail("modmul is wrong for a = "s + to_string(a));
+                fail("mulmod is wrong for a = "s + to_string(a));
         },
         31);
-    pass("modmul");
+    pass("mulmod");
 }
 
 inline void testZMod()

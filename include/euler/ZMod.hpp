@@ -8,32 +8,33 @@ namespace euler
 {
 /// Class for integers modulo a modulus. The modulus must be a compile-time constant.
 /// @tparam SafeMul whether to use safe multiplication.
-template <integral2 auto M, bool SafeMul = (uint128_t)M >= std::numeric_limits<decltype(M)>::max() / M>
+template <integral2 auto M, bool SafeMul = (M > std::numeric_limits<decltype(M)>::max() / M)>
     requires(M > 0 && M <= std::numeric_limits<decltype(M)>::max() / 2)
 class ZMod
 {
-    decltype(M) _value;
-
-    // Shortcut the modulus operation if we know value is between 0 and M-1.
-    constexpr ZMod(bool /*unused*/, const decltype(M) &value) : _value(value) {}
-
   public:
     using value_type = decltype(M);
     static constexpr value_type modulus = M;
-    static constexpr bool isPrimeModulus = isPrime(M);
+    static constexpr bool is_field = isPrime(M);
 
     ZMod() = default;
 
     /// Generic constructor to avoid unintentional narrowing conversion bugs!
-    template <integral2 T> constexpr ZMod(T value) : _value(mod(value, M)) {}
+    template <integral2 T> constexpr ZMod(T value) : m_value(mod(value, M)) {}
+    /// Convenience constructor for ZMod<N> whenever M divides N.
+    template <integral2 auto N>
+        requires(N % M == 0)
+    constexpr ZMod(ZMod<N> other) : m_value(mod(other.value(), M))
+    {
+    }
 
-    constexpr explicit operator value_type() const { return _value; }
+    constexpr explicit operator value_type() const { return m_value; }
 
     constexpr ZMod &operator+=(const ZMod &other)
     {
-        _value += other._value;
-        if (_value >= M)
-            _value -= M;
+        m_value += other.m_value;
+        if (m_value >= M)
+            m_value -= M;
         return *this;
     }
 
@@ -47,7 +48,7 @@ class ZMod
 
     constexpr ZMod &operator-=(const ZMod &other)
     {
-        _value = _value < other._value ? _value + (M - other._value) : _value - other._value;
+        m_value = m_value < other.m_value ? m_value + (M - other.m_value) : m_value - other.m_value;
         return *this;
     }
 
@@ -61,13 +62,13 @@ class ZMod
     {
         if constexpr (SafeMul)
         {
-            _value = modmul(_value, other._value, M);
+            m_value = mulmod(m_value, other.m_value, M);
         }
         else
         {
-            _value *= other._value;
-            if (_value >= M)
-                _value %= M;
+            m_value *= other.m_value;
+            if (m_value >= M)
+                m_value %= M;
         }
         return *this;
     }
@@ -80,9 +81,9 @@ class ZMod
 
     constexpr ZMod &operator/=(const ZMod &other)
     {
-        if (_value % other._value == 0)
+        if (m_value % other.m_value == 0)
         {
-            _value /= other._value;
+            m_value /= other.m_value;
             return *this;
         }
         return *this *= ~other;
@@ -112,7 +113,7 @@ class ZMod
         return result;
     }
 
-    constexpr ZMod operator-() const { return {true, _value == 0 ? 0 : M - _value}; }
+    constexpr ZMod operator-() const { return {true, m_value == 0 ? 0 : M - m_value}; }
 
     /// Multiplicative inverse.
     constexpr ZMod operator~() const { return inverse(); }
@@ -122,31 +123,31 @@ class ZMod
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const ZMod &x)
     {
-        return o << x._value;
+        return o << x.m_value;
     }
 
     /// Returns a mutable reference to the internal value. Handle with care!
-    constexpr value_type &value() { return _value; }
-    constexpr const value_type &value() const { return _value; }
-    constexpr value_type balancedValue() const { return _value <= M / 2 ? _value : -(M - _value); }
+    constexpr value_type &value() { return m_value; }
+    constexpr const value_type &value() const { return m_value; }
+    constexpr value_type balancedValue() const { return m_value <= M / 2 ? m_value : -(M - m_value); }
 
     /// Returns the multiplicative inverse of this number.
     constexpr ZMod inverse() const
     {
-        if constexpr (isPrimeModulus)
+        if constexpr (is_field)
             return pow(M - 2);
         else
-            return {true, modInverse(_value, M)};
+            return {true, modInverse(m_value, M)};
     }
 
     /// Returns the modular exponentiation of this number.
     template <integral2 T> constexpr ZMod pow(T exponent) const
     {
-        if constexpr (isPrimeModulus)
+        if constexpr (is_field)
             exponent = mod(exponent, M - 1);
-        if (exponent == 0 || _value == 1)
+        if (exponent == 0 || m_value == 1)
             return 1;
-        if (_value == M - 1)
+        if (m_value == M - 1)
             return exponent % 2 == 0 ? 1 : -1;
         ZMod x = 1;
         ZMod y = *this;
@@ -172,9 +173,9 @@ class ZMod
     /// Returns the smaller square root of this residue class if there is one, or nullopt if there
     /// is none. Assumes M is prime.
     constexpr std::optional<ZMod> sqrt() const
-        requires(isPrimeModulus)
+        requires(is_field)
     {
-        if (_value == 0 || _value == 1)
+        if (m_value == 0 || m_value == 1)
             return *this;
         value_type s = 0;
         value_type q = M - 1;
@@ -188,7 +189,7 @@ class ZMod
             // Our modulus is 3 mod 4, there's a fast way to do this!
             ZMod r = pow((M + 1) / 4);
             if (r * r == *this)
-                return r._value <= M / 2 ? r : M - r;
+                return r.m_value <= M / 2 ? r : M - r;
             return std::nullopt;
         }
         // Find the first quadratic non-residue z by brute-force search
@@ -208,17 +209,17 @@ class ZMod
             {
                 tt *= tt;
                 ++i;
-                if (i == m._value)
+                if (i == m.m_value)
                     return std::nullopt;
             }
-            ZMod b = c.pow(ZMod<M - 1>(2).pow((m - i - 1)._value).value());
+            ZMod b = c.pow(ZMod<M - 1>(2).pow((m - i - 1).m_value).value());
             ZMod b2 = b * b;
             r *= b;
             t *= b2;
             c = b2;
             m = i;
         }
-        return r._value <= M / 2 ? r : M - r;
+        return r.m_value <= M / 2 ? r : M - r;
     }
 
     /// Calculates factorial of n mod M. Does not use Wilson's theorem.
@@ -260,13 +261,13 @@ class ZMod
         return it::range(T(0), r - 1).map([&](auto k) { return ZMod{n - k}; }).product() /
                it::range(T(0), r - 1).map([&](auto k) { return ZMod{k + 1}; }).product();
     }
+
+  private:
+    value_type m_value;
+
+    // Shortcut the modulus operation if we know value is between 0 and M-1.
+    constexpr ZMod(bool /*unused*/, const decltype(M) &value) : m_value(value) {}
 };
 
 template <integral2 auto M> constexpr size_t hash_value(const ZMod<M> &n) { return boost::hash_value(n.value()); }
 } // namespace euler
-
-template <euler::integral2 auto M>
-class boost::multiprecision::number_category<euler::ZMod<M>>
-    : public boost::multiprecision::number_category<decltype(M)>
-{
-};

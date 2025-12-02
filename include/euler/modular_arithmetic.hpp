@@ -68,7 +68,7 @@ template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &mo
 }
 
 /// Non-overflowing modular integer multiplication.
-template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto modmul(const Ta &a, const Tb &b, const Tm &m)
+template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto mulmod(const Ta &a, const Tb &b, const Tm &m)
 {
     using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
     using Td = double_integer_t<T>;
@@ -120,7 +120,7 @@ template <integral2 TMod> struct mod_multiplies_safe
     template <typename T, typename U>
     constexpr auto operator()(T &&a, U &&b) const noexcept(noexcept(std::forward<T>(a) * std::forward<U>(b)))
     {
-        return modmul(std::forward<T>(a), std::forward<U>(b), modulus);
+        return mulmod(std::forward<T>(a), std::forward<U>(b), modulus);
     }
 };
 

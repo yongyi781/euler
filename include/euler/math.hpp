@@ -219,7 +219,7 @@ template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto
     if (diff % g != 0)
         return std::pair<T, T>{-1, -1};
     T const l = m / g * n;
-    return std::pair<T, T>{mod(a + modmul(modmul(diff / g, s, l), m, l), l), l};
+    return std::pair<T, T>{mod(a + mulmod(mulmod(diff / g, s, l), m, l), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:
