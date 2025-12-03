@@ -324,7 +324,7 @@ template <typename T = int64_t> constexpr T doubleFactorial(int n)
 }
 
 /// Calculates the binomial coefficient for given values of `n` and `k`.
-template <typename T = int64_t> constexpr T binomial(int n, int r)
+template <typename T = int64_t> constexpr T binomial(i64 n, i64 r)
 {
     if (r <= 0 || n == 0)
         return T(r == 0);
@@ -334,6 +334,7 @@ template <typename T = int64_t> constexpr T binomial(int n, int r)
         return 0;
     if constexpr (std::same_as<T, mpz_int>)
     {
+        // Warning: mpz_bin_uiui takes in u32's...
         mpz_int result;
         mpz_bin_uiui((mpz_ptr)result.backend().data(), n, r);
         return result;
@@ -352,7 +353,7 @@ template <typename T = int64_t> constexpr T binomial(int n, int r)
 }
 
 /// Calculates the binomial coefficient for given values of `n` and `k` using GMP.
-inline mpz_int binomial(const mpz_int &n, int r)
+inline mpz_int binomial(const mpz_int &n, i64 r)
 {
     if (r <= 0 || n == 0)
         return {r == 0};

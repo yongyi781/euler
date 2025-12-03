@@ -181,12 +181,13 @@ constexpr T primitiveRoot(T p, SPFSieve &&spfs = {})
 }
 
 /// Returns the sum of a function at integers coprime to the given integer in the range [1, limit].
-template <typename SummatoryFun, integral2 Tk, typename T> constexpr auto sumCoprime(SummatoryFun F, Tk k, T limit)
+template <typename Fun, typename SummatoryFun, integral2 Tk, typename T>
+constexpr auto sumCoprime(Fun f, SummatoryFun F, Tk k, T limit)
 {
     thread_local std::vector<Tk> primes;
     primes.clear();
     it::factor(k).map([&](auto &&t) { return t.first; }).appendTo(primes);
-    return sumCoprime(std::move(F), primes.begin(), primes.end(), limit);
+    return sumCoprime(std::move(f), std::move(F), primes.begin(), primes.end(), limit);
 }
 
 /// Returns the number of integers coprime to the given integer in the range [1, limit].

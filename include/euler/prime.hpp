@@ -396,24 +396,24 @@ template <integral2 T, std::invocable<T, T, int> Fun> void sieveSquarePlusOne(co
 
 /// Returns the sum of a function `f` over the integers coprime to the given prime list in the range [1, limit]. The
 /// function `f` is passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
-template <typename SummatoryFun, typename It, typename T>
-constexpr std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>> sumCoprime(SummatoryFun F, It primeBegin,
+template <typename Fun, typename SummatoryFun, typename It, typename T>
+constexpr std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>> sumCoprime(Fun f, SummatoryFun F, It primeBegin,
                                                                                 It primeEnd, T limit)
 {
     if (primeBegin == primeEnd)
         return F(limit);
     if (primeBegin + 1 == primeEnd)
-        return F(limit) - F(limit / *(primeEnd - 1));
+        return F(limit) - f(*(primeEnd - 1)) * F(limit / *(primeEnd - 1));
     auto const p = *(primeEnd - 1);
-    auto res = sumCoprime(F, primeBegin, std::prev(primeEnd), limit);
+    auto res = sumCoprime(f, F, primeBegin, std::prev(primeEnd), limit);
     if (limit >= p)
-        res -= sumCoprime(std::move(F), primeBegin, std::prev(primeEnd), limit / p);
+        res -= f(p) * sumCoprime(std::move(f), std::move(F), primeBegin, std::prev(primeEnd), limit / p);
     return res;
 }
 
 /// Returns the number of integers coprime to the given prime list in the range [1, limit].
 template <typename It, typename T> constexpr T countCoprime(It primeBegin, It primeEnd, T limit)
 {
-    return sumCoprime(std::identity{}, primeBegin, primeEnd, limit);
+    return sumCoprime([](auto &&) { return T(1); }, std::identity{}, primeBegin, primeEnd, limit);
 }
 } // namespace euler
