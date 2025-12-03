@@ -105,6 +105,14 @@ template <integral2 T> struct GI
         }
         return o;
     }
+
+    friend size_t hash_value(const GI &z)
+    {
+        size_t seed = 0;
+        boost::hash_combine(seed, z.re);
+        boost::hash_combine(seed, z.im);
+        return seed;
+    }
 };
 
 /// Returns the unique Gaussian integer a + bi with norm p such that a ≥ b. Precondition: p must be prime.
