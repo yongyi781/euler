@@ -202,20 +202,20 @@ template <std::integral T = int64_t> class SPF
 
     /// Returns the sum of a function `f` over the integers coprime to `k` in the range [1, limit]. The function `f` is
     /// passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
-    template <typename SummatoryFun, typename Tk>
-    [[nodiscard]] auto sumCoprime(SummatoryFun F, Tk k, T limit) const
+    template <typename Fun, typename SummatoryFun, typename Tk>
+    [[nodiscard]] auto sumCoprime(Fun f, SummatoryFun F, Tk k, T limit) const
         -> std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>
     {
         thread_local std::vector<Tk> primes;
         primes.clear();
         it::factor(k, *this).map([&](auto &&t) { return t.first; }).appendTo(primes);
-        return euler::sumCoprime(std::move(F), primes.begin(), primes.end(), limit);
+        return euler::sumCoprime(std::move(f), std::move(F), primes.begin(), primes.end(), limit);
     }
 
     /// Returns the number of integers coprime to the given prime list in the range [1, limit].
     template <typename Tk> [[nodiscard]] T countCoprime(Tk k, T limit) const
     {
-        return sumCoprime(std::identity{}, k, limit);
+        return sumCoprime([](auto &&) { return T(1); }, std::identity{}, k, limit);
     }
 
     /// Decomposes a number into its squarefree part and its square part.

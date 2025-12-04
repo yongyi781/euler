@@ -63,12 +63,17 @@ template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const 
     return floorDiv(a + b - (b > 0 ? 1 : -1), b);
 }
 
+/// Returns the sign of x: -1 if x is negative, 0 if x is 0, and 1 if x is positive.
+template <typename T> constexpr auto sign(const T &x) { return x > 0 ? 1 : x < 0 ? -1 : 0; }
+
+/// Returns whether n is a square.
 template <integral2 T> constexpr bool isSquare(const T &n)
 {
     T a = isqrt(n);
     return a * a == n;
 }
 
+/// Returns whether the rational number r is a square.
 template <integral2 T> constexpr bool isSquare(const boost::rational<T> &r)
 {
     return isSquare(r.numerator()) && isSquare(r.denominator());

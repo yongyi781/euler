@@ -59,7 +59,7 @@ template <integral2 T> struct GI
     // Conjugate
     [[nodiscard]] constexpr GI conj() const { return {re, -im}; }
 
-    /// Rotate by a power of i so that (re > 0 and im ≥ 0).
+    /// Rotate by a power of i so that re > 0 and im ≥ 0.
     [[nodiscard]] constexpr GI canonicalAssociate() const
     {
         if (re > 0 && im >= 0)
