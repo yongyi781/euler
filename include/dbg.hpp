@@ -200,7 +200,8 @@ template <typename Fun1, typename Fun2> bool checkFns(Fun1 f, Fun2 g, int64_t N)
     size_t mismatches = 0;
     for (int64_t i = 1; i <= N; ++i)
     {
-        auto const fi = f(i), gi = g(i);
+        auto const fi = f(i);
+        auto const gi = g(i);
         if (fi != gi)
         {
             if (++mismatches <= 5)
