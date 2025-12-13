@@ -381,38 +381,84 @@ std::vector<T> randomVector(size_t size, T low, T high, Gen &&g = {})
     return result;
 }
 
-/// Returns the least integer `n` such that `f(n) ≥ target`.
-template <typename T, integral2 U, std::invocable<U> Fun>
-constexpr U bisectionLowerBound(Fun f, const T &target, U low, U high)
+/// Returns the first integer `n` in `[low, high)` where `pred(n)` is true. Assumes that all false values precede all
+/// true values. Returns `high` if no such integer exists.
+template <typename U, std::predicate<U> Pred> constexpr U find_first(U low, U high, Pred pred)
 {
-    if (f(low) >= target)
-        return low;
-    while (high - low > 1)
+    // Handle empty range or invalid input
+    if (high <= low)
+        return high;
+    while (low < high)
     {
         U const mid = low + (high - low) / 2;
-        if (f(mid) < target)
-            low = mid;
-        else
+        if (pred(mid))
             high = mid;
+        else
+            low = mid + 1;
     }
-    return high;
+    return low;
 }
 
-/// Returns the least integer `n` such that `f(n) > target`.
-template <typename T, integral2 U, std::invocable<U> Fun>
-constexpr U bisectionUpperBound(Fun f, const T &target, U low, U high)
+/// Returns the least integer `n` in `[low, high)` such that `f(n) ≥ target`, or `high` if no such integer exists.
+/// Requires `f` to be nondecreasing.
+template <typename T, typename U, std::invocable<U> Fun> constexpr U first_ge(Fun f, const T &target, U low, U high)
 {
-    if (f(low) > target)
-        return low;
-    while (high - low > 1)
-    {
-        U const mid = low + (high - low) / 2;
-        if (f(mid) > target)
-            high = mid;
-        else
-            low = mid;
-    }
-    return high;
+    return find_first(std::move(low), std::move(high), [&](const U &n) { return f(n) >= target; });
+}
+
+/// Returns the least integer `n` in `[low, high)` such that `f(n) > target`, or `high` if no such integer exists.
+/// Requires `f` to be nondecreasing.
+template <typename T, typename U, std::invocable<U> Fun> constexpr U first_gt(Fun f, const T &target, U low, U high)
+{
+    return find_first(std::move(low), std::move(high), [&](const U &n) { return f(n) > target; });
+}
+
+/// Returns the greatest integer `n` in `[low, high)` such that `f(n) ≤ target`, or `low - 1` if no such integer exists.
+/// Requires `f` to be nondecreasing.
+template <typename T, typename U, std::invocable<U> Fun> constexpr U last_le(Fun f, const T &target, U low, U high)
+{
+    return first_gt(std::move(f), std::move(target), std::move(low), std::move(high)) - 1;
+}
+
+/// Returns the greatest integer `n` in `[low, high)` such that `f(n) < target`, or `low - 1` if no such integer exists.
+/// Requires `f` to be nondecreasing.
+template <typename T, typename U, std::invocable<U> Fun> constexpr U last_lt(Fun f, const T &target, U low, U high)
+{
+    return first_ge(std::move(f), std::move(target), std::move(low), std::move(high)) - 1;
+}
+
+/// Returns the index of the first element in the sorted range `r` that is `≥ value`, or `size(r)` if no such element
+/// exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> first_ge(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
+}
+
+/// Returns the index of the first element in the sorted range `r` that is `> value`, or `size(r)` if no such element
+/// exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> first_gt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
+}
+
+/// Returns the index of the last element in the sorted range `r` that is `≤ value`, or `-1` if no such element exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> last_le(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
+}
+
+/// Returns the index of the last element in the sorted range `r` that is `< value`, or `-1` if no such element exists.
+template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
+          typename Proj = std::identity>
+[[nodiscard]] std::ranges::range_difference_t<Range> last_lt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
+{
+    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
 }
 
 /// Finds a root of the function `f`.
@@ -732,40 +778,6 @@ auto sumBinaryTree(Node root, T limit, U parallelThreshold, Fun f)
     else if (do_right)
         right_res = sumBinaryTree(*right, limit, parallelThreshold, f);
     return f(root) + left_res + right_res;
-}
-
-/// Returns the index of the first element in the sorted range `r` that is `≥ value`, or `size(r)` if no such element
-/// exists.
-template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
-          typename Proj = std::identity>
-[[nodiscard]] std::ranges::range_difference_t<Range> first_ge(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
-{
-    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
-}
-
-/// Returns the index of the first element in the sorted range `r` that is `> value`, or `size(r)` if no such element
-/// exists.
-template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
-          typename Proj = std::identity>
-[[nodiscard]] std::ranges::range_difference_t<Range> first_gt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
-{
-    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r);
-}
-
-/// Returns the index of the last element in the sorted range `r` that is `≤ value`, or `-1` if no such element exists.
-template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
-          typename Proj = std::identity>
-[[nodiscard]] std::ranges::range_difference_t<Range> last_le(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
-{
-    return std::ranges::upper_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
-}
-
-/// Returns the index of the last element in the sorted range `r` that is `< value`, or `-1` if no such element exists.
-template <std::ranges::random_access_range Range, typename T, typename Comp = std::ranges::less,
-          typename Proj = std::identity>
-[[nodiscard]] std::ranges::range_difference_t<Range> last_lt(Range &&r, const T &value, Comp comp = {}, Proj proj = {})
-{
-    return std::ranges::lower_bound(r, value, std::move(comp), std::move(proj)) - std::ranges::begin(r) - 1;
 }
 
 /// Constructs a map from each element of `r` to its index in `r`.

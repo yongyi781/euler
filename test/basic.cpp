@@ -178,12 +178,16 @@ inline void testBisections()
     auto f = [](i64 x) { return x * (x + 1) / 2; };
     auto g = [](i64 x) { return x / 1000; };
 
-    assert(bisectionLowerBound(f, 15, 0, 1'000'000) == 5);
-    assert(bisectionUpperBound(f, 15, 0, 1'000'000) == 6);
-    assert(bisectionLowerBound(f, 16, 0, 1'000'000) == 6);
-    assert(bisectionUpperBound(f, 16, 0, 1'000'000) == 6);
-    assert(bisectionLowerBound(g, 15, 0, 1'000'000) == 15000);
-    assert(bisectionUpperBound(g, 15, 0, 1'000'000) == 16000);
+    assertEqual(first_ge(f, 15, 0, 1'000'000), 5);
+    assertEqual(first_gt(f, 15, 0, 1'000'000), 6);
+    assertEqual(first_ge(f, 16, 0, 1'000'000), 6);
+    assertEqual(first_gt(f, 16, 0, 1'000'000), 6);
+
+    assertEqual(first_ge(g, 15, 0, 1'000'000), 15000);
+    assertEqual(first_gt(g, 15, 0, 1'000'000), 16000);
+
+    assertEqual(last_le(g, 15, 0, 1'000'000), 15999);
+    assertEqual(last_lt(g, 15, 0, 1'000'000), 14999);
     pass("Bisections");
 }
 
