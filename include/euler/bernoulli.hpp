@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BinomialTable.hpp"
 #include "math.hpp"
 
 namespace euler
@@ -24,14 +25,14 @@ template <typename T> class Bernoulli
 {
     std::vector<T> B;
     std::vector<T> invs;
-    std::vector<std::vector<T>> binom_table;
+    BinomialTable<T> binom_table;
 
   public:
     using value_type = T;
 
     Bernoulli(int k)
         : B(bernoulliPlus<T>(k)), invs(range(0, k + 1, [](int i) { return i == 0 ? T{} : T(1) / T(i); })),
-          binom_table(euler::binomTable<T>(k + 1))
+          binom_table(k + 1)
     {
     }
 
@@ -43,7 +44,7 @@ template <typename T> class Bernoulli
     /// The list whos ith element is 1/i.
     [[nodiscard]] constexpr const std::vector<value_type> &inverses() const { return invs; }
     /// The precomputed binomial table.
-    [[nodiscard]] constexpr const std::vector<std::vector<value_type>> &binomTable() const { return binom_table; }
+    [[nodiscard]] constexpr const BinomialTable<value_type> &binomTable() const { return binom_table; }
 
     /// Returns the size of the Bernoulli list.
     [[nodiscard]] constexpr size_t size() const { return B.size(); }
@@ -56,7 +57,7 @@ template <typename T> class Bernoulli
         Tp res = 0;
         Tp x = n;
         for (int j = k; j >= 0; --j, x *= n)
-            res += Tp(binom_table[k + 1][j] * B[j]) * x;
+            res += Tp(binom_table(k + 1, j) * B[j]) * x;
         res *= invs[k + 1];
         return res;
     }
@@ -67,7 +68,7 @@ template <typename T> class Bernoulli
         assert(std::cmp_less(k, B.size()));
         std::vector<value_type> res(k + 2);
         for (int j = k; j >= 0; --j)
-            res[k + 1 - j] = binom_table[k + 1][j] * B[j] * invs[k + 1];
+            res[k + 1 - j] = binom_table(k + 1, j) * B[j] * invs[k + 1];
         return res;
     }
 
@@ -80,7 +81,7 @@ template <typename T> class Bernoulli
         {
             a = p[k] * invs[k + 1];
             for (size_t j = 0; j <= k; ++j)
-                res[k - j + 1] += a * binom_table[k + 1][j] * B[j];
+                res[k - j + 1] += a * binom_table(k + 1, j) * B[j];
         }
         return res;
     }

@@ -183,22 +183,6 @@ template <integral2 T> constexpr std::optional<boost::rational<T>> sqrt(const bo
     return {{num, denom}};
 }
 
-/// Returns a table of binomial coefficients of size `size`.
-template <typename T = int64_t> constexpr std::vector<std::vector<T>> binomTable(size_t size)
-{
-    std::vector<std::vector<T>> table(size + 1);
-    table[0] = {1};
-    for (size_t n = 1; n <= size; ++n)
-    {
-        table[n] = std::vector<T>(n + 1);
-        table[n][0] = T(1);
-        table[n][n] = T(1);
-        for (size_t r = 1; r < n; ++r)
-            table[n][r] = table[n - 1][r - 1] + table[n - 1][r];
-    }
-    return table;
-}
-
 /// Returns a vector of binomial coefficients (n choose k) for k from 0 to `limit`.
 template <typename T> std::vector<T> binomialVec(size_t n, size_t limit)
 {

@@ -63,6 +63,7 @@ template <typename T> class vector2d
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 
+    /// Resizes (and potentially reshapes) the vector.
     constexpr void resize(size_t dim0, size_t dim1)
     {
         _dim0 = dim0;

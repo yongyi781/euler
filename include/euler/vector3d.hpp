@@ -88,6 +88,7 @@ template <typename T> class vector3d
     /// Zeros out the vector. This method does not set size to 0.
     constexpr void clear() noexcept { std::ranges::fill(_data, T{}); }
 
+    /// Resizes (and potentially reshapes) the vector.
     constexpr void resize(size_t dim1, size_t dim2, size_t dim3)
     {
         _dim0 = dim1;
