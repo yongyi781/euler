@@ -181,14 +181,41 @@ template <typename T, integral2 E, typename M> constexpr auto powmSafe(T base, E
                                                 std::move(identity));
 }
 
-/// Builds the table of inverses modulo a prime.
-template <integral2 T>
-constexpr std::vector<T> modInverseTable(const T &modulus, size_t limit = std::numeric_limits<size_t>::max())
+/// Builds the table of inverses in a type T (typically `ZMod<M>`).
+template <typename T> std::vector<T> inverseTable(size_t limit)
 {
-    size_t hardLimit = std::min(limit, (size_t)(modulus - 1));
-    std::vector<T> result(hardLimit + 1);
+    std::vector<T> res(limit + 1);
+    res[1] = 1;
+    tbb::parallel_for(
+        tbb::blocked_range(2UZ, limit + 1, (1UZ << 17) / sizeof(T)),
+        [&](auto r) {
+            size_t const start = r.begin();
+            thread_local std::vector<T> prefix;
+            prefix.resize(r.size() + 1);
+            prefix[0] = 1;
+            T prod = 1;
+            for (size_t i = r.begin(); i != r.end(); ++i)
+            {
+                prod *= i;
+                prefix[i - start + 1] = prod;
+            }
+            T inv = T(1) / prod;
+            for (size_t i = r.end(); i-- != r.begin();)
+            {
+                res[i] = inv * prefix[i - start];
+                inv *= i;
+            }
+        },
+        tbb::simple_partitioner{});
+    return res;
+}
+
+/// Builds the table of inverses modulo a prime.
+template <integral2 T> constexpr std::vector<T> modInverseTable(const T &modulus, size_t limit)
+{
+    std::vector<T> result(limit + 1);
     result[1] = 1;
-    for (size_t i = 2; i <= hardLimit; ++i)
+    for (size_t i = 2; i <= limit; ++i)
         result[i] = result[modulus % i] * (modulus - modulus / i) % modulus;
     return result;
 }
