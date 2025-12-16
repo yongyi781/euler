@@ -202,9 +202,9 @@ template <typename T, size_t N> class Vector
     }
 
     /// Returns the primitive direction of this vector. The result is a vector in the same direction whose components
-    /// have gcd(|v[0]|, ..., |v[N-1]|) = 1 and whose first nonzero component is > 0.
+    /// have gcd(|v[0]|, ..., |v[N-1]|) = 1.
     /// Precondition: v is nonzero.
-    [[nodiscard]] constexpr Vector slope(this Vector v)
+    [[nodiscard]] constexpr Vector direction(this Vector v)
     {
         using std::gcd;
 
@@ -214,6 +214,15 @@ template <typename T, size_t N> class Vector
         assert(g != 0);
         for (size_t i = 0; i < N; ++i)
             v[i] /= g;
+        return v;
+    }
+
+    /// Returns the slope of this vector. The result is a vector in the same direction whose components
+    /// have gcd(|v[0]|, ..., |v[N-1]|) = 1 and whose first nonzero component is > 0.
+    /// Precondition: v is nonzero.
+    [[nodiscard]] constexpr Vector slope(this Vector v)
+    {
+        v = std::move(v).direction();
         // Choose a canonical sign: first nonzero coordinate is positive
         for (size_t i = 0; i < N; ++i)
         {
