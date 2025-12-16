@@ -50,6 +50,23 @@ template <typename T> struct Aff
         return left;
     }
 
+    constexpr Aff &operator*=(T scalar)
+    {
+        a *= scalar;
+        b *= scalar;
+        return *this;
+    }
+    [[nodiscard]] constexpr friend Aff operator*(Aff a, T scalar)
+    {
+        a *= scalar;
+        return a;
+    }
+    [[nodiscard]] constexpr friend Aff operator*(T scalar, Aff a)
+    {
+        a *= scalar;
+        return a;
+    }
+
     /// Returns the inverse of this affine linear transformation.
     [[nodiscard]] constexpr Aff operator~() const { return inverse(); }
 
