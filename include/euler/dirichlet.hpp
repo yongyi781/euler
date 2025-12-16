@@ -862,9 +862,10 @@ template <typename T = int64_t> Dirichlet<T> inv_zeta_multiple(int a, size_t n)
 /// ζ(as - b). f(n) = [n = k^a] * k^b. Requires `a > 1`. Motive = ∑([r*p^(b/a)] for r in ath roots of unity).
 template <typename T = int64_t> Dirichlet<T> zeta_linear(int a, int b, size_t n)
 {
+    using std::pow;
     assert(a > 1);
     size_t const s = inth_root(n, a);
-    auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b); });
+    auto sieve = range(0, s, [&](size_t k) { return pow(T(k), b); });
     sieve[0] = 0;
     partialSumInPlace(sieve);
     return {n, [&](size_t k) -> T { return sieve[inth_root(k, a)]; }};
@@ -874,10 +875,11 @@ template <typename T = int64_t> Dirichlet<T> zeta_linear(int a, int b, size_t n)
 /// unity).
 template <typename T = int64_t> Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
 {
+    using std::pow;
     assert(a > 1);
     size_t const s = inth_root(n, a);
     auto const mu = mobiusSieve(s);
-    auto sieve = range(0, s, [&](size_t k) { return std::pow(T(k), b) * mu[k]; });
+    auto sieve = range(0, s, [&](size_t k) { return pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
     partialSumInPlace(sieve);
     return {n, [&](size_t k) -> T { return sieve[inth_root(k, a)]; }};
@@ -890,13 +892,12 @@ template <typename T = int64_t> Dirichlet<T> squarefree(size_t n, double alpha =
         std::min(Dirichlet<T>::pivotMax, std::max(Dirichlet<T>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6))));
     auto const mu = mobiusSieve(isqrt(n));
     auto const mertens = partialSum(mu, T{});
-    auto const precomputed = partialSum(squarefreeSieve<uint8_t>(s), T{});
+    auto const precomputed = partialSum(squarefreeSieve<u8>(s), T{});
     return {n, [&](size_t k) -> T {
                 if (k < precomputed.size())
                     return precomputed[k];
-                uint32_t const s = cbrt(k);
-                return sum(1, s,
-                           [&](uint32_t j) { return mu[j] * (k / ((size_t)j * j)) + mertens[std::sqrt(k / j)]; }) -
+                u32 const s = cbrt(k);
+                return sum(1, s, [&](u32 j) { return T(mu[j]) * (k / ((size_t)j * j)) + mertens[std::sqrt(k / j)]; }) -
                        mertens[s] * s;
             }};
 }
