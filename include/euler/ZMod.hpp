@@ -7,8 +7,7 @@
 namespace euler
 {
 /// Class for integers modulo a modulus. The modulus must be a compile-time constant.
-/// @tparam SafeMul whether to use safe multiplication.
-template <integral2 auto M, bool SafeMul = (M > std::numeric_limits<decltype(M)>::max() / M)>
+template <integral2 auto M>
     requires(M > 0 && M <= std::numeric_limits<decltype(M)>::max() / 2)
 class ZMod
 {
@@ -16,6 +15,7 @@ class ZMod
     using value_type = decltype(M);
     static constexpr value_type modulus = M;
     static constexpr bool is_field = isPrime(M);
+    static constexpr bool safe_mul_required = (M > std::numeric_limits<decltype(M)>::max() / M);
 
     ZMod() = default;
 
@@ -60,7 +60,7 @@ class ZMod
 
     constexpr ZMod &operator*=(const ZMod &other)
     {
-        if constexpr (SafeMul)
+        if constexpr (safe_mul_required)
         {
             m_value = mulmod(m_value, other.m_value, M);
         }
