@@ -322,7 +322,7 @@ template <std::integral T = int64_t> class SPF
         return res;
     }
 
-    /// Creates a sieve from a multiplicative function in O(n log log n) time.
+    /// Sieve for largest prime factors in O(n log log n) time.
     [[nodiscard]] std::vector<T> lpfSieve(T limit) const
     {
         assert(limit < size());
@@ -341,6 +341,27 @@ template <std::integral T = int64_t> class SPF
         it::range(4, limit, 2)(std::execution::par, [&](T i) {
             int const e = std::countr_zero(std::make_unsigned_t<T>(i));
             res[i] = res[i >> e];
+        });
+        return res;
+    }
+
+    /// Sieve for Euler's totient function in O(n log log n) time.
+    [[nodiscard]] std::vector<T> totientSieve(T limit) const
+    {
+        assert(limit < size());
+        std::vector<T> res = range(T(0), limit);
+        it::range(3, limit, 2)(std::execution::par, [&](T i) {
+            T n = i;
+            while (n != 1 && res[i] != 0)
+            {
+                T const p = (*this)[n];
+                removeFactors<true>(n, p);
+                res[i] -= res[i] / p;
+            }
+        });
+        it::range(2, limit, 2)(std::execution::par, [&](T i) {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            res[i] = res[i >> e] << e - 1;
         });
         return res;
     }
@@ -450,6 +471,9 @@ template <std::integral T = int64_t> class SPF
     }
 };
 
+/// Sieve for Euler's totient function in O(n log log n) time.
+template <std::integral T> std::vector<T> totientSieve(T limit) { return SPF{limit}.totientSieve(limit); }
+
 /// Sieve for the divisor counting function.
 template <std::integral T> std::vector<T> divisorCountSieve(T limit) { return SPF{limit}.divisorCountSieve(limit); }
 
@@ -470,8 +494,8 @@ template <std::integral T> std::vector<uint8_t> OmegaSieve(T limit) { return SPF
 
 // ==== Sieves that don't use SPF ====
 
-/// Sieve for the totient function. O(n).
-template <std::integral T> constexpr std::vector<T> totientSieve(T limit)
+/// Linear non-parallel sieve for the totient function. O(n).
+template <std::integral T> constexpr std::vector<T> totientSieve2(T limit)
 {
     std::vector<T> phi(limit + 1);
     std::vector<T> primes;

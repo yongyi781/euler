@@ -6,7 +6,7 @@ namespace euler
 { /// Prime factorization class.
 template <typename T = int64_t> class PF
 {
-    std::vector<PrimePower<T>> _data;
+    std::vector<PrimePower<T>> data_;
 
   public:
     using value_type = PrimePower<T>;
@@ -20,48 +20,57 @@ template <typename T = int64_t> class PF
 
     /// Initialize with a vector of pairs.
     /// Precondition: the vector must be in canonical form (first elements are primes in increasing order).
-    constexpr PF(container_type pairs) : _data(std::move(pairs)) {}
+    constexpr PF(container_type pairs) : data_(std::move(pairs)) {}
 
     /// Initialize with a pair.
-    constexpr PF(value_type pair) : _data({pair}) {}
+    constexpr PF(value_type pair) : data_({pair}) {}
 
     /// Mutable accessor to data. Make sure invariants are preserved.
-    [[nodiscard]] constexpr container_type &data() noexcept { return _data; }
-    [[nodiscard]] constexpr const container_type &data() const noexcept { return _data; }
-    [[nodiscard]] constexpr size_t size() const noexcept { return _data.size(); }
-    [[nodiscard]] constexpr bool empty() const noexcept { return _data.empty(); }
+    [[nodiscard]] constexpr container_type &data() noexcept { return data_; }
+    [[nodiscard]] constexpr const container_type &data() const noexcept { return data_; }
+    [[nodiscard]] constexpr size_t size() const noexcept { return data_.size(); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return data_.empty(); }
     /// Mutable begin iterator. Make sure invariants are preserved.
-    [[nodiscard]] constexpr auto begin() noexcept { return _data.begin(); }
-    [[nodiscard]] constexpr auto begin() const noexcept { return _data.begin(); }
+    [[nodiscard]] constexpr auto begin() noexcept { return data_.begin(); }
+    [[nodiscard]] constexpr auto begin() const noexcept { return data_.begin(); }
     /// Mutable end iterator. Make sure invariants are preserved.
-    [[nodiscard]] constexpr auto end() noexcept { return _data.end(); }
-    [[nodiscard]] constexpr auto end() const noexcept { return _data.end(); }
-    [[nodiscard]] constexpr reference front() noexcept { return _data.front(); }
-    [[nodiscard]] constexpr const_reference front() const noexcept { return _data.front(); }
-    [[nodiscard]] constexpr reference back() noexcept { return _data.back(); }
-    [[nodiscard]] constexpr const_reference back() const noexcept { return _data.back(); }
+    [[nodiscard]] constexpr auto end() noexcept { return data_.end(); }
+    [[nodiscard]] constexpr auto end() const noexcept { return data_.end(); }
+    [[nodiscard]] constexpr reference front() noexcept { return data_.front(); }
+    [[nodiscard]] constexpr const_reference front() const noexcept { return data_.front(); }
+    [[nodiscard]] constexpr reference back() noexcept { return data_.back(); }
+    [[nodiscard]] constexpr const_reference back() const noexcept { return data_.back(); }
 
-    [[nodiscard]] constexpr reference operator[](size_t i) noexcept { return _data[i]; }
-    [[nodiscard]] constexpr const_reference operator[](size_t i) const noexcept { return _data[i]; }
+    [[nodiscard]] constexpr reference operator[](size_t i) noexcept { return data_[i]; }
+    [[nodiscard]] constexpr const_reference operator[](size_t i) const noexcept { return data_[i]; }
 
-    constexpr void pop_back() noexcept { _data.pop_back(); }
-    constexpr void swap(PF &other) noexcept { _data.swap(other._data); }
-    constexpr void clear() noexcept { _data.clear(); }
+    constexpr void pop_back() noexcept { data_.pop_back(); }
+    constexpr void swap(PF &other) noexcept { data_.swap(other.data_); }
+    constexpr void clear() noexcept { data_.clear(); }
     /// Dangerous! Make sure you know what you are doing.
     template <typename... Args> constexpr reference emplace_back(Args &&...args)
     {
-        return _data.emplace_back(std::forward<Args>(args)...);
+        return data_.emplace_back(std::forward<Args>(args)...);
     }
     /// Dangerous! Make sure you know what you are doing.
-    constexpr void push_back(value_type x) { _data.push_back(x); }
+    constexpr void push_back(value_type x) { data_.push_back(x); }
     /// Dangerous! Make sure you know what you are doing.
-    constexpr iterator insert(const_iterator position, value_type x) { return _data.insert(position, x); }
+    constexpr iterator insert(const_iterator position, value_type x) { return data_.insert(position, x); }
+
+    /// Returns the exponent of `p` in the prime factorization.
+    constexpr int exponent(T p) const
+    {
+        if (auto const it = std::ranges::lower_bound(data_, p, std::ranges::less{}, [](auto &&t) { return t.first; });
+            it != end() && it->first == p)
+            return it->second;
+        return 0;
+    }
 
     /// Combines two prime factorizations using a binary operation `op` on the exponents.
     template <typename U, std::invocable<int, int> BinaryOp>
     constexpr PF &combineInPlace(const PF<U> &other, BinaryOp op)
     {
-        auto it1 = _data.begin();
+        auto it1 = data_.begin();
         auto it2 = other.begin();
         while (it1 != end() && it2 != other.end())
         {
@@ -71,7 +80,7 @@ template <typename T = int64_t> class PF
             {
                 e1 = op(e1, e2);
                 if (e1 == 0)
-                    it1 = _data.erase(it1);
+                    it1 = data_.erase(it1);
                 else
                     ++it1;
                 ++it2;
@@ -80,7 +89,7 @@ template <typename T = int64_t> class PF
             {
                 e1 = op(e1, 0);
                 if (e1 == 0)
-                    it1 = _data.erase(it1);
+                    it1 = data_.erase(it1);
                 else
                     ++it1;
             }
@@ -88,7 +97,7 @@ template <typename T = int64_t> class PF
             {
                 auto e = op(0, e2);
                 if (e != 0)
-                    it1 = _data.emplace(it1, p2, e) + 1;
+                    it1 = data_.emplace(it1, p2, e) + 1;
                 ++it2;
             }
         }
@@ -97,14 +106,14 @@ template <typename T = int64_t> class PF
             auto [p2, e2] = *it2;
             auto e = op(0, e2);
             if (e != 0)
-                _data.emplace_back(p2, e);
+                data_.emplace_back(p2, e);
         }
         return *this;
     }
 
     constexpr PF &powInPlace(int n) noexcept
     {
-        for (auto &[p, e] : _data)
+        for (auto &[p, e] : data_)
             e *= n;
         return *this;
     }
@@ -140,19 +149,19 @@ template <typename T = int64_t> class PF
     /// Evaluates the prime factorization to a number.
     template <typename Z = T> constexpr Z value() const
     {
-        return product(_data, [](auto &&pe) { return euler::pow(Z(pe.first), pe.second); });
+        return product(data_, [](auto &&pe) { return euler::pow(Z(pe.first), pe.second); });
     }
 
     /// Counts the number of divisors from the factorization.
     template <typename Z = T> [[nodiscard]] constexpr Z countDivisors() const
     {
-        return product(_data, [](auto &&pe) { return Z(pe.second + 1); });
+        return product(data_, [](auto &&pe) { return Z(pe.second + 1); });
     }
 
     /// Sums the divisors from the factorization.
     template <typename Z = T> [[nodiscard]] constexpr Z sumDivisors() const
     {
-        return product(_data,
+        return product(data_,
                        [](auto &&pe) { return Z(euler::pow(Z(pe.first), pe.second + 1) - 1) / Z(pe.first - 1); });
     }
 
@@ -160,7 +169,7 @@ template <typename T = int64_t> class PF
     template <typename Z = T> [[nodiscard]] constexpr Z totient() const
     {
         Z n = value<Z>();
-        for (auto &&[p, _] : _data)
+        for (auto &&[p, _] : data_)
             n = n / p * (p - 1);
         return n;
     }
@@ -169,13 +178,13 @@ template <typename T = int64_t> class PF
     template <typename Z = T> [[nodiscard]] constexpr Z radical() const
     {
         Z rad{1};
-        for (auto &&[p, _] : _data)
+        for (auto &&[p, _] : data_)
             rad *= p;
         return rad;
     }
 
     /// Returns whether the number is prime (has only one factor, with exponent 1).
-    [[nodiscard]] constexpr bool isPrime() const { return _data.size() == 1 && _data[0].second == 1; }
+    [[nodiscard]] constexpr bool isPrime() const { return data_.size() == 1 && data_[0].second == 1; }
 
     /// Multiplication.
     template <typename U> constexpr PF &operator*=(const PF<U> &other) { return combineInPlace(other, std::plus{}); }
