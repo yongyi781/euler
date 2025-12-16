@@ -1,5 +1,6 @@
 #pragma once
 
+#include "euler/Aff.hpp"
 #include "euler/BinomialTable.hpp"
 #include "euler/FactorialMod.hpp"
 #include "euler/FenwickTree.hpp"
