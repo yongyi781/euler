@@ -198,13 +198,33 @@ template <std::integral T> class SPF
     /// @return A pair of (s, t) such that n = s^2 * t with t squarefree.
     [[nodiscard]] std::pair<T, T> sqfreeDecompose(T n) const
     {
-        std::pair<T, T> res{1, n};
+        std::pair<T, T> res{1, 1};
+        if (n % 2 == 0)
+        {
+            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
+            n >>= e;
+            res.first <<= e / 2;
+            res.second <<= e % 2;
+        }
         while (n != 1)
         {
-            auto const [p, e] = removeSpf(n);
-            T const q = pow(p, e / 2);
-            res.first *= q;
-            res.second /= q * q;
+            T const p = (*this)[n];
+            if (n == p)
+            {
+                n = 1;
+                res.second *= p;
+                break;
+            }
+            n *= inv(p);
+            if ((*this)[n] == p)
+            {
+                res.first *= p;
+                n *= inv(p);
+            }
+            else
+            {
+                res.second *= p;
+            }
         }
         return res;
     }
