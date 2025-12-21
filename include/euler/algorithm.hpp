@@ -792,4 +792,31 @@ template <std::ranges::random_access_range Range> [[nodiscard]] constexpr auto i
         res[r[i]] = i;
     return res;
 }
+
+/// Inverts a batch of values in-place.
+template <std::ranges::range Range> void batchInvert(Range &&r)
+{
+    using T = std::ranges::range_value_t<Range>;
+    size_t const n = r.size();
+    std::vector<T> prefix(n);
+    std::exclusive_scan(r.begin(), r.end(), prefix.begin(), T(1), std::multiplies{});
+    auto inv = T(1) / (*(r.end() - 1) * prefix.back());
+    auto it = r.end(), jt = prefix.end() - 1;
+    for (; it-- != r.begin(); --jt)
+    {
+        auto const x = *it;
+        *it = inv * *jt;
+        inv *= x;
+    }
+}
+
+/// Inverts a batch of values in-place.
+template <execution_policy Exec, std::ranges::range Range> void batchInvert(Exec && /*exec*/, Range &&r)
+{
+    if constexpr (!std::is_same_v<std::decay_t<Exec>, std::execution::parallel_policy> &&
+                  !std::is_same_v<std::decay_t<Exec>, std::execution::parallel_unsequenced_policy>)
+        batchInvert(r);
+    else
+        tbb::parallel_for(tbb::blocked_range(r.begin(), r.end()), [&](auto s) { batchInvert(s); });
+}
 } // namespace euler
