@@ -1,26 +1,27 @@
 #pragma once
 
 #include "it/base.hpp"
-#include "it/factor.hpp"
 #include "prime.hpp"
 
 namespace euler
 {
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.
-template <std::integral T = int64_t> class SPF
+template <std::integral T> class SPF
 {
     // spf_odd[i] holds the smallest prime factor for number (2*i + 1).
     // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
     std::vector<std::make_unsigned_t<half_integer_t<T>>> spf_odd;
     std::vector<std::make_unsigned_t<half_integer_t<T>>> small_primes; // Odd primes up to sqrt(n).
+    std::vector<std::make_unsigned_t<T>> inv_odd;                      // Inverses of odd numbers up to sqrt(n).
 
   public:
     // Only need to store integer half the size of the input!
     using half_integer_type = std::make_unsigned_t<half_integer_t<T>>;
 
     SPF() = default;
-    explicit SPF(T n) : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_integer_type>(3, isqrt(n)))
+    explicit SPF(T n)
+        : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_integer_type>(3, isqrt(n))), inv_odd((isqrt(n) + 1) / 2)
     {
         tbb::parallel_for(
             tbb::blocked_range(0UZ, spf_odd.size(), 65536UZ),
@@ -30,20 +31,22 @@ template <std::integral T = int64_t> class SPF
                 {
                     if (p * p >= seg_end)
                         break;
-                    size_t const lj = std::max(p * p / 2, (2 * r.begin() + p) / (2 * p) * p + p / 2);
-                    for (size_t j = lj; j < r.end(); j += p)
+                    size_t const min_j = std::max(p * p / 2, (2 * r.begin() + p) / (2 * p) * p + p / 2);
+                    for (size_t j = min_j; j < r.end(); j += p)
                         if (spf_odd[j] == 0)
                             spf_odd[j] = p;
                 }
             },
             tbb::simple_partitioner{});
+        for (size_t i = 0; i < inv_odd.size(); ++i)
+            inv_odd[i] = modInverse_u64(2 * i + 1);
     }
 
     /// Returns whether the SPF sieve is empty.
-    [[nodiscard]] bool empty() const noexcept { return spf_odd.empty(); }
+    [[nodiscard]] constexpr bool empty() const noexcept { return spf_odd.empty(); }
 
     /// Returns the effective size of this SPF sieve, which is 1 more than the max valid input to this sieve.
-    [[nodiscard]] size_t size() const noexcept { return spf_odd.size() * 2 + 1; }
+    [[nodiscard]] constexpr size_t size() const noexcept { return spf_odd.size() * 2 + 1; }
 
     /// Returns the smallest prime factor for any x (1 ≤ x ≤ size()).
     [[nodiscard]] T operator[](T n) const
@@ -58,23 +61,58 @@ template <std::integral T = int64_t> class SPF
     /// Returns whether the given number is prime. Requires `1 ≤ n ≤ size()`.
     [[nodiscard]] bool isPrime(T n) const { return (*this)[n] == n; }
 
+    /// Returns multiplicative inverse of n in T. Requirement: n is odd and <= sqrt(N).
+    [[nodiscard]] T inv(T n) const { return inv_odd[n / 2]; }
+
+    /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return the `(p, e)` pair.
+    template <std::integral U> PrimePower<U> removeSpf(U &n) const
+    {
+        if (n % 2 == 0)
+        {
+            int const e = std::countr_zero(std::make_unsigned_t<U>(n));
+            n >>= e;
+            return PrimePower<U>{2, e};
+        }
+        PrimePower<U> res{(*this)[n], 1};
+        if (n == res.first)
+        {
+            n = 1;
+            return res;
+        }
+        T const ip = inv(res.first);
+        for (n *= ip; (*this)[n] == res.first; n *= ip, ++res.second)
+            ;
+        return res;
+    }
+
+    /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return `p^e`.
+    template <std::integral U> U removeSpfValue(U &n) const
+    {
+        if (n % 2 == 0)
+        {
+            int const e = std::countr_zero(std::make_unsigned_t<U>(n));
+            n >>= e;
+            return U(1) << e;
+        }
+        T const p = (*this)[n];
+        if (n == p)
+        {
+            n = 1;
+            return p;
+        }
+        T const ip = inv(p);
+        U res = p;
+        for (n *= ip; (*this)[n] == p; n *= ip, res *= p)
+            ;
+        return res;
+    }
+
     /// Returns the largest prime factor of `n`.
     [[nodiscard]] T lpf(T n) const
     {
         T res = 0;
-        if (n % 2 == 0)
-        {
-            res = 2;
-            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
-        }
         while (n != 1)
-        {
-            auto const p = (*this)[n];
-            n /= p;
-            while ((*this)[n] == p)
-                n /= p;
-            res = p;
-        }
+            res = removeSpf(n).first;
         return res;
     }
 
@@ -82,19 +120,8 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] T radical(T n) const
     {
         T res = 1;
-        if (n % 2 == 0)
-        {
-            res = 2;
-            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
-        }
         while (n != 1)
-        {
-            auto const p = (*this)[n];
-            n /= p;
-            while ((*this)[n] == p)
-                n /= p;
-            res *= p;
-        }
+            res *= removeSpf(n).first;
         return res;
     }
 
@@ -102,17 +129,19 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] int mobius(T n) const
     {
         int res = 1;
-        if (n % 4 == 0)
-            return 0;
         if (n % 2 == 0)
         {
+            if (n % 4 == 0)
+                return 0;
             n /= 2;
             res = -res;
         }
         while (n != 1)
         {
             auto const p = (*this)[n];
-            n /= p;
+            if (n == p)
+                return -res;
+            n *= inv(p);
             if ((*this)[n] == p)
                 return 0;
             res = -res;
@@ -123,36 +152,16 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] T totient(T n) const
     {
         T res = n;
-        if (n % 2 == 0)
-        {
-            res >>= 1;
-            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
-        }
         while (n != 1)
-        {
-            T const p = (*this)[n];
-            res -= res / p;
-            while ((*this)[n] == p)
-                n /= p;
-        }
+            res -= (double)res / removeSpf(n).first; // This works for all reasonably sized N.
         return res;
     }
 
     [[nodiscard]] T countDivisors(T n) const
     {
         T res = 1;
-        if (n % 2 == 0)
-        {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
-            res *= e + 1;
-            n >>= e;
-        }
         while (n != 1)
-        {
-            T const p = (*this)[n];
-            int const e = removeFactors<true>(n, p);
-            res *= e + 1;
-        }
+            res *= removeSpf(n).second + 1;
         return res;
     }
 
@@ -160,18 +169,10 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] u32 omega(T n) const
     {
         u32 res = 0;
-        if (n % 2 == 0)
-        {
-            ++res;
-            n >>= std::countr_zero(std::make_unsigned_t<T>(n));
-        }
         while (n != 1)
         {
-            auto const p = (*this)[n];
-            n /= p;
-            while ((*this)[n] == p)
-                n /= p;
             ++res;
+            removeSpf(n);
         }
         return res;
     }
@@ -180,36 +181,9 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] u32 Omega(T n) const
     {
         u32 res = 0;
-        if (n % 2 == 0)
-        {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
-            res += e;
-            n >>= e;
-        }
         while (n != 1)
-        {
-            auto const p = (*this)[n];
-            n /= p;
-            ++res;
-            while ((*this)[n] == p)
-            {
-                ++res;
-                n /= p;
-            }
-        }
+            res += removeSpf(n).second;
         return res;
-    }
-
-    /// Returns the sum of a function `f` over the integers coprime to `k` in the range [1, limit]. The function `f` is
-    /// passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
-    template <typename Fun, typename SummatoryFun, typename Tk>
-    [[nodiscard]] auto sumCoprime(Fun f, SummatoryFun F, Tk k, T limit) const
-        -> std::remove_cvref_t<std::invoke_result_t<SummatoryFun, T>>
-    {
-        thread_local std::vector<Tk> primes;
-        primes.clear();
-        it::factor(k, *this).map([&](auto &&t) { return t.first; }).appendTo(primes);
-        return euler::sumCoprime(std::move(f), std::move(F), primes.begin(), primes.end(), limit);
     }
 
     /// Returns the number of integers coprime to the given prime list in the range [1, limit].
@@ -225,17 +199,10 @@ template <std::integral T = int64_t> class SPF
     [[nodiscard]] std::pair<T, T> sqfreeDecompose(T n) const
     {
         std::pair<T, T> res{1, n};
-        if (n % 4 == 0)
-        {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
-            res.first <<= e / 2;
-            res.second >>= 2 * (e / 2);
-            n >>= e;
-        }
         while (n != 1)
         {
-            auto const p = (*this)[n];
-            T const q = pow(p, removeFactors<true>(n, p) / 2);
+            auto const [p, e] = removeSpf(n);
+            T const q = pow(p, e / 2);
             res.first *= q;
             res.second /= q * q;
         }
@@ -255,8 +222,7 @@ template <std::integral T = int64_t> class SPF
             T n = i;
             while (n != 1 && res[i] != 0)
             {
-                T const p = (*this)[n];
-                int const e = removeFactors<true>(n, p);
+                auto const [p, e] = removeSpf(n);
                 res[i] *= f(p, e);
             }
         });
@@ -277,8 +243,7 @@ template <std::integral T = int64_t> class SPF
             T n = i;
             while (n != 1)
             {
-                T const p = (*this)[n];
-                int const e = removeFactors<true>(n, p);
+                auto const [p, e] = removeSpf(n);
                 res[i] += f(p, e);
             }
         });
@@ -329,15 +294,7 @@ template <std::integral T = int64_t> class SPF
         std::vector<T> res(limit + 1, 1);
         res[0] = 0;
         res[2] = 2;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1 && res[i] != 0)
-            {
-                T const p = (*this)[n];
-                int const e = removeFactors<true>(n, p);
-                res[i] = p;
-            }
-        });
+        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = lpf(i); });
         it::range(4, limit, 2)(std::execution::par, [&](T i) {
             int const e = std::countr_zero(std::make_unsigned_t<T>(i));
             res[i] = res[i >> e];
@@ -350,15 +307,7 @@ template <std::integral T = int64_t> class SPF
     {
         assert(limit < size());
         std::vector<T> res = range(T(0), limit);
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1 && res[i] != 0)
-            {
-                T const p = (*this)[n];
-                removeFactors<true>(n, p);
-                res[i] -= res[i] / p;
-            }
-        });
+        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = totient(i); });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
             int const e = std::countr_zero(std::make_unsigned_t<T>(i));
             res[i] = res[i >> e] << e - 1;
@@ -382,12 +331,17 @@ template <std::integral T = int64_t> class SPF
             while (n != 1)
             {
                 T const p = (*this)[n];
-                n /= p;
+                if (n == p)
+                {
+                    sieve[i] *= 1 + p;
+                    break;
+                }
+                n *= inv(p);
                 T q = p, S = 1 + p;
                 while ((*this)[n] == p)
                 {
                     q *= p;
-                    n /= p;
+                    n *= inv(p);
                     S += q;
                 }
                 sieve[i] *= S;
@@ -410,12 +364,17 @@ template <std::integral T = int64_t> class SPF
             while (n != 1)
             {
                 T const p = (*this)[n];
-                n /= p;
-                T q = p * p, S = 1 + p * p;
+                if (n == p)
+                {
+                    sieve[i] *= 1 + (U)p * p;
+                    break;
+                }
+                n *= inv(p);
+                U q = p * p, S = 1 + (U)p * p;
                 while ((*this)[n] == p)
                 {
-                    q *= p * p;
-                    n /= p;
+                    q *= (U)p * p;
+                    n *= inv(p);
                     S += q;
                 }
                 sieve[i] *= S;
@@ -423,7 +382,7 @@ template <std::integral T = int64_t> class SPF
         });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
             auto e = std::countr_zero(std::make_unsigned_t<T>(i));
-            sieve[i] = ((T(1) << 2 * (e + 1)) - 1) / 3 * sieve[i >> e];
+            sieve[i] = ((U(1) << 2 * (e + 1)) - 1) / 3 * sieve[i >> e];
         });
         return sieve;
     }
@@ -434,20 +393,7 @@ template <std::integral T = int64_t> class SPF
         assert(limit < size());
         std::vector<int8_t> res(limit + 1, 1);
         res[0] = 0;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1)
-            {
-                T const p = (*this)[n];
-                n /= p;
-                if ((*this)[n] == p)
-                {
-                    res[i] = 0;
-                    break;
-                }
-                res[i] = -res[i];
-            }
-        });
+        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = mobius(i); });
         it::range(2, limit, 2)(std::execution::par, [&](T i) { res[i] = i % 4 == 0 ? 0 : -res[i / 2]; });
         return res;
     }

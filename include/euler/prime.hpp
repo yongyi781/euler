@@ -289,15 +289,6 @@ constexpr T smallestPrimeFactor(const T &num, const T &start = 2)
     return num;
 }
 
-/// Calculates Euler's totient function, given a factorization.
-template <integral2 T, std::ranges::range Range>
-constexpr T totient(T n, Range &&factorization) // Pass by value intentional
-{
-    for (auto &&[p, e] : std::forward<Range>(factorization))
-        n -= n / p;
-    return n;
-}
-
 /// @brief Generates primes within a range.
 /// @param start Inclusive lower bound.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.

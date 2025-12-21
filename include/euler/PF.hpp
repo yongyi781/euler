@@ -25,6 +25,11 @@ template <typename T = int64_t> class PF
     /// Initialize with a pair.
     constexpr PF(value_type pair) : data_({pair}) {}
 
+    template <std::ranges::range Range>
+    constexpr PF(std::from_range_t f, Range &&r) : data_(std::move(f), std::forward<Range>(r))
+    {
+    }
+
     /// Mutable accessor to data. Make sure invariants are preserved.
     [[nodiscard]] constexpr container_type &data() noexcept { return data_; }
     [[nodiscard]] constexpr const container_type &data() const noexcept { return data_; }

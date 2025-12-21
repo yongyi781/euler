@@ -9,26 +9,25 @@ namespace it
 {
 /// Enumerate the divisors of a number.
 ///
-/// Usage: `divisors(factorization)`. If the number `n` hasn't been factored yet, you probably want to type
-/// `divisors(factor(n))`.
-template <std::ranges::view V> class divisors_t : public it_base
+/// Usage: `divisors<T>(factorization)`. If the number `n` hasn't been factored yet, you probably want to type
+/// `divisors<T>(factor(n))`.
+template <integral2 T, std::ranges::view V> class divisors_t : public it_base
 {
     using It = std::ranges::iterator_t<const V>;
     V _factorization;
 
-    template <typename Fun>
-    result_t _enumerate(It it, It end, const std::ranges::range_value_t<V>::first_type &current, Fun f) const
+    template <typename Fun> result_t enumerate(It it, It end, T cur, Fun f) const
     {
-        if (!callbackResult(f, current))
+        if (!callbackResult(f, cur))
             return result_break;
         for (; it != end; ++it)
         {
             auto &&[p, e] = *it;
-            value_type n = current;
+            T n = cur;
             for (int i = 1; i <= e; ++i)
             {
                 n *= p;
-                if (!_enumerate(std::ranges::next(it), end, n, f))
+                if (!enumerate(std::ranges::next(it), end, n, f))
                     return result_break;
             }
         }
@@ -36,20 +35,20 @@ template <std::ranges::view V> class divisors_t : public it_base
     }
 
   public:
-    using value_type = std::ranges::range_value_t<V>::first_type;
+    using value_type = T;
 
     divisors_t() = default;
     constexpr divisors_t(V factorization) : _factorization(std::move(factorization)) {}
 
     template <typename Fun> result_t operator()(Fun f) const
     {
-        return _enumerate(std::ranges::begin(_factorization), std::ranges::end(_factorization), value_type(1),
-                          std::move(f));
+        return enumerate(std::ranges::begin(_factorization), std::ranges::end(_factorization), value_type(1),
+                         std::move(f));
     }
 
     /// Returns the number of divisors, using a faster algorithm. Make sure to use a larger type `T`
     /// if you expect an answer larger than `2^64 - 1`.
-    template <typename T = std::size_t> [[nodiscard]] constexpr T size() const
+    [[nodiscard]] constexpr T size() const
     {
         return it::wrap(std::ranges::ref_view(_factorization))
             .map([](auto &&pe) -> T { return pe.second + 1; })
@@ -57,7 +56,7 @@ template <std::ranges::view V> class divisors_t : public it_base
     }
 
     /// Returns sum of the divisors, using a faster algorithm.
-    template <typename T = value_type> [[nodiscard]] constexpr T sum() const
+    [[nodiscard]] constexpr T sum() const
     {
         return it::wrap(std::ranges::ref_view(_factorization))
             .map([](auto &&pe) -> T {
@@ -69,35 +68,44 @@ template <std::ranges::view V> class divisors_t : public it_base
     }
 };
 
-template <std::ranges::view V> it::divisors_t<V> divisors(V factorization) { return {std::move(factorization)}; }
-
-template <std::ranges::range Range> it::divisors_t<std::views::all_t<Range>> divisors(Range &&r)
+template <integral2 T, std::ranges::range Range> it::divisors_t<T, std::views::all_t<Range>> divisors(Range &&fac)
 {
-    return {std::forward<Range>(r)};
+    return {std::forward<Range>(fac)};
 }
 
-template <integral2 T> it::divisors_t<std::views::all_t<PF<T>>> divisors(T num)
+template <std::ranges::range Range>
+it::divisors_t<typename std::ranges::range_value_t<Range>::first_type, std::views::all_t<Range>> divisors(Range &&fac)
+{
+    return {std::forward<Range>(fac)};
+}
+
+template <integral2 T> it::divisors_t<T, std::views::all_t<PF<T>>> divisors(T num)
 {
     return {PF{factor(std::move(num)).to()}};
 }
 } // namespace it
 
 /// Generates a vector of divisors based on the given factorization.
-template <std::ranges::range Range> auto divisors(Range &&factorization)
+template <integral2 T, std::ranges::range Range> auto divisors(Range &&fac)
 {
-    using T = std::ranges::range_value_t<Range>::first_type;
-    auto d = it::divisors(std::forward<Range>(factorization));
-    std::vector<T> result(d.size());
-    auto it = result.begin();
+    auto d = it::divisors(std::forward<Range>(fac));
+    std::vector<T> res((size_t)d.size());
+    auto it = res.begin();
     d([&](auto &&d) { *it++ = std::forward<decltype(d)>(d); });
-    return result;
+    return res;
 }
 
-template <integral2 T, typename SPFSieve = std::ranges::empty_view<T>>
-std::vector<T> divisors(T num, SPFSieve &&spfs = {})
+/// Generates a vector of divisors based on the given factorization.
+template <std::ranges::range Range> auto divisors(Range &&fac)
+{
+    using T = std::ranges::range_value_t<Range>::first_type;
+    return divisors<T, Range>(std::forward<Range>(fac));
+}
+
+template <integral2 T, std::integral S = u32> std::vector<T> divisors(T num, const SPF<S> &spf = {})
 {
     if (num == 1)
         return {1};
-    return divisors(factor(std::move(num), std::forward<SPFSieve>(spfs)));
+    return divisors(factor(std::move(num), spf));
 }
 } // namespace euler

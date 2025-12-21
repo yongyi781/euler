@@ -37,7 +37,7 @@ class primes : public it_base
 /// Creates a boolean vector of 0 .. `limit` with prime indices set to true.
 inline std::vector<bool> primeSieve(size_t limit)
 {
-    std::vector<bool> res(limit + 1, false);
+    std::vector<bool> res(limit + 1);
     it::primes(2, limit)([&](auto &&p) { res[p] = true; });
     return res;
 }
