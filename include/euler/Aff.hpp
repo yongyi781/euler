@@ -5,19 +5,20 @@
 
 namespace euler
 {
-/// Represents an affine linear transformation a * x + b.
+/// Represents an affine linear transformation (a * x + b) / c.
 template <typename T> struct Aff
 {
-    T a, b;
+    T a, b, c;
 
-    Aff(T a = 1, T b = 0) : a(a), b(b) {}
+    Aff(T a = 1, T b = 0, T c = 1) : a(a), b(b), c(c) {}
 
-    [[nodiscard]] constexpr T operator()(T x) const { return a * x + b; }
+    [[nodiscard]] constexpr T operator()(T x) const { return (a * x + b) / c; }
 
     constexpr Aff &operator+=(const Aff &o)
     {
-        a += o.a;
-        b += o.b;
+        a = a * o.c + o.a * c;
+        b = b * o.c + o.b * c;
+        c *= o.c;
         return *this;
     }
     [[nodiscard]] constexpr friend Aff operator+(Aff left, const Aff &right)
@@ -28,8 +29,9 @@ template <typename T> struct Aff
 
     constexpr Aff &operator-=(const Aff &o)
     {
-        a -= o.a;
-        b -= o.b;
+        a = a * o.c - o.a * c;
+        b = b * o.c - o.b * c;
+        c *= o.c;
         return *this;
     }
     [[nodiscard]] constexpr friend Aff operator-(Aff left, const Aff &right)
@@ -40,8 +42,9 @@ template <typename T> struct Aff
 
     constexpr Aff &operator*=(const Aff &o)
     {
-        b += a * o.b;
+        b = a * o.b + b * o.c;
         a *= o.a;
+        c *= o.c;
         return *this;
     }
     [[nodiscard]] constexpr friend Aff operator*(Aff left, const Aff &right)
@@ -56,34 +59,40 @@ template <typename T> struct Aff
         b *= scalar;
         return *this;
     }
-    [[nodiscard]] constexpr friend Aff operator*(Aff a, T scalar)
+    [[nodiscard]] constexpr friend Aff operator*(Aff f, T scalar)
     {
-        a *= scalar;
-        return a;
+        f *= scalar;
+        return f;
     }
-    [[nodiscard]] constexpr friend Aff operator*(T scalar, Aff a)
+    [[nodiscard]] constexpr friend Aff operator*(T scalar, Aff f)
     {
-        a *= scalar;
-        return a;
+        f *= scalar;
+        return f;
     }
 
     /// Returns the inverse of this affine linear transformation.
     [[nodiscard]] constexpr Aff operator~() const { return inverse(); }
 
-    /// Returns the inverse of this affine linear transformation.
-    [[nodiscard]] constexpr Aff inverse() const
+    [[nodiscard]] constexpr friend bool operator==(const Aff &left, const Aff &right)
     {
-        T const inv_a = T(1) / a;
-        return Aff(inv_a, -b * inv_a);
+        return left.a * right.c == right.a * left.c && left.b * right.c == right.b * left.c;
     }
 
+    /// Returns the inverse of this affine linear transformation.
+    [[nodiscard]] constexpr Aff inverse() const { return {c, -b, a}; }
+
+    /// Normalizes this affine linear transformation.
+    [[nodiscard]] constexpr Aff normalize() const { return {a / c, b / c, 1}; }
+
     /// Returns the matrix representation of this affine linear transformation.
-    [[nodiscard]] constexpr Matrix<T, 2> mat() const { return Matrix<T, 2>{{a, b}, {1, 0}}; }
+    [[nodiscard]] constexpr Matrix<T, 2> mat() const { return Matrix<T, 2>{{a, b}, {0, c}}; }
 
     template <typename CharT, typename Traits>
-    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &os, const Aff &a)
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &os, const Aff &f)
     {
-        return os << a.a << "*x + " << a.b;
+        if (f.c == 1)
+            return os << f.a << "*x + " << f.b;
+        return os << '(' << f.a << "*x + " << f.b << ")/" << f.c;
     }
 };
 } // namespace euler
