@@ -940,7 +940,7 @@ template <typename T = int64_t> Dirichlet<T> sigma2(size_t n) { return id2<T>(n)
 template <typename T = int64_t> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).multiply(zeta<T>()); }
 
 /// 1 / ζ(s). f(n) = μ(n). F(n) is the Mertens function. O(n^(2/3)). Motive = -[1].
-template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.45)
+template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.5)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
@@ -948,7 +948,7 @@ template <typename T = int64_t> Dirichlet<T> mobius(size_t n, double alpha = 0.4
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
-template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.5)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
@@ -956,7 +956,7 @@ template <typename T = int64_t> Dirichlet<T> totient(size_t n, double alpha = 0.
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
-template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.35)
+template <typename T = int64_t> Dirichlet<T> liouville(size_t n, double alpha = 0.5)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
