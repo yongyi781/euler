@@ -43,6 +43,7 @@ void assertNear(const T &actual, const U &expected, std::common_type_t<T, U> abs
 
     const C a = static_cast<C>(actual);
     const C e = static_cast<C>(expected);
+    euler::setConsoleToUtf8();
 
     // NaN handling: treat NaN as unequal unless both are NaN
     if (std::isnan(a) || std::isnan(e))
