@@ -43,17 +43,18 @@ template <integral2 auto M, bool ComputeInverse = true> class FactorialMod
 
     explicit FactorialMod(size_t limit = 0) : FactorialMod(std::execution::seq, limit) {}
 
-    /// Returns the factorial of n.
-    [[nodiscard]] value_type operator()(int64_t n) const { return factorial(n); }
+    /// Returns n!.
+    [[nodiscard]] value_type operator()(int64_t n) const { return get(n); }
 
-    /// Returns the factorial of n.
-    [[nodiscard]] value_type factorial(int64_t n) const
+    /// Returns n!.
+    [[nodiscard]] value_type get(int64_t n) const
     {
         assert(n >= 0 && n <= (int64_t)fact_.size());
         return fact_[n];
     }
 
-    [[nodiscard]] value_type inverseFactorial(int64_t n) const
+    /// Returns 1 / n!.
+    [[nodiscard]] value_type inv(int64_t n) const
     {
         assert(n >= 0 && n <= (int64_t)fact_.size());
         if constexpr (ComputeInverse)
@@ -85,6 +86,9 @@ template <integral2 auto M, bool ComputeInverse = true> class FactorialMod
     }
 
     void resize(size_t newSize) { resize(std::execution::par, newSize); }
+
+    const std::vector<value_type> &fact() const { return fact_; }
+    const std::vector<value_type> &ifact() const { return ifact_; }
 };
 
 /// Class to compute factorials and binomial coefficients modulo a dynamic modulus.
@@ -124,15 +128,18 @@ template <integral2 T, bool ComputeInverse = true> class FactorialModX
 
     explicit FactorialModX(T p, size_t limit = 0) : FactorialModX(std::execution::seq, p, limit) {}
 
-    [[nodiscard]] value_type operator()(int64_t n) const { return factorial(n); }
+    /// Returns n!.
+    [[nodiscard]] value_type operator()(int64_t n) const { return get(n); }
 
-    [[nodiscard]] value_type factorial(int64_t n) const
+    /// Returns n!.
+    [[nodiscard]] value_type get(int64_t n) const
     {
         assert(n >= 0 && n <= (int64_t)fact_.size());
         return fact_[n];
     }
 
-    [[nodiscard]] value_type inverseFactorial(int64_t n) const
+    /// Returns 1 / n!.
+    [[nodiscard]] value_type inv(int64_t n) const
     {
         assert(n >= 0 && n <= (int64_t)fact_.size());
         if constexpr (ComputeInverse)
@@ -161,5 +168,8 @@ template <integral2 T, bool ComputeInverse = true> class FactorialModX
     }
 
     void resize(size_t newSize) { resize(std::execution::par, newSize); }
+
+    const std::vector<value_type> &fact() const { return fact_; }
+    const std::vector<value_type> &ifact() const { return ifact_; }
 };
 } // namespace euler
