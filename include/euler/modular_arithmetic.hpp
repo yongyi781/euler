@@ -26,27 +26,27 @@ template <integral2 T, integral2 U> constexpr auto xgcd(T m, U n)
     using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(m - n)));
     using std::swap;
 
-    Tp u0 = std::move(m), v0 = std::move(n), u1 = 1, v1 = 0, u2 = 0, v2 = 1, q, w0, w1, w2;
-    while (v0 != 0)
+    Tp g0 = std::move(m), g1 = std::move(n), s0 = 1, s1 = 0, t0 = 0, t1 = 1, q, g2, s2, t2;
+    while (g1 != 0)
     {
-        q = u0 / v0;
-        w0 = u0 - q * v0;
-        w1 = u1 - q * v1;
-        w2 = u2 - q * v2;
-        swap(u0, v0);
-        swap(u1, v1);
-        swap(u2, v2);
-        swap(v0, w0);
-        swap(v1, w1);
-        swap(v2, w2);
+        q = g0 / g1;
+        g2 = g0 - q * g1;
+        s2 = s0 - q * s1;
+        t2 = t0 - q * t1;
+        swap(g0, g1);
+        swap(s0, s1);
+        swap(t0, t1);
+        swap(g1, g2);
+        swap(s1, s2);
+        swap(t1, t2);
     }
-    if (u0 < 0)
+    if (g0 < 0)
     {
-        u0 = -u0;
-        u1 = -u1;
-        u2 = -u2;
+        g0 = -g0;
+        s0 = -s0;
+        t0 = -t0;
     }
-    return euclidean_result_t<Tp>{std::move(u0), std::move(u1), std::move(u2)};
+    return euclidean_result_t<Tp>{std::move(g0), std::move(s0), std::move(t0)};
 }
 
 /// Extended Euclidean algorithm for `mpz_int`. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
@@ -277,23 +277,31 @@ template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
     return Tp(-1);
 }
 
-/// Returns the modular inverse of `a` modulo 2^64. Much faster than generic modular inverse algorithm.
-/// Precondition: `a` must be odd.
-inline u64 modInverse_u64(u64 a)
+/// Computes the multiplicative modular inverse of `n` modulo `2^k`, where `k` is the bit width of T (e.g., `2^64` for
+/// `u64`). Precondition: `n` must be odd.
+template <std::unsigned_integral T> constexpr T bitInverse(T n)
 {
-    assert(a % 2 == 1);
-    u64 const x0 = (3 * a) ^ 2;
-    u64 y = 1 - a * x0;
-    u64 const x1 = x0 * (1 + y);
+    assert(n % 2 == 1);
+    T x = (3 * n) ^ 2;
+    T y = 1 - n * x;
+    x *= (1 + y);
     y *= y;
-    u64 const x2 = x1 * (1 + y);
+    x *= (1 + y);
     y *= y;
-    u64 const x3 = x2 * (1 + y);
-    y *= y;
-    u64 const x4 = x3 * (1 + y);
-    return x4;
+    x *= (1 + y);
+    if constexpr (sizeof(T) > 4)
+    {
+        y *= y;
+        x *= (1 + y);
+    }
+    if constexpr (sizeof(T) > 8)
+    {
+        y *= y;
+        x *= (1 + y);
+    }
+    return x;
 }
 
 /// Returns the `k` least significant bits of `number`.
-template <std::integral T> T bit_trunc(T number, int k) { return number & (T(1) << k) - 1; }
+template <std::integral T> constexpr T bit_trunc(T number, int k) { return number & (T(1) << k) - 1; }
 } // namespace euler
