@@ -17,11 +17,12 @@ template <std::integral T> class SPF
 
   public:
     // Only need to store integer half the size of the input!
-    using half_integer_type = std::make_unsigned_t<half_integer_t<T>>;
+    using unsigned_type = std::make_unsigned_t<T>;
+    using half_type = std::make_unsigned_t<half_integer_t<T>>;
 
     SPF() = default;
     explicit SPF(T n)
-        : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_integer_type>(3, isqrt(n))), inv_odd((isqrt(n) + 1) / 2)
+        : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_type>(3, isqrt(n))), inv_odd((isqrt(n) + 1) / 2)
     {
         tbb::parallel_for(
             tbb::blocked_range(0UZ, spf_odd.size(), 65536UZ),
@@ -39,7 +40,7 @@ template <std::integral T> class SPF
             },
             tbb::simple_partitioner{});
         for (size_t i = 0; i < inv_odd.size(); ++i)
-            inv_odd[i] = modInverse_u64(2 * i + 1);
+            inv_odd[i] = bitInverse(unsigned_type(2 * i + 1));
     }
 
     /// Returns whether the SPF sieve is empty.
@@ -64,6 +65,9 @@ template <std::integral T> class SPF
     /// Returns multiplicative inverse of n in T. Requirement: n is odd and <= sqrt(N).
     [[nodiscard]] T inv(T n) const { return inv_odd[n / 2]; }
 
+    /// Divides n by p in-place. Requirement: n and p are non-negative, p is odd and <= sqrt(N).
+    void div(T &n, T p) const { n = unsigned_type(n) * inv(p); }
+
     /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return the `(p, e)` pair.
     template <std::integral U> PrimePower<U> removeSpf(U &n) const
     {
@@ -79,8 +83,7 @@ template <std::integral T> class SPF
             n = 1;
             return res;
         }
-        T const ip = inv(res.first);
-        for (n *= ip; (*this)[n] == res.first; n *= ip, ++res.second)
+        for (div(n, res.first); (*this)[n] == res.first; div(n, res.first), ++res.second)
             ;
         return res;
     }
@@ -100,9 +103,8 @@ template <std::integral T> class SPF
             n = 1;
             return p;
         }
-        T const ip = inv(p);
         U res = p;
-        for (n *= ip; (*this)[n] == p; n *= ip, res *= p)
+        for (div(n, p); (*this)[n] == p; div(n, p), res *= p)
             ;
         return res;
     }
@@ -141,7 +143,7 @@ template <std::integral T> class SPF
             auto const p = (*this)[n];
             if (n == p)
                 return -res;
-            n *= inv(p);
+            div(n, p);
             if ((*this)[n] == p)
                 return 0;
             res = -res;
@@ -201,7 +203,7 @@ template <std::integral T> class SPF
         std::pair<T, T> res{1, 1};
         if (n % 2 == 0)
         {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(n));
+            int const e = std::countr_zero(unsigned_type(n));
             n >>= e;
             res.first <<= e / 2;
             res.second <<= e % 2;
@@ -215,11 +217,11 @@ template <std::integral T> class SPF
                 res.second *= p;
                 break;
             }
-            n *= inv(p);
+            div(n, p);
             if ((*this)[n] == p)
             {
                 res.first *= p;
-                n *= inv(p);
+                div(n, p);
             }
             else
             {
@@ -247,7 +249,7 @@ template <std::integral T> class SPF
             }
         });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            int const e = std::countr_zero(unsigned_type(i));
             res[i] = res[i >> e] * f(2, e);
         });
         return res;
@@ -268,7 +270,7 @@ template <std::integral T> class SPF
             }
         });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            int const e = std::countr_zero(unsigned_type(i));
             res[i] = res[i >> e] + f(2, e);
         });
         return res;
@@ -316,7 +318,7 @@ template <std::integral T> class SPF
         res[2] = 2;
         it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = lpf(i); });
         it::range(4, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            int const e = std::countr_zero(unsigned_type(i));
             res[i] = res[i >> e];
         });
         return res;
@@ -329,7 +331,7 @@ template <std::integral T> class SPF
         std::vector<T> res = range(T(0), limit);
         it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = totient(i); });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(std::make_unsigned_t<T>(i));
+            int const e = std::countr_zero(unsigned_type(i));
             res[i] = res[i >> e] << e - 1;
         });
         return res;
@@ -356,19 +358,19 @@ template <std::integral T> class SPF
                     sieve[i] *= 1 + p;
                     break;
                 }
-                n *= inv(p);
+                div(n, p);
                 T q = p, S = 1 + p;
                 while ((*this)[n] == p)
                 {
                     q *= p;
-                    n *= inv(p);
+                    div(n, p);
                     S += q;
                 }
                 sieve[i] *= S;
             }
         });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            auto e = std::countr_zero(std::make_unsigned_t<T>(i));
+            auto e = std::countr_zero(unsigned_type(i));
             sieve[i] = ((T(1) << (e + 1)) - 1) * sieve[i >> e];
         });
         return sieve;
@@ -389,19 +391,19 @@ template <std::integral T> class SPF
                     sieve[i] *= 1 + (U)p * p;
                     break;
                 }
-                n *= inv(p);
+                div(n, p);
                 U q = p * p, S = 1 + (U)p * p;
                 while ((*this)[n] == p)
                 {
                     q *= (U)p * p;
-                    n *= inv(p);
+                    div(n, p);
                     S += q;
                 }
                 sieve[i] *= S;
             }
         });
         it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            auto e = std::countr_zero(std::make_unsigned_t<T>(i));
+            auto e = std::countr_zero(unsigned_type(i));
             sieve[i] = ((U(1) << 2 * (e + 1)) - 1) / 3 * sieve[i >> e];
         });
         return sieve;
