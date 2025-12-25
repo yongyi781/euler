@@ -203,6 +203,21 @@ template <integral2 T, integral2 U, typename Fun = std::identity> auto psum(T be
         std::plus{});
 }
 
+/// Multiplies a function over a range of numbers using TBB.
+template <integral2 T, integral2 U, typename Fun = std::identity> auto pproduct(T begin, U end, Fun f = {})
+{
+    using V = std::common_type_t<T, U>;
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
+    return tbb::parallel_reduce(
+        tbb::blocked_range<V>(begin, end + 1), Tp{1},
+        [&](tbb::blocked_range<V> r, Tp running_total) {
+            for (auto i = r.begin(); i < r.end(); ++i)
+                running_total *= f(i);
+            return running_total;
+        },
+        std::multiplies{});
+}
+
 template <size_t Threshold = 8192, integral2 T, integral2 U, typename Fun = std::identity>
 auto sumMaybeParallel(T begin, U end, Fun f = {})
 {
