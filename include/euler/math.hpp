@@ -197,24 +197,24 @@ template <typename T> std::vector<T> binomialVec(size_t n, size_t limit)
 /// * `m, n > 0`.
 /// * `lcm(m, n)` must be less than the maximum integer size.
 /// There is a solution iff `gcd(m, n) | b - a`. If an invalid input is provided or there is no solution, returns
-/// (`-1`, `-1`).
+/// (0, 0).
 template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto crtlcm(Ta a, Tb b, Tm m, Tn n)
 {
     using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b * m * n)));
-    if (m < 0 || n < 0)
-        return std::pair<T, T>{-1, -1};
-    auto const [g, s, _] = xgcd(m, n);
-    T const diff = b - a;
-    if (diff % g != 0)
-        return std::pair<T, T>{-1, -1};
+    if (m <= 0 || n <= 0)
+        return std::pair<T, T>{};
+    auto [g, s, _] = xgcd(m, n);
     T const l = m / g * n;
-    return std::pair<T, T>{mod(a + mulmod(mulmod(diff / g, s, l), m, l), l), l};
+    T const diff = b + l - a; // To make it positive.
+    if (diff % g != 0)
+        return std::pair<T, T>{};
+    return std::pair<T, T>{mod(a + mulmod(mulmod(diff / g, s + l, l), m, l), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:
 /// * `m > 0` for all `m` ∈ `moduli`.
 /// * `lcm(moduli)` must be less than the maximum integer size.
-/// If an invalid input is provided or there is no solution, returns (`-1`, `-1`).
+/// If an invalid input is provided or there is no solution, returns (0, 0).
 template <std::ranges::random_access_range Range1, std::ranges::random_access_range Range2>
 constexpr auto crtlcm(Range1 &&remainders, Range2 &&moduli)
 {
@@ -250,11 +250,9 @@ template <typename T> constexpr std::vector<T> powers(T a, size_t n)
 {
     std::vector<T> result(n + 1);
     T p{1};
-    for (auto &&x : result)
-    {
-        x = p;
-        p *= a;
-    }
+    result[0] = p;
+    for (size_t i = 1; i <= n; ++i)
+        result[i] = p *= a;
     return result;
 }
 
@@ -411,8 +409,8 @@ constexpr auto sumFloors(Tn n, Ta a = 1, Tb b = 1, F &&f = {})
 }
 
 /// Calculates `∑ k ∈ [start, stop], f(⌊n / k⌋)`.
-template <execution_policy Exec, std::integral T, typename Fun = std::identity>
-T sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
+template <execution_policy Exec, std::integral T, std::invocable<T> Fun = std::identity>
+auto sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
 {
     stop = std::min(n, stop);
     if (start > stop)
@@ -431,24 +429,29 @@ T sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
     return result;
 }
 
-/// Calculates `∑ k ∈ [start, stop], f(⌊n / k⌋)`.
-template <std::integral T, typename Fun = std::identity> constexpr T sumFloorsRange(T n, T start, T stop, Fun f = {})
+/// Calculates `∑ k ∈ [start, start + step, ..., stop], f(⌊n / k⌋)`.
+template <std::integral T, std::invocable<T> Fun = std::identity>
+auto sumFloorsRange(T n, T start, T stop, T step = 1, Fun f = {})
 {
+    using FT = std::decay_t<std::invoke_result_t<Fun, T>>;
     stop = std::min(n, stop);
-    if (start > stop)
-        return T(0);
-    T c = isqrt(n);
-    auto result = sum(start, std::min(stop, c), [&](T k) { return f(n / k); });
-    if (c < stop)
+    T s = isqrt(n);
+    FT res = 0;
+    for (T k = start; k <= s && k <= stop; k += step)
+        res += f(n / k);
+    if (stop <= s)
+        return res;
+    auto count = [&](T m) { return m < start ? 0 : (m - start) / step + 1; };
+    T prev = std::max(start > 0 ? start - 1 : 0, s);
+    for (T x = n / (prev + 1); x > 0; --x)
     {
-        T a = n / stop;
-        T b = n / std::max(c + 1, start);
-        result += f(a) * (std::min(stop, n / a) - std::max(start - 1, n / (a + 1)));
-        if (a != b)
-            result += f(b) * (std::min(stop, n / b) - std::max(start - 1, n / (b + 1)));
-        result += sum(a + 1, b - 1, [&](T nk) { return f(nk) * (n / nk - n / (nk + 1)); });
+        T next = std::min(n / x, stop);
+        res += f(x) * (count(next) - count(prev));
+        if (next == stop)
+            break;
+        prev = next;
     }
-    return result;
+    return res;
 }
 
 /// Number of integral `(x,y)` satisfying `x^2 + y^2 ≤ n`.
@@ -526,5 +529,47 @@ template <typename T = int64_t> constexpr T sumSquares(size_t limit)
     // default:
     //     std::unreachable();
     // }
+}
+
+/// Calculates `∑ (0 ≤ i < n) floor((a*i + b) / m)`. Requires `m > 0`.
+template <integral2 T, integral2 U, integral2 V> auto floorSum(T n, U a, V b, U m)
+{
+    using Tp = std::common_type_t<T, U, V>;
+    if (n < 0)
+        return Tp(0);
+    Tp res = 0;
+    if (a < 0)
+    {
+        b += a * (n - 1);
+        a = -a;
+    }
+    if (b < 0 || b >= m)
+    {
+        Tp const q = floorDiv(b, m);
+        res += n * q;
+        b -= q * m;
+    }
+    // b is now guaranteed to be in [0, m)
+    while (true)
+    {
+        if (a >= m)
+        {
+            res += (n - 1) * n / 2 * (a / m);
+            a %= m;
+        }
+        if (b >= m)
+        {
+            res += n * (b / m);
+            b %= m;
+        }
+
+        Tp const y_max = a * n + b;
+        if (y_max < m)
+            break;
+        n = y_max / m;
+        b = y_max % m;
+        std::swap(m, a);
+    }
+    return res;
 }
 } // namespace euler
