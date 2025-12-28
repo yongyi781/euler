@@ -36,7 +36,7 @@ void assertEqual(const T &actual, const U &expected, const V &name = {},
 template <typename T, typename U, typename V = std::string_view>
     requires std::floating_point<std::common_type_t<T, U>>
 void assertNear(const T &actual, const U &expected, std::common_type_t<T, U> abs_tol = 1e-9,
-                std::common_type_t<T, U> rel_tol = std::common_type_t<T, U>{0}, const V &name = {},
+                std::common_type_t<T, U> rel_tol = 0, const V &name = {},
                 const std::source_location &loc = std::source_location::current())
 {
     using C = std::common_type_t<T, U>;

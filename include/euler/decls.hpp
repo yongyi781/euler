@@ -53,10 +53,10 @@ template <typename T, integral2 U>
 constexpr T pow(T base, U exponent)
     requires requires {
         base * base;
-        T{1};
+        T(1);
     }
 {
-    return pow(base, exponent, T{1}, std::multiplies{});
+    return pow(base, exponent, T(1), std::multiplies{});
 }
 
 /// Returns whether `a * b ≤ c`, and always returns false if the multiplication overflows.

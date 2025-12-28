@@ -249,7 +249,7 @@ constexpr auto crt(Range1 &&remainders, Range2 &&moduli)
 template <typename T> constexpr std::vector<T> powers(T a, size_t n)
 {
     std::vector<T> result(n + 1);
-    T p{1};
+    T p(1);
     result[0] = p;
     for (size_t i = 1; i <= n; ++i)
         result[i] = p *= a;
@@ -329,7 +329,7 @@ template <typename T = int64_t> constexpr T binomial(i64 n, i64 r)
     else
     {
         r = std::min(r, n - r); // Take advantage of symmetry
-        T result{1};
+        T result(1);
         for (int i = 1; i <= r; ++i)
         {
             result *= n - r + i;

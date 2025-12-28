@@ -182,7 +182,7 @@ template <typename T = int64_t> class PF
     /// Computes the radical.
     template <typename Z = T> [[nodiscard]] constexpr Z radical() const
     {
-        Z rad{1};
+        Z rad(1);
         for (auto &&[p, _] : data_)
             rad *= p;
         return rad;

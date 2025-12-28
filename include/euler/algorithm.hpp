@@ -209,7 +209,7 @@ template <integral2 T, integral2 U, typename Fun = std::identity> auto pproduct(
     using V = std::common_type_t<T, U>;
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
     return tbb::parallel_reduce(
-        tbb::blocked_range<V>(begin, end + 1), Tp{1},
+        tbb::blocked_range<V>(begin, end + 1), Tp(1),
         [&](tbb::blocked_range<V> r, Tp running_total) {
             for (auto i = r.begin(); i < r.end(); ++i)
                 running_total *= f(i);
@@ -238,14 +238,14 @@ template <execution_policy Exec, std::ranges::range Range, typename Fun = std::i
 auto product(Exec &&exec, Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
-    return reducev(std::forward<Exec>(exec), std::forward<Range>(r), T{1}, std::multiplies{}, std::move(f));
+    return reducev(std::forward<Exec>(exec), std::forward<Range>(r), T(1), std::multiplies{}, std::move(f));
 }
 
 /// Multiplies a function over a range.
 template <std::ranges::range Range, typename Fun = std::identity> constexpr auto product(Range &&r, Fun f = {})
 {
     using T = std::remove_cvref_t<std::invoke_result_t<Fun, std::ranges::range_value_t<Range>>>;
-    return reducev(std::forward<Range>(r), T{1}, std::multiplies{}, std::move(f));
+    return reducev(std::forward<Range>(r), T(1), std::multiplies{}, std::move(f));
 }
 
 /// Multiplies a function over a range of numbers.
@@ -253,7 +253,7 @@ template <execution_policy Exec, integral2 T, integral2 U, typename Fun = std::i
 auto product(Exec &&exec, T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
-    return reduceRange(std::forward<Exec>(exec), std::move(begin), std::move(end), Tp{1}, std::multiplies{},
+    return reduceRange(std::forward<Exec>(exec), std::move(begin), std::move(end), Tp(1), std::multiplies{},
                        std::move(f));
 }
 
@@ -261,7 +261,7 @@ auto product(Exec &&exec, T begin, U end, Fun f = {})
 template <integral2 T, integral2 U, typename Fun = std::identity> constexpr auto product(T begin, U end, Fun f = {})
 {
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
-    return reduceRange(std::move(begin), std::move(end), Tp{1}, std::multiplies{}, std::move(f));
+    return reduceRange(std::move(begin), std::move(end), Tp(1), std::multiplies{}, std::move(f));
 }
 
 /// Returns the maximum value in a sequence according to a specified key selector function.

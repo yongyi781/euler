@@ -6,6 +6,7 @@ find_package(primecount REQUIRED)
 find_package(TBB)
 
 set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     add_compile_options(-march=native)
