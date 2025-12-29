@@ -66,10 +66,17 @@ template <std::integral T> class SPF
     [[nodiscard]] T inv(T n) const { return inv_odd[n / 2]; }
 
     /// Divides n by p in-place. Requirement: n and p are non-negative, p is odd and <= sqrt(N).
-    void div(T &n, T p) const { n = unsigned_type(n) * inv(p); }
+    template <std::integral U>
+        requires(sizeof(U) <= sizeof(T))
+    void div(U &n, T p) const
+    {
+        n = unsigned_type(n) * inv(p);
+    }
 
     /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return the `(p, e)` pair.
-    template <std::integral U> PrimePower<U> removeSpf(U &n) const
+    template <std::integral U>
+        requires(sizeof(U) <= sizeof(T))
+    PrimePower<U> removeSpf(U &n) const
     {
         if (n % 2 == 0)
         {
@@ -89,7 +96,9 @@ template <std::integral T> class SPF
     }
 
     /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return `p^e`.
-    template <std::integral U> U removeSpfValue(U &n) const
+    template <std::integral U>
+        requires(sizeof(U) <= sizeof(T))
+    U removeSpfValue(U &n) const
     {
         if (n % 2 == 0)
         {
