@@ -40,12 +40,13 @@ template <integral2 T, integral2 U> constexpr auto xgcd(T m, U n)
         swap(s1, s2);
         swap(t1, t2);
     }
-    if (g0 < 0)
-    {
-        g0 = -g0;
-        s0 = -s0;
-        t0 = -t0;
-    }
+    if constexpr (boost::multiprecision::is_signed_number<Tp>::value)
+        if (g0 < 0)
+        {
+            g0 = -g0;
+            s0 = -s0;
+            t0 = -t0;
+        }
     return euclidean_result_t<Tp>{std::move(g0), std::move(s0), std::move(t0)};
 }
 
@@ -62,9 +63,16 @@ inline euclidean_result_t<mpz_int> xgcd(const mpz_int &m, const mpz_int &n)
 /// Precondition: `modulus > 0`.
 template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &modulus)
 {
-    if (a >= 0)
+    if constexpr (boost::multiprecision::is_unsigned_number<T>::value)
+    {
         return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
-    return boost::multiprecision::detail::evaluate_if_expression(modulus - 1 - (-a - 1) % modulus);
+    }
+    else
+    {
+        if (a >= 0)
+            return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
+        return boost::multiprecision::detail::evaluate_if_expression(modulus - 1 - (-a - 1) % modulus);
+    }
 }
 
 /// Non-overflowing modular integer multiplication.
@@ -150,10 +158,13 @@ constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
 {
     if constexpr (integral2<T>)
     {
-        // Allow negative exponents in this case
-        bool const neg = exponent < 0;
-        if (neg)
-            exponent = -exponent;
+        bool neg = false;
+        if constexpr (boost::multiprecision::is_signed_number<E>::value)
+        {
+            neg = exponent < 0;
+            if (neg)
+                exponent = -exponent;
+        }
         auto res = pow(T(std::move(base) % modulus), std::move(exponent), std::move(identity), Multiply(modulus));
         if (neg)
             return decltype(res)(modInverse(std::move(res), modulus));
@@ -220,61 +231,57 @@ template <integral2 T> constexpr std::vector<T> modInverseTable(const T &modulus
     return result;
 }
 
-/// Takes as input an odd prime p and n < p and returns r such that r * r = n [mod p].
-/// @param n A number from 0 to p-1.
-/// @param p An odd prime number.
-/// @return A square root of n (mod p).
-template <integral2 Tn, integral2 Tp> constexpr Tp sqrtModp(Tn n, Tp p)
+/// Returns the smaller solution to `√n` (mod p), or 0 if there is no square root. Uses the Tonelli-Shanks algorithm.
+/// Requires `p` to be prime.
+template <integral2 T, integral2 U> constexpr auto sqrtModp(T n, U p)
 {
-    if (n < 0 || n >= p)
-        n = mod(n, p);
-    if (n == 0)
-        return 0;
-    Tp s = 0;
+    using Tp = std::common_type_t<T, U>;
+    Tp x = n;
+    if (x < 0 || n >= p)
+        x = mod(x, p);
+    if (x <= 1)
+        return x;
+    int s = 0;
     Tp q = p - 1;
-    while ((q & 1) == 0)
-    {
-        q /= 2;
-        ++s;
-    }
+    for (; (q & 1) == 0; ++s, q >>= 1)
+        ;
     if (s == 1)
     {
-        // Our modulus is 3 mod 4, there's a fast way to do this!
-        Tp r = powm(n, (p + 1) >> 2, p);
-        if ((r * r) % p == n)
-            return r;
-        return Tp(-1);
+        Tp res = euler::powm(x, (p + 1) >> 2, p);
+        return res * res % p == x ? std::min(res, p - res) : Tp(0);
     }
-    // Find the first quadratic non-residue z by brute-force search
-    Tp z = 1;
-    while (powm(++z, (p - 1) >> 1, p) != p - 1)
+    if (s == 2)
     {
+        Tp res = euler::powm(x, (p + 3) >> 3, p);
+        if (res * res % p == x)
+            return std::min(res, p - res);
+        res = res * euler::powm(Tp(2), (p - 1) >> 2, p) % p;
+        return res * res % p == x ? std::min(res, p - res) : Tp(0);
     }
-    Tp c = powm(z, q, p);
-    Tp r = powm(n, (q + 1) >> 1, p);
-    Tp t = powm(n, q, p);
-    Tp m = s;
+    if (euler::powm(x, (p - 1) >> 1, p) != 1) // Perform Legendre check now
+        return Tp(0);
+    Tp z = 2;
+    for (; euler::powm(z, (p - 1) >> 1, p) != p - 1; ++z)
+        ;
+    Tp res = euler::powm(x, (q + 1) >> 1, p);
+    Tp c = euler::powm(z, q, p);
+    Tp t = euler::powm(x, q, p);
+    int m = s;
     while (t != 1)
     {
         Tp tt = t;
-        Tp i = 0;
-        while (tt != 1)
-        {
-            tt = (tt * tt) % p;
-            ++i;
-            if (i == m)
-                return Tp(-1);
-        }
-        Tp b = powm(c, powm(Tp(2), m - i - 1, p - 1), p);
-        Tp b2 = (b * b) % p;
-        r = (r * b) % p;
-        t = (t * b2) % p;
-        c = b2;
+        int i = 0;
+        for (; tt != 1; ++i, tt = tt * tt % p)
+            ;
+        Tp b = c;
+        for (int k = 0; k < m - i - 1; ++k)
+            b = b * b % p;
+        res = res * b % p;
+        c = b * b % p;
+        t = t * c % p;
         m = i;
     }
-    if ((r * r) % p == n)
-        return r;
-    return Tp(-1);
+    return std::min(res, p - res);
 }
 
 /// Computes the multiplicative modular inverse of `n` modulo `2^k`, where `k` is the bit width of T (e.g., `2^64` for

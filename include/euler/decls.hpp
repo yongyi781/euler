@@ -17,17 +17,20 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
                   boost::multiprecision::is_signed_number<T>::value)
         if (base == -identity)
             return exponent % 2 == 0 ? identity : -identity;
-    if constexpr (boost::multiprecision::number_category<T>::value != boost::multiprecision::number_kind_unknown)
+    if constexpr (boost::multiprecision::is_signed_number<U>::value)
     {
-        if (exponent < 0)
+        if constexpr (boost::multiprecision::number_category<T>::value != boost::multiprecision::number_kind_unknown)
         {
-            base = T(1) / std::move(base);
-            exponent = -std::move(exponent);
+            if (exponent < 0)
+            {
+                base = T(1) / std::move(base);
+                exponent = -std::move(exponent);
+            }
         }
-    }
-    else
-    {
-        assert(exponent >= 0);
+        else
+        {
+            assert(exponent >= 0);
+        }
     }
 
     T x = std::move(identity);
