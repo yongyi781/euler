@@ -293,12 +293,13 @@ constexpr T smallestPrimeFactor(const T &num, const T &start = 2)
 /// @param start Inclusive lower bound.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <typename T = u64> constexpr std::vector<T> primeRange(u64 start, u64 stop)
+template <std::integral T, std::integral U> constexpr auto primeRange(T start, U stop)
 {
-    std::vector<T> result;
-    if (std::is_constant_evaluated() && stop - start < 7000)
+    using Tp = std::common_type_t<T, U>;
+    std::vector<Tp> result;
+    if (std::is_constant_evaluated() && Tp(stop) - Tp(start) < 7000)
     {
-        for (u64 i = start; i <= stop; ++i)
+        for (Tp i = start; i <= stop; ++i)
             if (isPrime(i))
                 result.push_back(i);
     }
@@ -312,7 +313,7 @@ template <typename T = u64> constexpr std::vector<T> primeRange(u64 start, u64 s
 /// @brief Generates primes within a range, starting at 2.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <typename T = u64> constexpr std::vector<T> primeRange(u64 stop) { return primeRange<T>(2, stop); }
+template <std::integral T> constexpr std::vector<T> primeRange(T stop) { return primeRange(T(2), stop); }
 
 /// Returns the sum of a function `f` over the integers coprime to the given prime list in the range [1, limit]. The
 /// function `f` is passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.
