@@ -9,11 +9,10 @@ namespace euler
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.
 template <std::integral T> class SPF
 {
-    // spf_odd[i] holds the smallest prime factor for number (2*i + 1).
-    // Index 0 corresponds to 1 (unused), index 1 to 3, index 2 to 5, etc.
+    // spf_odd[n] is the smallest prime factor of 2*n + 1.
     std::vector<std::make_unsigned_t<half_integer_t<T>>> spf_odd;
-    std::vector<std::make_unsigned_t<half_integer_t<T>>> small_primes; // Odd primes up to sqrt(n).
-    std::vector<std::make_unsigned_t<T>> inv_odd;                      // Inverses of odd numbers up to sqrt(n).
+    // inv_odd[n] is the bit inverse of 2*n + 1.
+    std::vector<std::make_unsigned_t<T>> inv_odd;
 
   public:
     // Only need to store integer half the size of the input!
@@ -21,9 +20,9 @@ template <std::integral T> class SPF
     using half_type = std::make_unsigned_t<half_integer_t<T>>;
 
     SPF() = default;
-    explicit SPF(T n)
-        : spf_odd((n + 1) / 2, 0), small_primes(primeRange<half_type>(3, isqrt(n))), inv_odd((isqrt(n) + 1) / 2)
+    explicit SPF(T n) : spf_odd((n + 1) / 2, 0), inv_odd((isqrt(n) + 1) / 2)
     {
+        auto const small_primes = primeRange<half_type>(3, isqrt(n));
         tbb::parallel_for(
             tbb::blocked_range(0UZ, spf_odd.size(), 65536UZ),
             [&](tbb::blocked_range<size_t> r) {
@@ -76,7 +75,7 @@ template <std::integral T> class SPF
     /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return the `(p, e)` pair.
     template <std::integral U>
         requires(sizeof(U) <= sizeof(T))
-    PrimePower<U> removeSpf(U &n) const
+    PrimePower<U> remove(U &n) const
     {
         if (n % 2 == 0)
         {
@@ -98,7 +97,7 @@ template <std::integral T> class SPF
     /// Removes the smallest prime factor `p^e` from a number `n < size()`, and return `p^e`.
     template <std::integral U>
         requires(sizeof(U) <= sizeof(T))
-    U removeSpfValue(U &n) const
+    U extract(U &n) const
     {
         if (n % 2 == 0)
         {
@@ -123,7 +122,7 @@ template <std::integral T> class SPF
     {
         T res = 0;
         while (n != 1)
-            res = removeSpf(n).first;
+            res = remove(n).first;
         return res;
     }
 
@@ -132,7 +131,7 @@ template <std::integral T> class SPF
     {
         T res = 1;
         while (n != 1)
-            res *= removeSpf(n).first;
+            res *= remove(n).first;
         return res;
     }
 
@@ -160,11 +159,32 @@ template <std::integral T> class SPF
         return res;
     }
 
+    /// Returns whether `n` is squarefree. Requires 1 ≤ n ≤ size().
+    [[nodiscard]] bool sqfree(T n) const
+    {
+        if (n % 2 == 0)
+        {
+            if (n % 4 == 0)
+                return false;
+            n /= 2;
+        }
+        while (n != 1)
+        {
+            auto const p = (*this)[n];
+            if (n == p)
+                return true;
+            div(n, p);
+            if ((*this)[n] == p)
+                return false;
+        }
+        return true;
+    }
+
     [[nodiscard]] T totient(T n) const
     {
         T res = n;
         while (n != 1)
-            res -= (double)res / removeSpf(n).first; // This works for all reasonably sized N.
+            res -= (double)res / remove(n).first; // This works for all reasonably sized N.
         return res;
     }
 
@@ -172,7 +192,7 @@ template <std::integral T> class SPF
     {
         T res = 1;
         while (n != 1)
-            res *= removeSpf(n).second + 1;
+            res *= remove(n).second + 1;
         return res;
     }
 
@@ -183,7 +203,7 @@ template <std::integral T> class SPF
         while (n != 1)
         {
             ++res;
-            removeSpf(n);
+            remove(n);
         }
         return res;
     }
@@ -193,7 +213,7 @@ template <std::integral T> class SPF
     {
         u32 res = 0;
         while (n != 1)
-            res += removeSpf(n).second;
+            res += remove(n).second;
         return res;
     }
 
@@ -253,7 +273,7 @@ template <std::integral T> class SPF
             T n = i;
             while (n != 1 && res[i] != 0)
             {
-                auto const [p, e] = removeSpf(n);
+                auto const [p, e] = remove(n);
                 res[i] *= f(p, e);
             }
         });
@@ -274,7 +294,7 @@ template <std::integral T> class SPF
             T n = i;
             while (n != 1)
             {
-                auto const [p, e] = removeSpf(n);
+                auto const [p, e] = remove(n);
                 res[i] += f(p, e);
             }
         });

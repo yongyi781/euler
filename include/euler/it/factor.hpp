@@ -47,7 +47,7 @@ template <integral2 T, std::integral S = u32> class factor : public it_base
         }
         S x = (S)std::move(n);
         while (x != 1)
-            if (!callbackResult(f, spf_->removeSpf(x)))
+            if (!callbackResult(f, spf_->remove(x)))
                 return result_break;
         return result_continue;
     }

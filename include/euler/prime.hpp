@@ -293,12 +293,12 @@ constexpr T smallestPrimeFactor(const T &num, const T &start = 2)
 /// @param start Inclusive lower bound.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <typename T = int64_t> constexpr std::vector<T> primeRange(int64_t start, int64_t stop)
+template <typename T = u64> constexpr std::vector<T> primeRange(u64 start, u64 stop)
 {
     std::vector<T> result;
     if (std::is_constant_evaluated() && stop - start < 7000)
     {
-        for (int64_t i = start; i <= stop; ++i)
+        for (u64 i = start; i <= stop; ++i)
             if (isPrime(i))
                 result.push_back(i);
     }
@@ -312,78 +312,7 @@ template <typename T = int64_t> constexpr std::vector<T> primeRange(int64_t star
 /// @brief Generates primes within a range, starting at 2.
 /// @param stop Inclusive upper bound. If this is not specified, then use start as stop.
 /// @return Primes from start to stop inclusive.
-template <typename T = int64_t> constexpr std::vector<T> primeRange(int64_t stop) { return primeRange<T>(2, stop); }
-
-/// Sieves numbers of the form n² + 1. Sends triples (n, p, e) to f, over all primes p ^ e
-/// exactly dividing n² + 1 for n between 1 and limit. For some reason, calling this function with
-/// an unsigned argument gives a performance boost.
-template <execution_policy Exec, integral2 T, std::invocable<T, T, int> Fun>
-void sieveSquarePlusOne(Exec &&exec, const T &limit, Fun f)
-{
-    static constexpr auto callback = [](T x, T &y, T p, Fun f, bool known = false) {
-        int e = 0;
-        if (known)
-        {
-            y /= p;
-            ++e;
-        }
-        e += removeFactors(y, p);
-        if (e > 0)
-            f(x, p, e);
-    };
-    auto s = mapv(std::forward<Exec>(exec), range(T(0), limit), [&](T n) {
-        T y = n * n + 1;
-        callback(n, y, 2, f);
-        callback(n, y, 5, f);
-        callback(n, y, 13, f);
-        callback(n, y, 17, f);
-        callback(n, y, 29, f);
-        callback(n, y, 37, f);
-        callback(n, y, 41, f);
-        callback(n, y, 53, f);
-        callback(n, y, 61, f);
-        callback(n, y, 73, f);
-        callback(n, y, 89, f);
-        callback(n, y, 97, f);
-        callback(n, y, 101, f);
-        callback(n, y, 109, f);
-        callback(n, y, 113, f);
-        callback(n, y, 137, f);
-        callback(n, y, 149, f);
-        callback(n, y, 157, f);
-        callback(n, y, 173, f);
-        callback(n, y, 181, f);
-        callback(n, y, 193, f);
-        callback(n, y, 197, f);
-        callback(n, y, 229, f);
-        callback(n, y, 233, f);
-        callback(n, y, 241, f);
-        callback(n, y, 257, f);
-        callback(n, y, 269, f);
-        callback(n, y, 277, f);
-        callback(n, y, 281, f);
-        callback(n, y, 293, f);
-        return y;
-    });
-    for (T n = 20; n <= limit; ++n)
-    {
-        auto p = s[n];
-        if (p == 1)
-            continue;
-        // Divide everything that's +/-n mod p by p
-        for (T k = n; k <= limit; k += p)
-            callback(k, s[k], p, f, true);
-        for (T k = p - n; k <= limit; k += p)
-            callback(k, s[k], p, f, true);
-    }
-}
-
-/// Sieves numbers of the form n² + 1. Sends triples (n, p, e) to f, over all primes p ^ e
-/// exactly dividing n² + 1 for n between 1 and limit.
-template <integral2 T, std::invocable<T, T, int> Fun> void sieveSquarePlusOne(const T &limit, Fun f)
-{
-    sieveSquarePlusOne(std::execution::seq, limit, f);
-}
+template <typename T = u64> constexpr std::vector<T> primeRange(u64 stop) { return primeRange<T>(2, stop); }
 
 /// Returns the sum of a function `f` over the integers coprime to the given prime list in the range [1, limit]. The
 /// function `f` is passed in as its summatory function `F`. For example, to count the coprimes, use `F = identity`.

@@ -42,10 +42,10 @@ struct Quadratic
         auto const inv_2a = modInverse(2 * a, p);
         if (d == 0)
             return {mod(-b * inv_2a, p)};
-        auto const res = sqrtModp(d, p);
-        if (res == -1)
+        auto const r = sqrtModp(d, p);
+        if (r == 0)
             return {};
-        auto const x1 = mod((-b + res) * inv_2a, p), x2 = mod((-b - res) * inv_2a, p);
+        auto const x1 = mod((-b + r) * inv_2a, p), x2 = mod((-b - r) * inv_2a, p);
         if (x1 < x2)
             return {x1, x2};
         return {x2, x1};

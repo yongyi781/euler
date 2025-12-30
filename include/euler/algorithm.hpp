@@ -17,13 +17,13 @@ template <integral2 T, integral2 U, std::invocable<std::common_type_t<T, U>> Fun
 constexpr auto range(T begin, U end, Fun f = {})
 {
     using Tp = std::common_type_t<T, U>;
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, Tp>>;
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, Tp>>;
 
     Tp b = begin;
     Tp e = end;
     if (e < b)
-        return std::vector<FT>{};
-    std::vector<FT> result((size_t)(e - b + 1));
+        return std::vector<R>{};
+    std::vector<R> result((size_t)(e - b + 1));
     auto it = result.begin();
     for (Tp i = b; i <= e; ++i)
         *it++ = std::invoke(f, i);
@@ -35,14 +35,14 @@ template <integral2 T, integral2 U, integral2 V, std::invocable<std::common_type
 constexpr auto range(T begin, U end, V step, Fun f = {})
 {
     using Tp = std::common_type_t<T, U, V>;
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, Tp>>;
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, Tp>>;
 
     Tp const b = begin;
     Tp const e = end;
 
     if (step == 0 || (step > 0 && e < b) || (step < 0 && e > b))
-        return std::vector<FT>{};
-    std::vector<FT> result((size_t)(step > 0 ? (e - b + step) / step : (b - e - step) / -step));
+        return std::vector<R>{};
+    std::vector<R> result((size_t)(step > 0 ? (e - b + step) / step : (b - e - step) / -step));
     auto it = result.begin();
     if (step > 0)
         for (Tp i = b; i <= e; i += step)
@@ -59,8 +59,8 @@ template <int64_t Begin, int64_t End, std::invocable<int64_t> Fun = std::identit
     requires(End >= Begin)
 constexpr auto arange(Fun f = {})
 {
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, int64_t>>;
-    std::array<FT, End - Begin + 1> result;
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, int64_t>>;
+    std::array<R, End - Begin + 1> result;
     auto it = result.begin();
     for (int64_t i = Begin; i <= End; ++i)
         *it++ = std::invoke(f, i);
@@ -73,8 +73,8 @@ template <int64_t Begin, int64_t End, int64_t Step, std::invocable<int64_t> Fun 
     requires(Step != 0 && (Step > 0 ? End >= Begin : End <= Begin))
 constexpr auto arange(Fun f = {})
 {
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, int64_t>>;
-    std::array<FT, (size_t)((End - Begin) / Step + 1)> result;
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, int64_t>>;
+    std::array<R, (size_t)((End - Begin) / Step + 1)> result;
     auto it = result.begin();
     if constexpr (Step > 0)
         for (int64_t i = Begin; i <= End; i += Step)
@@ -103,8 +103,8 @@ template <typename T, typename Fun> constexpr std::vector<T> unfold(size_t size,
 template <execution_policy Exec, std::ranges::range Range, typename Fun> auto mapv(Exec &&exec, Range &&r, Fun f)
 {
     using T = std::ranges::range_value_t<Range>;
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
-    std::vector<FT> result(r.size());
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
+    std::vector<R> result(r.size());
     std::transform(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r), std::ranges::begin(result),
                    std::move(f));
     return result;
@@ -114,8 +114,8 @@ template <execution_policy Exec, std::ranges::range Range, typename Fun> auto ma
 template <std::ranges::range Range, typename Fun> constexpr auto mapv(Range &&r, Fun f)
 {
     using T = std::ranges::range_value_t<Range>;
-    using FT = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
-    std::vector<FT> result(r.size());
+    using R = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
+    std::vector<R> result(r.size());
     std::transform(std::ranges::begin(r), std::ranges::end(r), std::ranges::begin(result), std::move(f));
     return result;
 }

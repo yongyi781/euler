@@ -11,22 +11,21 @@ namespace it
 /// Enumerates primes, using the primesieve library.
 class primes : public it_base
 {
-    int64_t _start = 2;
-    int64_t _stop = std::numeric_limits<int64_t>::max();
+    u64 start_ = 2;
+    u64 stop_ = std::numeric_limits<u64>::max();
 
   public:
-    using value_type = int64_t;
+    using value_type = u64;
 
     primes() = default;
-    constexpr primes(int64_t start, int64_t stop = std::numeric_limits<int64_t>::max()) : _start(start), _stop(stop) {}
+    constexpr primes(u64 start, u64 stop = std::numeric_limits<u64>::max()) : start_(start), stop_(stop) {}
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
-        if (_start > _stop)
+        if (start_ > stop_)
             return result_continue;
-        primesieve::iterator it(
-            _start, _stop == std::numeric_limits<int64_t>::max() ? std::numeric_limits<uint64_t>::max() : _stop);
-        for (int64_t p = it.next_prime(); p <= _stop; p = it.next_prime())
+        primesieve::iterator it(start_, stop_);
+        for (u64 p = it.next_prime(); p <= stop_; p = it.next_prime())
             if (!callbackResult(f, p))
                 return result_break;
         return result_continue;
@@ -45,13 +44,13 @@ inline std::vector<bool> primeSieve(size_t limit)
 /// Factors `n!`.
 template <integral2 T = int> constexpr PF<T> factorFactorial(int n)
 {
-    return it::primes{2, n}.map([&](auto &&p) { return PrimePower<T>{p, factorialValuation(n, p)}; }).to();
+    return it::primes(2, n).map([&](auto &&p) { return PrimePower<T>{p, factorialValuation(n, p)}; }).to();
 }
 
 /// Factors `binomial(n, r)`.
 template <integral2 T = int> constexpr PF<T> factorBinomial(int n, int r)
 {
-    return it::primes{2, n}
+    return it::primes(2, n)
         .map([&](auto &&p) {
             auto e = factorialValuation(n, p) - factorialValuation(n - r, p) - factorialValuation(r, p);
             return PrimePower<T>{p, e};
