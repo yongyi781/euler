@@ -362,15 +362,7 @@ constexpr auto adjacentDifference(Range &&r, BinaryOp op = {})
     return res;
 }
 
-/// Takes adjacent difference in place.
-template <execution_policy Exec, std::ranges::range Range, typename BinaryOp = std::minus<>>
-void adjacentDifferenceInPlace(Exec &&exec, Range &&r, BinaryOp op = {})
-{
-    std::adjacent_difference(std::forward<Exec>(exec), std::ranges::begin(r), std::ranges::end(r),
-                             std::ranges::begin(r), std::move(op));
-}
-
-/// Takes adjacent difference in place.
+/// Takes adjacent difference in place. STL does not support parallel version of this at the moment.
 template <std::ranges::range Range, typename BinaryOp = std::minus<>>
 constexpr void adjacentDifferenceInPlace(Range &&r, BinaryOp op = {})
 {
