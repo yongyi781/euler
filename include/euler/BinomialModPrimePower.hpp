@@ -1,89 +1,89 @@
 #pragma once
 
+#include "euler/math.hpp"
 #include "prime.hpp"
 
 namespace euler
 {
 /// A class to compute binomial coefficients mod prime powers.
-class BinomialModPrimePower
+template <u64 P, int E> class BinomialModPrimePower
 {
-    int64_t _p = 1, _pe = 1;
-    int _e = 0;
+    static constexpr u64 PE = pow(P, E);
 
     // p^k
-    std::vector<int64_t> pPower;
+    std::vector<u64> pPower;
 
     // First kind
-    std::vector<std::vector<int64_t>> stirling;
+    std::vector<std::vector<u64>> stirling;
 
     // (p-1)!^k
-    std::vector<int64_t> pstirling;
+    std::vector<u64> pstirling;
 
     // factorials and its inverse, but without the factor p
-    std::vector<int64_t> fact, ifact;
+    std::vector<u64> fact, ifact;
     // p-adic valuation of factorial
     std::vector<int> pfact;
 
-    std::vector<int64_t> lagrangeCoeff;
+    std::vector<u64> lagrangeCoeff;
 
-    std::vector<int64_t> prods;
+    std::vector<u64> prods;
 
     // Computes (np+1)(np+2) ... (np+m) % p^e
     // with m < p
-    [[nodiscard]] int64_t risingFactorial(int64_t n, int64_t m) const
+    [[nodiscard]] u64 risingFactorial(u64 n, u64 m) const
     {
-        int64_t ret = 0;
-        int64_t pn = 1;
-        int const ep = (int)(_e < _p ? _e : _p);
+        u64 ret = 0;
+        u64 pn = 1;
+        int const ep = (int)(E < P ? E : P);
         for (int j = 0; j < ep; ++j)
         {
-            ret = (int64_t)(((__int128)stirling[m + 1][j + 1] * pn + ret) % _pe);
-            pn = (int64_t)((__int128)pn * _p * n % _pe);
+            ret = (u64)(((__int128)stirling[m + 1][j + 1] * pn + ret) % PE);
+            pn = (u64)((__int128)pn * P * n % PE);
         }
 
         return ret;
     }
 
-    [[nodiscard]] int64_t lagrangeInterpolate(int64_t ndp) const
+    [[nodiscard]] u64 lagrangeInterpolate(u64 ndp) const
     {
-        int const len = _e * 2 - 1;
-        int64_t ptot = 0;
+        int const len = E * 2 - 1;
+        u64 ptot = 0;
 
         std::vector pfactorsnum(len, 0);
-        std::vector prenum(len, (int64_t)0);
-        std::vector sufnum(len, (int64_t)0);
+        std::vector prenum(len, (u64)0);
+        std::vector sufnum(len, (u64)0);
 
         for (int i = 0; i < len; ++i)
         {
-            int64_t num = ndp - i;
+            u64 num = ndp - i;
             pfactorsnum[i] = 0;
-            while (num % _p == 0)
+            while (num % P == 0)
             {
-                num /= _p;
+                num /= P;
                 ++pfactorsnum[i];
             }
             ptot += pfactorsnum[i];
             prenum[i] = sufnum[i] = num;
 
             if (i > 0)
-                prenum[i] = (int64_t)((__int128)prenum[i - 1] * prenum[i] % _pe);
+                prenum[i] = (u64)((__int128)prenum[i - 1] * prenum[i] % PE);
         }
 
         for (int i = len - 2; i >= 0; --i)
-            sufnum[i] = (int64_t)((__int128)sufnum[i] * sufnum[i + 1] % _pe);
+            sufnum[i] = (u64)((__int128)sufnum[i] * sufnum[i + 1] % PE);
 
-        int64_t sum = 0;
+        u64 sum = 0;
         for (int j = 0; j < len; ++j)
         {
             int const j2 = len - 1 - j;
-            int64_t const pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
+            u64 const pfactor = ptot - pfactorsnum[j] - pfact[j] - pfact[j2];
 
-            if (pfactor >= _e)
+            if (pfactor >= E)
                 continue;
 
-            auto numerator = (int64_t)((__int128)(j > 0 ? prenum[j - 1] : 1) * (j < len - 1 ? sufnum[j + 1] : 1) % _pe);
+            auto numerator = (u64)((__int128)(j > 0 ? prenum[j - 1] : 1) * (j < len - 1 ? sufnum[j + 1] : 1) % PE);
 
-            sum = (int64_t)(((__int128)numerator * lagrangeCoeff[j] % _pe * pPower[pfactor] + sum) % _pe);
+            sum = (u64)(((__int128)numerator * lagrangeCoeff[j] % PE * pPower[pfactor] + sum) % PE);
         }
 
         return sum;
@@ -91,120 +91,111 @@ class BinomialModPrimePower
 
   public:
     // O(p*min(e, p) + e^2)
-    BinomialModPrimePower(int64_t p, int e) : _p(p), _e(e), fact(e * 2 - 1), ifact(e * 2 - 1), pfact(e * 2 - 1)
+    BinomialModPrimePower() : pPower(powers(P, E)), fact(E * 2 - 1), ifact(E * 2 - 1), pfact(E * 2 - 1)
     {
-        pPower.resize(e);
-
-        for (int i = 0; i < e; ++i)
-        {
-            pPower[i] = _pe;
-            _pe *= p;
-        }
-
-        int const ep = (int)(e < p ? e : p);
-        stirling = std::vector<std::vector<int64_t>>(p + 1, std::vector<int64_t>(ep + 1, 0));
+        int const ep = (int)(E < P ? E : P);
+        stirling = std::vector<std::vector<u64>>(P + 1, std::vector<u64>(ep + 1, 0));
         stirling[0][0] = 1;
-        for (int i = 1; i <= p; ++i)
+        for (int i = 1; i <= P; ++i)
             for (int j = 1; j <= ep; ++j)
-                stirling[i][j] = (int64_t)(((int128_t)(i - 1) * stirling[i - 1][j] + stirling[i - 1][j - 1]) % _pe);
+                stirling[i][j] = (u64)(((u128)(i - 1) * stirling[i - 1][j] + stirling[i - 1][j - 1]) % PE);
 
-        prods.resize(e * 2 - 1);
-        int64_t prod = 1;
-        int64_t const invStirling = modInverse(stirling[p][1], _pe);
+        prods.resize(E * 2 - 1);
+        u64 prod = 1;
+        u64 const invStirling = modInverse(stirling[P][1], PE);
 
-        for (int i = 0; i <= e * 2 - 3; ++i)
+        for (int i = 0; i <= E * 2 - 3; ++i)
         {
             prods[i] = prod;
-            prod = (int64_t)((int128_t)prod * risingFactorial(i, p - 1) % _pe * invStirling % _pe);
+            prod = (u64)((u128)prod * risingFactorial(i, P - 1) % PE * invStirling % PE);
         }
-        prods[e * 2 - 2] = prod;
+        prods[E * 2 - 2] = prod;
 
-        pstirling.resize(e);
+        pstirling.resize(E);
         pstirling[0] = 1;
-        for (int i = 1; i < e; ++i)
-            pstirling[i] = (int64_t)((int128_t)pstirling[i - 1] * stirling[p][1] % _pe);
+        for (int i = 1; i < E; ++i)
+            pstirling[i] = (u64)((u128)pstirling[i - 1] * stirling[P][1] % PE);
 
-        int const len = e * 2 - 1;
+        int const len = E * 2 - 1;
         fact[0] = 1;
         pfact[0] = 0;
         for (int i = 1; i < len; ++i)
         {
-            int64_t num = i;
+            u64 num = i;
             pfact[i] = 0;
-            while (num % p == 0)
+            while (num % P == 0)
             {
                 ++pfact[i];
-                num /= p;
+                num /= P;
             }
 
             ifact[i - 1] = num;
             pfact[i] += pfact[i - 1];
-            fact[i] = (int64_t)((__int128)fact[i - 1] * num % _pe);
+            fact[i] = (u64)((__int128)fact[i - 1] * num % PE);
         }
 
-        ifact[len - 1] = modInverse(fact[len - 1], _pe);
+        ifact[len - 1] = modInverse(fact[len - 1], PE);
         for (int i = len - 2; i >= 0; --i)
-            ifact[i] = (int64_t)((__int128)ifact[i + 1] * ifact[i] % _pe);
+            ifact[i] = (u64)((__int128)ifact[i + 1] * ifact[i] % PE);
 
         lagrangeCoeff.resize(len);
         for (int i = 0; i < len; ++i)
         {
-            auto denominator = (int64_t)((__int128)ifact[i] * ifact[len - 1 - i] % _pe);
+            auto denominator = (u64)((__int128)ifact[i] * ifact[len - 1 - i] % PE);
             if (((len - 1 - i) & 1) != 0)
-                denominator = _pe - denominator;
+                denominator = PE - denominator;
 
-            lagrangeCoeff[i] = (int64_t)((__int128)denominator * prods[i] % _pe);
+            lagrangeCoeff[i] = (u64)((__int128)denominator * prods[i] % PE);
         }
     }
 
-    [[nodiscard]] constexpr int64_t p() const { return _p; }
+    [[nodiscard]] constexpr u64 p() const { return P; }
 
-    [[nodiscard]] constexpr int64_t e() const { return _e; }
+    [[nodiscard]] constexpr u64 e() const { return E; }
 
-    [[nodiscard]] constexpr int64_t pe() const { return _pe; }
+    [[nodiscard]] constexpr u64 pe() const { return PE; }
 
     // n! % p^e, but p, 2p, ... is not multiplied
-    [[nodiscard]] int64_t factorialWithoutP(int64_t n) const
+    [[nodiscard]] u64 factorialWithoutP(u64 n) const
     {
-        int64_t const ndp = n / _p;
-        int64_t ret = risingFactorial(ndp, n % _p);
+        u64 const ndp = n / P;
+        u64 ret = risingFactorial(ndp, n % P);
 
-        if (ndp <= _e * 2 - 2)
-            return (int64_t)((__int128)ret * prods[ndp] % _pe);
+        if (ndp <= E * 2 - 2)
+            return (u64)((__int128)ret * prods[ndp] % PE);
 
-        ret = (int64_t)((__int128)ret * lagrangeInterpolate(ndp) % _pe);
+        ret = (u64)((__int128)ret * lagrangeInterpolate(ndp) % PE);
         return ret;
     }
 
     // n! but without the p factors
-    [[nodiscard]] int64_t factorial(int64_t n) const
+    [[nodiscard]] u64 factorial(u64 n) const
     {
-        int64_t ret = 1;
+        u64 ret = 1;
 
         while (n > 0)
         {
-            ret = (int64_t)((__int128)ret * factorialWithoutP(n) % _pe);
-            n /= _p;
+            ret = (u64)((__int128)ret * factorialWithoutP(n) % PE);
+            n /= P;
         }
 
         return ret;
     }
 
     // O(log(n) * e)
-    [[nodiscard]] int64_t binomial(int64_t n, int64_t r) const
+    [[nodiscard]] u64 binomial(u64 n, u64 r) const
     {
         if (r < 0 || r > n)
             return 0;
-        int64_t const binom_padic =
-            factorialValuation(n, _p) - factorialValuation(r, _p) - factorialValuation(n - r, _p);
-        if (binom_padic >= _e)
-            return (int64_t)0;
+        u64 const binom_padic = factorialValuation(n, P) - factorialValuation(r, P) - factorialValuation(n - r, P);
+        if ((i64)binom_padic >= E)
+            return (u64)0;
 
-        return (int64_t)((int128_t)pPower[binom_padic] * factorial(n) % _pe *
-                         modInverse((int64_t)((int128_t)factorial(r) * factorial(n - r) % _pe), _pe) % _pe *
-                         pstirling[binom_padic] % _pe);
+        return (u64)((u128)pPower[binom_padic] * factorial(n) % PE *
+                     modInverse((u64)((u128)factorial(r) * factorial(n - r) % PE), PE) % PE * pstirling[binom_padic] %
+                     PE);
     }
 
-    int64_t operator()(int64_t n, int64_t r) const { return binomial(n, r); }
+    u64 operator()(u64 n, u64 r) const { return binomial(n, r); }
 };
 } // namespace euler

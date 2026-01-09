@@ -141,7 +141,7 @@ class ZMod
     }
 
     /// Returns the modular exponentiation of this number.
-    template <integral2 T> constexpr ZMod pow(T exponent) const
+    template <integral2 E> constexpr ZMod pow(E exponent) const
     {
         if constexpr (is_field)
             exponent = mod(exponent, M - 1);
@@ -151,11 +151,12 @@ class ZMod
             return exponent % 2 == 0 ? 1 : -1;
         ZMod x = 1;
         ZMod y = *this;
-        if (exponent < 0)
-        {
-            y = ~y;
-            exponent = -exponent;
-        }
+        if constexpr (boost::multiprecision::is_signed_number<E>::value)
+            if (exponent < 0)
+            {
+                y = ~y;
+                exponent = -exponent;
+            }
         while (true)
         {
             if (exponent & 1)

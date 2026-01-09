@@ -9,32 +9,28 @@ namespace it
 /// Enumerates the digits of a number in a specified base, which must be ≥ 2.
 template <integral2 T = int64_t, integral2 TBase = int> class digits : public it_base
 {
-    T _n;
-    TBase _base;
+    T n_;
+    TBase base_;
 
   public:
     using value_type = TBase;
 
     digits() = default;
-    constexpr digits(T n, TBase base = 10) : _n(n), _base(base) { assert(base >= 2); }
+    constexpr digits(T n, TBase base = 10) : n_(n), base_(base) { assert(base >= 2); }
 
     template <std::invocable<value_type> Fun> constexpr result_t operator()(Fun f) const
     {
         if constexpr (boost::integer_traits<T>::digits > 128)
-            if (_base == 10)
+            if (base_ == 10)
             {
-                for (char c : to_string(_n) | std::views::reverse)
+                for (char c : to_string(n_) | std::views::reverse)
                     if (!callbackResult(f, TBase(c - '0')))
                         return result_break;
                 return result_continue;
             }
-        T n = _n;
-        while (n > 0)
-        {
-            if (!callbackResult(f, TBase(n % _base)))
+        for (T n = n_; n != 0; n /= base_)
+            if (!callbackResult(f, TBase(n % base_)))
                 return result_break;
-            n /= _base;
-        }
         return result_continue;
     }
 };

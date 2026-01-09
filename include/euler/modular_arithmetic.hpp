@@ -61,7 +61,7 @@ inline euclidean_result_t<mpz_int> xgcd(const mpz_int &m, const mpz_int &n)
 
 /// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
 /// Precondition: `modulus > 0`.
-template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &modulus)
+template <integral2 T, integral2 U> constexpr auto mod(const T &a, const U &modulus)
 {
     if constexpr (boost::multiprecision::is_unsigned_number<T>::value)
     {
@@ -75,12 +75,22 @@ template <integral2 T, integral2 Tm> constexpr auto mod(const T &a, const Tm &mo
     }
 }
 
-/// Non-overflowing modular integer multiplication.
-template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto mulmod(const Ta &a, const Tb &b, const Tm &m)
+/// Modular addition. Requires `0 ≤ a, b < m`.
+template <integral2 T, integral2 U, integral2 V> constexpr auto addmod(const T &a, const U &b, const V &m)
 {
-    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
-    using Td = double_integer_t<T>;
-    if constexpr (std::same_as<T, Td>)
+    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a + b)));
+    Tp res = a + b;
+    if (res >= m)
+        res -= m;
+    return res;
+}
+
+/// Non-overflowing modular integer multiplication.
+template <integral2 T, integral2 U, integral2 V> constexpr auto mulmod(const T &a, const U &b, const V &m)
+{
+    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
+    using Td = double_integer_t<Tp>;
+    if constexpr (std::same_as<Tp, Td>)
     {
         return a * b % m;
     }
@@ -88,11 +98,11 @@ template <integral2 Ta, integral2 Tb, integral2 Tm> constexpr auto mulmod(const 
     {
         Td result{};
         __builtin_mul_overflow(a, b, &result);
-        return T(result % m);
+        return Tp(result % m);
     }
     else
     {
-        return T(Td(a) * Td(b) % m);
+        return Tp(Td(a) * Td(b) % m);
     }
 }
 
@@ -291,20 +301,20 @@ template <std::unsigned_integral T> constexpr T bitInverse(T n)
     assert(n % 2 == 1);
     T x = (3 * n) ^ 2;
     T y = 1 - n * x;
-    x *= (1 + y);
+    x *= 1 + y;
     y *= y;
-    x *= (1 + y);
+    x *= 1 + y;
     y *= y;
-    x *= (1 + y);
+    x *= 1 + y;
     if constexpr (sizeof(T) > 4)
     {
         y *= y;
-        x *= (1 + y);
+        x *= 1 + y;
     }
     if constexpr (sizeof(T) > 8)
     {
         y *= y;
-        x *= (1 + y);
+        x *= 1 + y;
     }
     return x;
 }

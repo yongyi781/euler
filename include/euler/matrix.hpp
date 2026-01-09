@@ -454,14 +454,16 @@ template <typename T, size_t M, size_t N> class Matrix
     }
 
     /// Returns the power of an matrix to an integer.
-    [[nodiscard]] constexpr Matrix pow(integral2 auto exponent) const
+    template <integral2 E>
+    [[nodiscard]] constexpr Matrix pow(E exponent) const
         requires(M == N)
     {
         return euler::pow(*this, std::move(exponent), identity(), std::multiplies{});
     }
 
     /// Returns the power of an matrix to an integer.
-    [[nodiscard]] constexpr Matrix powm(integral2 auto exponent, integral2 auto modulus) const
+    template <integral2 E, typename U>
+    [[nodiscard]] constexpr Matrix powm(E exponent, U modulus) const
         requires(M == N)
     {
         return euler::powm(*this, std::move(exponent), std::move(modulus), identity());

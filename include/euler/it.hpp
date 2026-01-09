@@ -5,6 +5,7 @@
 #include "it/dfinite.hpp"
 #include "it/digits.hpp"
 #include "it/divisors.hpp"
+#include "it/divisors_factored.hpp"
 #include "it/factor.hpp"
 #include "it/factorization_shape.hpp"
 #include "it/farey_sequence.hpp"

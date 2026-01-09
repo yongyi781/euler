@@ -140,7 +140,7 @@ inline void testBinom()
     i64 mod = (1e7 + 19);
     mod *= mod;
 
-    BinomialModPrimePower const binom(1e7 + 19, 2);
+    BinomialModPrimePower<10'000'019, 2> const binom;
 
     for (int i = 1; i < 100; ++i)
     {

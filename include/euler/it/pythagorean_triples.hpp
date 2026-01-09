@@ -94,8 +94,8 @@ class pythagorean_triples : public it_base
     {
         return base([&](auto &&x) {
             auto &&[a, b, c] = std::forward<decltype(x)>(x);
-            T hk = base.limit() / c;
-            for (T k = 1; k <= hk; ++k)
+            T const max_k = base.limit() / c;
+            for (T k = 1; k <= max_k; ++k)
                 if (!callbackResult(f, value_type{k * a, k * b, k * c}))
                     return result_break;
             return result_continue;

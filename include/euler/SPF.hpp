@@ -367,7 +367,7 @@ template <std::integral T> class SPF
     }
 
     /// Sieve for the divisor counting function in O(n log log n) time.
-    template <typename U = T> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
+    template <typename U = half_integer_t<T>> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
     {
         return sieve([&](T, int e) -> U { return e + 1; }, limit);
     }
@@ -472,7 +472,10 @@ template <std::integral T> class SPF
 template <std::integral T> std::vector<T> totientSieve(T limit) { return SPF{limit}.totientSieve(limit); }
 
 /// Sieve for the divisor counting function.
-template <std::integral T> std::vector<T> divisorCountSieve(T limit) { return SPF{limit}.divisorCountSieve(limit); }
+template <std::integral T> std::vector<half_integer_t<T>> divisorCountSieve(T limit)
+{
+    return SPF{limit}.divisorCountSieve(limit);
+}
 
 /// Sieve for the σ₁ function, the divisor sum function.
 template <std::integral T> std::vector<T> divisorSumSieve(T limit) { return SPF{limit}.divisorSumSieve(limit); }

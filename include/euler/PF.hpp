@@ -61,12 +61,13 @@ template <typename T = int64_t> class PF
     constexpr void push_back(value_type x) { data_.push_back(x); }
     /// Dangerous! Make sure you know what you are doing.
     constexpr iterator insert(const_iterator position, value_type x) { return data_.insert(position, x); }
+    constexpr void reserve(size_t n) { data_.reserve(n); }
 
     /// Returns the exponent of `p` in the prime factorization.
     constexpr int exponent(T p) const
     {
         if (auto const it = std::ranges::lower_bound(data_, p, std::ranges::less{}, [](auto &&t) { return t.first; });
-            it != end() && it->first == p)
+            it != data_.end() && it->first == p)
             return it->second;
         return 0;
     }

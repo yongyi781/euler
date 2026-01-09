@@ -12,54 +12,62 @@ namespace euler
 /// Usage: `floors_array(n)` or `floors_array(n, s)`.
 template <typename T = int64_t> class floors_array
 {
-    size_t _n = 0;
-    std::vector<T> _up;
-    std::vector<T> _down;
+    size_t n_ = 0;
+    std::vector<T> up_;
+    std::vector<T> down_;
+    std::vector<size_t> quots_;
 
   public:
     /// s should be 1 less than the size of the small values array.
     constexpr floors_array() = default;
-    constexpr floors_array(size_t n, size_t pivot) : _n(n), _up(pivot + 1), _down(n / (pivot + 1) + 1) {}
+    constexpr floors_array(size_t n, size_t pivot)
+        : n_(n), up_(pivot + 1), down_(n_ / (pivot + 1) + 1), quots_(isqrt(n_) + 1)
+    {
+        for (size_t i = 1; i < quots_.size(); ++i)
+            quots_[i] = n_ / i;
+    }
     constexpr explicit floors_array(size_t n) : floors_array(n, isqrt(n)) {}
 
-    constexpr T &operator[](size_t i) { return i < _up.size() ? _up[i] : _down[_n / i]; }
-    constexpr const T &operator[](size_t i) const { return i < _up.size() ? _up[i] : _down[_n / i]; }
+    constexpr T &operator[](size_t i) { return i < up_.size() ? up_[i] : down_[n_ / i]; }
+    constexpr const T &operator[](size_t i) const { return i < up_.size() ? up_[i] : down_[n_ / i]; }
 
     /// The number that this array was designed for, i.e. the top index.
-    [[nodiscard]] constexpr size_t n() const { return _n; }
+    [[nodiscard]] constexpr size_t n() const { return n_; }
     /// The transition point between up and down. What was passed as the s parameter during construction.
-    [[nodiscard]] constexpr size_t pivot() const { return _up.size() - 1; }
+    [[nodiscard]] constexpr size_t pivot() const { return up_.size() - 1; }
+    /// Gets the value of `n / i` avoiding a division CPU instruction. `i` must be `≤ √n`.
+    [[nodiscard]] size_t quotient(uint32_t i) const noexcept { return quots_[i]; }
 
     /// The up vector, mutable.
-    [[nodiscard]] std::vector<T> &up() noexcept { return _up; }
+    [[nodiscard]] std::vector<T> &up() noexcept { return up_; }
     /// The up vector.
-    [[nodiscard]] const std::vector<T> &up() const noexcept { return _up; }
+    [[nodiscard]] const std::vector<T> &up() const noexcept { return up_; }
     /// Element access into the up array, mutable.
-    [[nodiscard]] T &up(size_t x) noexcept { return _up[x]; }
+    [[nodiscard]] T &up(size_t x) noexcept { return up_[x]; }
     /// Element access into the up array.
-    [[nodiscard]] const T &up(size_t x) const noexcept { return _up[x]; }
+    [[nodiscard]] const T &up(size_t x) const noexcept { return up_[x]; }
 
     /// The down vector, mutable.
-    [[nodiscard]] std::vector<T> &down() noexcept { return _down; }
+    [[nodiscard]] std::vector<T> &down() noexcept { return down_; }
     /// The down vector.
-    [[nodiscard]] const std::vector<T> &down() const noexcept { return _down; }
+    [[nodiscard]] const std::vector<T> &down() const noexcept { return down_; }
     /// Element access into the down array, mutable.
-    [[nodiscard]] T &down(size_t x) noexcept { return _down[x]; }
+    [[nodiscard]] T &down(size_t x) noexcept { return down_[x]; }
     /// Element access into the down array.
-    [[nodiscard]] const T &down(size_t x) const noexcept { return _down[x]; }
+    [[nodiscard]] const T &down(size_t x) const noexcept { return down_[x]; }
 
-    [[nodiscard]] constexpr T &front() { return _up[1]; }
-    [[nodiscard]] constexpr const T &front() const { return _up[1]; }
-    [[nodiscard]] constexpr T &back() { return _down[1]; }
-    [[nodiscard]] constexpr const T &back() const { return _down[1]; }
+    [[nodiscard]] constexpr T &front() { return up_[1]; }
+    [[nodiscard]] constexpr const T &front() const { return up_[1]; }
+    [[nodiscard]] constexpr T &back() { return down_[1]; }
+    [[nodiscard]] constexpr const T &back() const { return down_[1]; }
 
     /// Addition.
     template <typename U> floors_array &operator+=(const floors_array<U> &other)
     {
-        assert(_n == other.n());
-        for (size_t k = 1; k < _up.size(); ++k)
+        assert(n_ == other.n());
+        for (size_t k = 1; k < up_.size(); ++k)
             up(k) += other.up(k);
-        for (uint32_t i = 1; i < _down.size(); ++i)
+        for (uint32_t i = 1; i < down_.size(); ++i)
             down(i) += other.down(i);
         return *this;
     }
@@ -73,10 +81,10 @@ template <typename T = int64_t> class floors_array
     /// Subtraction.
     template <typename U> floors_array &operator-=(const floors_array<U> &other)
     {
-        assert(_n == other.n());
-        for (size_t k = 1; k < _up.size(); ++k)
+        assert(n_ == other.n());
+        for (size_t k = 1; k < up_.size(); ++k)
             up(k) -= other.up(k);
-        for (uint32_t i = 1; i < _down.size(); ++i)
+        for (uint32_t i = 1; i < down_.size(); ++i)
             down(i) -= other.down(i);
         return *this;
     }
@@ -90,9 +98,9 @@ template <typename T = int64_t> class floors_array
     /// Division by a scalar.
     floors_array &operator/=(T value)
     {
-        for (size_t k = 1; k < _up.size(); ++k)
+        for (size_t k = 1; k < up_.size(); ++k)
             up(k) /= value;
-        for (uint32_t i = 1; i < _down.size(); ++i)
+        for (uint32_t i = 1; i < down_.size(); ++i)
             down(i) /= value;
         return *this;
     }
@@ -106,11 +114,11 @@ template <typename T = int64_t> class floors_array
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
     {
-        for (size_t i = 1; i < _up.size(); ++i)
+        for (size_t i = 1; i < up_.size(); ++i)
             if (!it::callbackResult(f, i))
                 return it::result_break;
-        for (size_t i = _down.size() - 1; i > 0; --i)
-            if (!it::callbackResult(f, _n / i))
+        for (size_t i = down_.size() - 1; i > 0; --i)
+            if (!it::callbackResult(f, quots_[i]))
                 return it::result_break;
         return it::result_continue;
     }
@@ -119,11 +127,11 @@ template <typename T = int64_t> class floors_array
     /// `it::result_break`.
     template <std::invocable<size_t, T &> Fun> constexpr it::result_t ascendingMut(Fun f)
     {
-        for (size_t i = 1; i < _up.size(); ++i)
-            if (!it::callbackResult(f, i, _up[i]))
+        for (size_t i = 1; i < up_.size(); ++i)
+            if (!it::callbackResult(f, i, up_[i]))
                 return it::result_break;
-        for (size_t i = _down.size() - 1; i > 0; --i)
-            if (!it::callbackResult(f, _n / i, _down[i]))
+        for (size_t i = down_.size() - 1; i > 0; --i)
+            if (!it::callbackResult(f, quots_[i], down_[i]))
                 return it::result_break;
         return it::result_continue;
     }
@@ -132,10 +140,10 @@ template <typename T = int64_t> class floors_array
     /// `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t descending(Fun f) const
     {
-        for (size_t i = 1; i < _down.size(); ++i)
-            if (!it::callbackResult(f, _n / i))
+        for (size_t i = 1; i < down_.size(); ++i)
+            if (!it::callbackResult(f, quots_[i]))
                 return it::result_break;
-        for (size_t i = _up.size() - 1; i > 0; --i)
+        for (size_t i = up_.size() - 1; i > 0; --i)
             if (!it::callbackResult(f, i))
                 return it::result_break;
         return it::result_continue;
@@ -145,11 +153,11 @@ template <typename T = int64_t> class floors_array
     /// `it::result_break`.
     template <std::invocable<size_t, T &> Fun> constexpr it::result_t descendingMut(Fun f)
     {
-        for (size_t i = 1; i < _down.size(); ++i)
-            if (!it::callbackResult(f, _n / i, _down[i]))
+        for (size_t i = 1; i < down_.size(); ++i)
+            if (!it::callbackResult(f, quots_[i], down_[i]))
                 return it::result_break;
-        for (size_t i = _up.size() - 1; i > 0; --i)
-            if (!it::callbackResult(f, i, _up[i]))
+        for (size_t i = up_.size() - 1; i > 0; --i)
+            if (!it::callbackResult(f, i, up_[i]))
                 return it::result_break;
         return it::result_continue;
     }
@@ -157,70 +165,75 @@ template <typename T = int64_t> class floors_array
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const floors_array &S)
     {
-        return o << "{\n  n: " << S._n << "\n  up: " << S._up << "\n  down: " << S._down << "\n}";
+        return o << "{\n  n: " << S.n_ << "\n  up: " << S.up_ << "\n  down: " << S.down_ << "\n}";
     }
 };
 
 /// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * f(p)` for `k` of the form `⌊limit / i⌋`. Here, `f` must be
 /// a completely multiplicative function and `F` must be the summatory function of `f`.
-template <std::invocable<size_t> Fun, std::invocable<size_t> SummatoryFun>
-constexpr auto primeSumTable(size_t limit, Fun f, SummatoryFun F)
+template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun f, SummatoryFun F)
 {
-    using FT = std::remove_cvref_t<std::invoke_result_t<SummatoryFun, int64_t>>;
-    size_t const r = isqrt(limit);
-    floors_array<FT> S(limit);
-    auto const invs = range(0UZ, r, [&](size_t i) { return i == 0 ? 0 : limit / i; });
-    S.ascendingMut([&](size_t i, FT &value) { value = F(i) - F(1); });
-    for (size_t p = 2; p <= r; ++p)
+    using T = std::invoke_result_t<SummatoryFun, size_t>;
+    floors_array<T> res(N);
+    u32 const s = isqrt(N);
+    res.ascendingMut([&](size_t i, T &value) { value = F(i) - F(1); });
+    bool const use_omp = N >= 50'000'000'000UZ;
+    for (u64 p = 2; p <= s; ++p)
     {
-        if (S.up()[p] == S.up()[p - 1])
+        if (res.up(p) == res.up(p - 1))
             continue;
-        // p is prime at this point.
-        auto const fp = f(p);
+        T const fp = f(p);
+        T const sp_prev = res.up(p - 1);
         size_t const pp = p * p;
-        size_t const hi1 = (S.down().size() - 1) / p;
-        size_t const hi = std::min(S.down().size() - 1, limit / pp);
-        // Iterate downward in 3 steps. First from top to p * √N.
-        for (size_t i = 1; i <= hi1; ++i)
-            S.down()[i] -= fp * (S.down()[i * p] - S.up()[p - 1]);
-        // Second from p * √N to √N.
+        size_t const mid_i = (res.down().size() - 1) / p;
+        size_t const max_i = std::min(res.down().size() - 1, N / pp);
+        for (size_t i = 1; i <= mid_i; ++i)
+            res.down(i) -= fp * (res.down(i * p) - sp_prev);
         libdivide::divider const fastp(p);
-        for (size_t i = hi1 + 1; i <= hi; ++i)
-            S.down()[i] -= fp * (S.up()[invs[i] / fastp] - S.up()[p - 1]);
-        if (pp <= S.up().size() - 1)
-        {
-            // Finally from √N to 1.
-            for (size_t k = S.up().size() - 1; k >= pp; --k)
-                S.up()[k] -= fp * (S.up()[k / fastp] - S.up()[p - 1]);
-        }
+        if (use_omp)
+#pragma omp parallel for schedule(static) if (max_i > mid_i + 2048)
+            for (size_t i = mid_i + 1; i <= max_i; ++i)
+                res.down(i) -= fp * (res.up(res.quotient(i) / fastp) - sp_prev);
+        else
+            for (size_t i = mid_i + 1; i <= max_i; ++i)
+                res.down(i) -= fp * (res.up(res.quotient(i) / fastp) - sp_prev);
+        if (pp < res.up().size())
+            for (size_t k = res.up().size() - 1, q = k / fastp; k >= pp; --q)
+            {
+                T const val = fp * (res.up(q) - sp_prev);
+                size_t const min_k = std::max(pp, q * p);
+                for (; k >= min_k; --k)
+                    res.up(k) -= val;
+            }
     }
-    return S;
+
+    return res;
 }
 
 /// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * p` for `k` of the form `⌊limit / i⌋`.
-template <typename T = int64_t> constexpr floors_array<T> primeSumTable(size_t limit)
+template <typename T = int64_t> constexpr floors_array<T> primeSumTable(size_t N)
 {
-    return primeSumTable(limit, [](size_t n) -> T { return n; }, [](size_t n) -> T { return sumId<T>(n); });
+    return primeSumTable(N, [](size_t n) -> T { return n; }, [](size_t n) -> T { return sumId<T>(n); });
 }
 
 /// Returns a floors array of values `#(1 ≤ p ≤ k, p prime)` for `k` of the form `⌊limit / i⌋`.
-template <typename T = int64_t> constexpr floors_array<T> primePiTable(size_t limit)
+template <typename T = int64_t> constexpr floors_array<T> primePiTable(size_t N)
 {
-    return primeSumTable(limit, [](size_t) -> T { return 1; }, [](size_t n) -> T { return n; });
+    return primeSumTable(N, [](size_t) -> T { return 1; }, [](size_t n) -> T { return n; });
 }
 
 /// Calculates `(1 ≤ p ≤ limit, p prime) * f(p)`. Here, `f` must be a completely multiplicative function and `F` must be
 /// the summatory function of `f`.
 template <std::invocable<int64_t> Fun, std::invocable<int64_t> SummatoryFun>
-constexpr auto primeSum(size_t limit, Fun f, SummatoryFun F)
+constexpr auto primeSum(size_t N, Fun f, SummatoryFun F)
 {
-    return primeSumTable(limit, std::move(f), std::move(F))[limit];
+    return primeSumTable(N, std::move(f), std::move(F))[N];
 }
 
 /// Calculates `(1 ≤ p ≤ limit, p prime) * p`.
-template <typename T = int64_t> constexpr T primeSum(size_t limit)
+template <typename T = int64_t> constexpr T primeSum(size_t N)
 {
-    return primeSum(limit, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
+    return primeSum(N, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
 }
 
 /// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.

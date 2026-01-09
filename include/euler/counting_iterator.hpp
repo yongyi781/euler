@@ -34,7 +34,7 @@ template <typename T> struct counting_iterator
         return tmp;
     }
 
-    constexpr counting_iterator &operator+=(T i)
+    constexpr counting_iterator &operator+=(difference_type i)
     {
         value += i;
         return *this;
@@ -57,7 +57,7 @@ template <typename T> struct counting_iterator
         --(*this);
         return tmp;
     }
-    constexpr counting_iterator &operator-=(T i)
+    constexpr counting_iterator &operator-=(difference_type i)
     {
         value -= i;
         return *this;

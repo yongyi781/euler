@@ -189,7 +189,7 @@ template <integral2 T, integral2 U, typename Fun = std::identity> constexpr auto
 }
 
 /// Sums a function over a range of numbers using TBB.
-template <integral2 T, integral2 U, typename Fun = std::identity> auto psum(T begin, U end, Fun f = {})
+template <typename T, typename U, typename Fun = std::identity> auto psum(T begin, U end, Fun f = {})
 {
     using V = std::common_type_t<T, U>;
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;

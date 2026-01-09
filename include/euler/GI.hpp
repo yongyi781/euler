@@ -115,29 +115,37 @@ template <integral2 T> struct GI
     }
 };
 
+/// Returns the unique Gaussian integer a + bi with norm p such that a ≥ b, using brute force.
+/// Precondition: p must be prime and 1 mod 4.
+template <integral2 T> inline GI<T> primeNormGI_brute(T p)
+{
+    T a = 0, b = isqrt(p), aa = 0, bb = b * b;
+    while (a <= b)
+    {
+        if (aa + bb == p)
+            return {b, a};
+        if (aa + bb < p)
+            aa += 2 * a++ + 1;
+        else
+            bb -= 2 * b-- - 1;
+    }
+    return {};
+}
+
+/// Returns the unique Gaussian integer a + bi with norm p such that a ≥ b, using Cornacchia's algorithm.
+/// Precondition: p must be prime and 1 mod 4.
+template <integral2 T> inline GI<T> primeNormGI_cornacchia(T p)
+{
+    T r0 = sqrtModp(p - 1, p), r1 = p % r0;
+    while (!mulLeq(r0, r0, p))
+        std::tie(r0, r1) = std::pair<T, T>{r1, r0 % r1};
+    return {r0, r1};
+}
+
 /// Returns the unique Gaussian integer a + bi with norm p such that a ≥ b. Precondition: p must be prime.
 template <integral2 T> inline GI<T> primeNormGI(T p)
 {
-    if (p < 5'000'000)
-    {
-        // Brute force
-        for (T a = 0; a * a < p; ++a)
-        {
-            T x = isqrt(p - a * a);
-            if (x * x + a * a == p)
-                return {x, a};
-        }
-        throw std::runtime_error("No solution found");
-    }
-    // Cornacchia’s algorithm for p > 5'000'000
-    T const t = sqrtModp(p - 1, p);
-    T x = p, a = t;
-    while (a * a > p)
-        std::tie(a, x) = std::pair<T, T>{x % a, a};
-    T b = isqrt(p - a * a);
-    if (a < b)
-        std::swap(a, b);
-    return {a, b};
+    return p <= 1'000'000 ? primeNormGI_brute(p) : primeNormGI_cornacchia(p);
 }
 
 /// Enumerates Gaussian integers with a given norm, using the given prime factorization.

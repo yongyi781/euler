@@ -81,44 +81,44 @@ template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b,
 }
 
 /// Computes the integral square root of a number.
-template <integral2 T> constexpr auto isqrt(const T &n)
+template <integral2 T> constexpr auto isqrt(const T &x)
 {
     if constexpr (!std::integral<T>)
     {
-        return sqrt(n);
+        return sqrt(x);
     }
     else
     {
         // boost::multiprecision::sqrt is constexpr, so take advantage of that in a constant-evaluated context.
         if (std::is_constant_evaluated())
-            return boost::multiprecision::sqrt(n);
+            return boost::multiprecision::sqrt(x);
+        T res = (T)sqrt((double)x);
         // This constant is the first input where floor(sqrt(n)) returns the wrong value.
-        if (n < 4'503'599'761'588'224)
-            return (T)sqrt(n);
-        T x = sqrt(n);
-        while (x * x > n)
-            --x;
+        if (x < 4'503'599'761'588'224)
+            return res;
+        while (res * res > x)
+            --res;
         // double sqrt will underestimate starting from 2^106.
         if constexpr (sizeof(T) > 8)
-            while ((x + 1) * (x + 1) <= n)
-                ++x;
-        return x;
+            while ((res + 1) * (res + 1) <= x)
+                ++res;
+        return res;
     }
 }
 
 /// Computes the integral nth root of a number.
-template <integral2 T> constexpr T inth_root(T x, int n)
+template <integral2 T> constexpr T inth_root(const T &x, int n)
 {
     if (n == 1)
         return x;
     if (n == 2)
-        return isqrt(std::move(x));
+        return isqrt(x);
     if (n == 4)
-        return isqrt(isqrt(std::move(x)));
-    T s = (T)std::pow((double)x, (1.0 + DBL_EPSILON) / n);
-    while (pow(s, n) > x)
-        --s;
-    return s;
+        return isqrt(isqrt(x));
+    T res = (T)std::pow((double)x, (1.0 + DBL_EPSILON) / n);
+    while (pow(res, n) > x)
+        --res;
+    return res;
 }
 
 /// Finds the largest `e` such that `b^e ≤ n`.
@@ -129,8 +129,7 @@ template <integral2 T, integral2 U> constexpr int floor_log(T n, U b)
     if (n < b * b)
         return 1;
     int e = 1;
-    T x = b;
-    for (; mulLeq(x, b, n); x *= b, ++e)
+    for (T x = b; mulLeq(x, b, n); x *= b, ++e)
         ;
     return e;
 }

@@ -256,10 +256,10 @@ template <bool KnownDivides = false, typename T, typename U> constexpr T removed
 }
 
 /// Calculates the p-adic valuation of n!.
-template <integral2 T, integral2 U> constexpr T factorialValuation(T n, const U &p) // Pass by value intentional
+template <integral2 T, integral2 U> constexpr T factorialValuation(T n, U p)
 {
     T res = 0;
-    while (n > 1)
+    while (n >= p)
         res += (n /= p);
     return res;
 }
