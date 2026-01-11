@@ -41,6 +41,49 @@ inline std::vector<bool> primeSieve(size_t limit)
     return res;
 }
 
+/// Generates a sieve of squarefree numbers up to a given limit.
+template <typename T = bool> std::vector<T> squarefreeSieve(size_t limit)
+{
+    std::vector<T> sieve(limit + 1, true);
+    sieve[0] = false;
+    size_t const s = isqrt(limit);
+    it::primes(2, s)([&](u64 p) {
+        for (size_t j = p * p; j <= limit; j += p * p)
+            sieve[j] = false;
+    });
+    return sieve;
+}
+
+/// Linear non-parallel sieve for the totient function. O(n).
+template <std::integral T> constexpr std::vector<T> totientSieve_seq(T limit)
+{
+    std::vector<T> phi(limit + 1);
+    std::vector<T> primes;
+    phi[1] = 1;
+    primes.reserve(limit / std::max(1.0, log(limit)));
+
+    for (T i = 2; i <= limit; i++)
+    {
+        if (phi[i] == 0)
+        {
+            phi[i] = i - 1;
+            primes.push_back(i);
+        }
+        for (T p : primes)
+        {
+            if (!mulLeq(i, p, limit))
+                break;
+            if (i % p == 0)
+            {
+                phi[i * p] = phi[i] * p;
+                break;
+            }
+            phi[i * p] = phi[i] * (p - 1);
+        }
+    }
+    return phi;
+}
+
 /// Factors `n!`.
 template <integral2 T = int> constexpr PF<T> factorFactorial(int n)
 {

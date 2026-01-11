@@ -388,9 +388,8 @@ auto sumFloors(ExecutionPolicy &&exec, Tn n, Ta a = 1, Tb b = 1, Fun &&f = {})
         if (a == 1 && b == 1)
         {
             // Half as much computation in this branch.
-            T sqrtn = isqrt(n);
-            return 2 * sum(std::forward<ExecutionPolicy>(exec), T(1), sqrtn, [&](auto &&i) { return n / i; }) -
-                   sqrtn * sqrtn;
+            T const s_n = isqrt(n);
+            return 2 * sum(std::forward<ExecutionPolicy>(exec), T(1), s_n, [&](auto &&i) { return n / i; }) - s_n * s_n;
         }
     auto K = std::max(T(0), std::min(n / b - 1, (T)isqrt(n)));
     auto res = sum(std::forward<ExecutionPolicy>(exec), T(1), K,
@@ -415,12 +414,12 @@ auto sumFloorsRange(Exec &&exec, T n, T start, T stop, Fun f = {})
     stop = std::min(n, stop);
     if (start > stop)
         return T(0);
-    T c = isqrt(n);
-    auto result = sum(std::forward<Exec>(exec), start, std::min(stop, c), [&](T k) { return f(n / k); });
-    if (c < stop)
+    T const s_n = isqrt(n);
+    auto result = sum(std::forward<Exec>(exec), start, std::min(stop, s_n), [&](T k) { return f(n / k); });
+    if (s_n < stop)
     {
         T a = n / stop;
-        T b = n / std::max(c + 1, start);
+        T b = n / std::max(s_n + 1, start);
         result += f(a) * (std::min(stop, n / a) - std::max(start - 1, n / (a + 1)));
         if (a != b)
             result += f(b) * (std::min(stop, n / b) - std::max(start - 1, n / (b + 1)));
@@ -435,14 +434,14 @@ auto sumFloorsRange(T n, T start, T stop, T step = 1, Fun f = {})
 {
     using FT = std::decay_t<std::invoke_result_t<Fun, T>>;
     stop = std::min(n, stop);
-    T s = isqrt(n);
+    T const s_n = isqrt(n);
     FT res = 0;
-    for (T k = start; k <= s && k <= stop; k += step)
+    for (T k = start; k <= s_n && k <= stop; k += step)
         res += f(n / k);
-    if (stop <= s)
+    if (stop <= s_n)
         return res;
     auto count = [&](T m) { return m < start ? 0 : (m - start) / step + 1; };
-    T prev = std::max(start > 0 ? start - 1 : 0, s);
+    T prev = std::max(start > 0 ? start - 1 : 0, s_n);
     for (T x = n / (prev + 1); x > 0; --x)
     {
         T next = std::min(n / x, stop);
@@ -469,20 +468,20 @@ auto latticePointsInDisk(const std::integral auto &n) { return latticePointsInDi
 auto latticePointsInDisk2(integral2 auto n)
 {
     using T = decltype(n);
-    T l = isqrt(n);
+    T const s_n = isqrt(n);
     T sum1;
     if (n < 600'000'000'000)
-        sum1 = sum(T(1), l, [&](T x) -> T { return isqrt(n - x * x); });
+        sum1 = sum(T(1), s_n, [&](T x) -> T { return isqrt(n - x * x); });
     else
-        sum1 = sum(std::execution::par, T(1), l, [&](T x) -> T { return isqrt(n - x * x); });
-    return 1 + 4 * sum1 + 4 * l;
+        sum1 = sum(std::execution::par, T(1), s_n, [&](T x) -> T { return isqrt(n - x * x); });
+    return 1 + 4 * sum1 + 4 * s_n;
 }
 
 /// Counts squarefree numbers up to `n`. The mobius sieve needs to be filled up to `√n`.
 template <execution_policy Exec, integral2 T> auto countSquarefree(Exec &&exec, T n, const std::vector<int8_t> &mobius)
 {
-    T sqrtn = isqrt(n);
-    return sum(std::forward<Exec>(exec), 1, sqrtn,
+    T const s_n = isqrt(n);
+    return sum(std::forward<Exec>(exec), 1, s_n,
                [&](integral2 auto i) { return mobius[i] == 0 ? 0 : mobius[i] * (n / (i * i)); });
 }
 
@@ -532,7 +531,7 @@ template <typename T = int64_t> constexpr T sumSquares(size_t limit)
 }
 
 /// Calculates `∑ (0 ≤ i < n) floor((a*i + b) / m)`. Requires `m > 0`.
-template <integral2 T, integral2 U, integral2 V> auto floorSum(T n, U a, V b, U m)
+template <integral2 T, integral2 U, integral2 V> auto floorSum(T n, U m, U a = 1, V b = 0)
 {
     using Tp = std::common_type_t<T, U, V>;
     if (n < 0)

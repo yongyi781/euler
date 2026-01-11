@@ -5,9 +5,21 @@
 
 namespace euler
 {
+/// Runs a wavefront algorithm in parallel. Limit is inclusive.
+template <std::integral T, typename Fun> void par_wavefront(T begin, T end, Fun f, T r = 2)
+{
+    assert(begin > 0 && "begin must be > 0");
+    assert(r > 1 && "r must be > 1");
+    for (; begin <= end; begin *= r)
+        tbb::parallel_for(tbb::blocked_range<T>(begin, std::min(end + 1, begin * r)), [&](tbb::blocked_range<T> range) {
+            for (T n = range.begin(); n < range.end(); ++n)
+                f(n);
+        });
+}
+
 // Space-optimized structure for smallest prime factors (SPF) up to n.
 // It stores SPF only for odd numbers. For any even number, the SPF is 2.
-template <std::integral T> class SPF
+template <std::integral T = int64_t> class SPF
 {
     // spf_odd[n] is the smallest prime factor of 2*n + 1.
     std::vector<std::make_unsigned_t<half_integer_t<T>>> spf_odd;
@@ -262,24 +274,25 @@ template <std::integral T> class SPF
 
     // ==== Sieves ====
 
-    /// Creates a sieve from a multiplicative function in O(n log log n) time.
+    /// Creates a sieve from a multiplicative function in O(n) time.
     template <typename Fun> [[nodiscard]] auto sieve(Fun f, T limit) const
     {
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
         assert(limit < size());
-        std::vector<Tp> res(limit + 1, 1);
-        res[0] = 0;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1 && res[i] != 0)
+        std::vector<Tp> res(limit + 1);
+        res[1] = 1;
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
             {
-                auto const [p, e] = remove(n);
-                res[i] *= f(p, e);
+                int const e = std::countr_zero(unsigned_type(n));
+                res[n] = res[n >> e] * f(T(2), e);
             }
-        });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(unsigned_type(i));
-            res[i] = res[i >> e] * f(2, e);
+            else
+            {
+                T x = n;
+                auto const [p, e] = remove(x);
+                res[n] = res[x] * f(p, e);
+            }
         });
         return res;
     }
@@ -290,17 +303,18 @@ template <std::integral T> class SPF
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T, int>>;
         assert(limit < size());
         std::vector<Tp> res(limit + 1);
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1)
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
             {
-                auto const [p, e] = remove(n);
-                res[i] += f(p, e);
+                int const e = std::countr_zero(unsigned_type(n));
+                res[n] = res[n >> e] + f(T(2), e);
             }
-        });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(unsigned_type(i));
-            res[i] = res[i >> e] + f(2, e);
+            else
+            {
+                T x = n;
+                auto const [p, e] = remove(x);
+                res[n] = res[x] + f(p, e);
+            }
         });
         return res;
     }
@@ -312,13 +326,15 @@ template <std::integral T> class SPF
         assert(limit < size());
         std::vector<Tp> res(limit + 1);
         res[1] = 1;
-        for (T i = 3; i <= limit; i += 2)
-        {
-            T const p = (*this)[i];
-            res[i] = res[i / p] * f(p);
-        }
-        for (T i = 2; i <= limit; i += 2)
-            res[i] = res[i / 2] * f(2);
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
+                res[n] = res[n >> 1] * f(T(2));
+            else
+            {
+                T const p = (*this)[n];
+                res[n] = res[n / p] * f(p);
+            }
+        });
         return res;
     }
 
@@ -328,13 +344,21 @@ template <std::integral T> class SPF
         using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
         assert(limit < size());
         std::vector<Tp> res(limit + 1);
-        for (T i = 3; i <= limit; i += 2)
-        {
-            T const p = (*this)[i];
-            res[i] = res[i / p] + f(p);
-        }
-        for (T i = 2; i <= limit; i += 2)
-            res[i] = res[i / 2] + f(2);
+        res[1] = 0;
+        for (T start = 2; start <= limit; start <<= 1)
+            tbb::parallel_for(tbb::blocked_range<T>(start, std::min(limit + 1, start << 1)),
+                              [&](tbb::blocked_range<T> r) {
+                                  for (T n = r.begin(); n < r.end(); ++n)
+                                  {
+                                      if (n % 2 == 0)
+                                          res[n] = res[n >> 1] + f(T(2));
+                                      else
+                                      {
+                                          T const p = (*this)[n];
+                                          res[n] = res[n / p] + f(p);
+                                      }
+                                  }
+                              });
         return res;
     }
 
@@ -342,129 +366,168 @@ template <std::integral T> class SPF
     [[nodiscard]] std::vector<T> lpfSieve(T limit) const
     {
         assert(limit < size());
-        std::vector<T> res(limit + 1, 1);
-        res[0] = 0;
+        std::vector<T> res(limit + 1);
         res[2] = 2;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = lpf(i); });
-        it::range(4, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(unsigned_type(i));
-            res[i] = res[i >> e];
-        });
+        res[3] = 3;
+        for (T start = 4; start <= limit; start <<= 1)
+            tbb::parallel_for(tbb::blocked_range<T>(start, std::min(limit + 1, start << 1)),
+                              [&](tbb::blocked_range<T> r) {
+                                  for (T n = r.begin(); n < r.end(); ++n)
+                                  {
+                                      if (n % 2 == 0)
+                                          res[n] = res[n >> 1];
+                                      else
+                                      {
+                                          T const p = (*this)[n];
+                                          if (p == n)
+                                              res[n] = p;
+                                          else
+                                          {
+                                              T x = n;
+                                              div(x, p);
+                                              res[n] = max(p, res[x]);
+                                          }
+                                      }
+                                  }
+                              });
         return res;
     }
 
-    /// Sieve for Euler's totient function in O(n log log n) time.
+    /// Sieve for Euler's totient function in O(n) time.
     [[nodiscard]] std::vector<T> totientSieve(T limit) const
     {
         assert(limit < size());
-        std::vector<T> res = range(T(0), limit);
-        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = totient(i); });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            int const e = std::countr_zero(unsigned_type(i));
-            res[i] = res[i >> e] << e - 1;
+        std::vector<T> res(limit + 1);
+        res[1] = 1;
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
+                res[n] = res[n >> 1] << ((~n & 2) >> 1);
+            else
+            {
+                T const p = (*this)[n];
+                if (p == n)
+                    res[n] = n - 1;
+                else
+                {
+                    T x = n;
+                    div(x, p);
+                    res[n] = res[x] * (p - (x % p != 0));
+                }
+            }
         });
         return res;
     }
 
-    /// Sieve for the divisor counting function in O(n log log n) time.
+    /// Sieve for the divisor counting function in O(n) time.
     template <typename U = half_integer_t<T>> [[nodiscard]] std::vector<U> divisorCountSieve(T limit) const
     {
-        return sieve([&](T, int e) -> U { return e + 1; }, limit);
+        return sieve([&](T, int e) { return U(e + 1); }, limit);
     }
 
-    /// Sieve for the σ₁ function, the divisor sum function, in O(n log log n) time.
+    /// Sieve for the σ₁ function, the divisor sum function, in O(n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorSumSieve(T limit) const
     {
-        std::vector<U> sieve(limit + 1, 1);
-        sieve[0] = 0;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1)
+        assert(limit < size());
+        std::vector<U> res(limit + 1);
+        res[1] = 1;
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
+            {
+                int const e = std::countr_zero(unsigned_type(n));
+                res[n] = res[n >> e] * ((U(1) << (e + 1)) - 1);
+            }
+            else
             {
                 T const p = (*this)[n];
-                if (n == p)
+                U s = 1 + p;
+                if (p == n)
+                    res[n] = s;
+                else
                 {
-                    sieve[i] *= 1 + p;
-                    break;
+                    T x = n;
+                    div(x, p);
+                    for (U q = p; (*this)[x] == p; div(x, p), s += (q *= p))
+                        ;
+                    res[n] = res[x] * s;
                 }
-                div(n, p);
-                T q = p, S = 1 + p;
-                while ((*this)[n] == p)
-                {
-                    q *= p;
-                    div(n, p);
-                    S += q;
-                }
-                sieve[i] *= S;
             }
         });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            auto e = std::countr_zero(unsigned_type(i));
-            sieve[i] = ((T(1) << (e + 1)) - 1) * sieve[i >> e];
-        });
-        return sieve;
+        return res;
     }
 
-    /// Sieve for the σ₂ function, the divisor square sum function, in O(n log log n) time.
+    /// Sieve for the σ₂ function, the divisor square sum function, in O(n) time.
     template <typename U = T> [[nodiscard]] std::vector<U> divisorSum2Sieve(T limit) const
     {
-        std::vector<U> sieve(limit + 1, 1);
-        sieve[0] = 0;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) {
-            T n = i;
-            while (n != 1)
+        assert(limit < size());
+        std::vector<U> res(limit + 1);
+        res[1] = 1;
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
+            {
+                int const e = std::countr_zero(unsigned_type(n));
+                res[n] = res[n >> e] * (((U(1) << 2 * (e + 1)) - 1) / 3);
+            }
+            else
             {
                 T const p = (*this)[n];
-                if (n == p)
+                T const pp = p * p;
+                U s = 1 + pp;
+                if (p == n)
+                    res[n] = s;
+                else
                 {
-                    sieve[i] *= 1 + (U)p * p;
-                    break;
+                    T x = n;
+                    div(x, p);
+                    for (U q = pp; (*this)[x] == p; div(x, p), s += (q *= pp))
+                        ;
+                    res[n] = res[x] * s;
                 }
-                div(n, p);
-                U q = p * p, S = 1 + (U)p * p;
-                while ((*this)[n] == p)
-                {
-                    q *= (U)p * p;
-                    div(n, p);
-                    S += q;
-                }
-                sieve[i] *= S;
             }
         });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) {
-            auto e = std::countr_zero(unsigned_type(i));
-            sieve[i] = ((U(1) << 2 * (e + 1)) - 1) / 3 * sieve[i >> e];
-        });
-        return sieve;
+        return res;
     }
 
-    /// Sieve for the Möbius function in O(n log log n) time.
-    [[nodiscard]] std::vector<int8_t> mobiusSieve(T limit) const
+    /// Sieve for the Möbius function in O(n) time.
+    [[nodiscard]] std::vector<i8> mobiusSieve(T limit) const
     {
         assert(limit < size());
-        std::vector<int8_t> res(limit + 1, 1);
-        res[0] = 0;
-        it::range(3, limit, 2)(std::execution::par, [&](T i) { res[i] = mobius(i); });
-        it::range(2, limit, 2)(std::execution::par, [&](T i) { res[i] = i % 4 == 0 ? 0 : -res[i / 2]; });
+        std::vector<i8> res(limit + 1);
+        res[1] = 1;
+        par_wavefront(T(2), limit, [&](T n) {
+            if (n % 2 == 0)
+                res[n] = n % 4 == 0 ? 0 : -res[n >> 1];
+            else
+            {
+                T const p = (*this)[n];
+                if (p == n)
+                    res[n] = -1;
+                else
+                {
+                    T x = n;
+                    div(x, p);
+                    res[n] = (*this)[x] == p ? 0 : -res[x];
+                }
+            }
+        });
         return res;
     }
 
     /// Sieve for the Liouville λ function in O(n) time.
-    [[nodiscard]] std::vector<int8_t> liouvilleSieve(T limit) const
+    [[nodiscard]] std::vector<i8> liouvilleSieve(T limit) const
     {
-        return sieveCompletelyMultiplicative([](T) -> int8_t { return -1; }, limit);
+        return sieveCompletelyMultiplicative([](T) -> i8 { return -1; }, limit);
     }
 
-    /// Sieve for the ω function, the number of distinct prime factors of a number in O(n log log n) time.
-    [[nodiscard]] std::vector<uint8_t> omegaSieve(T limit) const
+    /// Sieve for the ω function, the number of distinct prime factors of a number in O(n) time.
+    [[nodiscard]] std::vector<u8> omegaSieve(T limit) const
     {
-        return sieveAdditive([](T, int) -> uint8_t { return 1; }, limit);
+        return sieveAdditive([](T, int) -> u8 { return 1; }, limit);
     }
 
     /// Sieve for the Ω function, the number of prime factors of a number in O(n) time.
-    [[nodiscard]] std::vector<uint8_t> OmegaSieve(T limit) const
+    [[nodiscard]] std::vector<u8> OmegaSieve(T limit) const
     {
-        return sieveCompletelyAdditive([](T) -> uint8_t { return 1; }, limit);
+        return sieveCompletelyAdditive([](T) -> u8 { return 1; }, limit);
     }
 };
 
@@ -491,49 +554,4 @@ template <std::integral T> std::vector<int8_t> liouvilleSieve(T limit) { return 
 
 /// Sieve for the Ω function.
 template <std::integral T> std::vector<uint8_t> OmegaSieve(T limit) { return SPF{limit}.OmegaSieve(limit); }
-
-// ==== Sieves that don't use SPF ====
-
-/// Linear non-parallel sieve for the totient function. O(n).
-template <std::integral T> constexpr std::vector<T> totientSieve2(T limit)
-{
-    std::vector<T> phi(limit + 1);
-    std::vector<T> primes;
-    phi[1] = 1;
-    primes.reserve(limit / std::max(1.0, log(limit)));
-
-    for (T i = 2; i <= limit; i++)
-    {
-        if (phi[i] == 0)
-        {
-            phi[i] = i - 1;
-            primes.push_back(i);
-        }
-        for (T p : primes)
-        {
-            if (!mulLeq(i, p, limit))
-                break;
-            if (i % p == 0)
-            {
-                phi[i * p] = phi[i] * p;
-                break;
-            }
-            phi[i * p] = phi[i] * (p - 1);
-        }
-    }
-    return phi;
-}
-
-/// Generates a sieve of squarefree numbers up to a given limit.
-template <typename T = bool> std::vector<T> squarefreeSieve(size_t limit)
-{
-    std::vector<T> sieve(limit + 1, true);
-    sieve[0] = false;
-    size_t const s = isqrt(limit);
-    for (size_t i = 2; i <= s; ++i)
-        if (sieve[i])
-            for (size_t j = i * i; j <= limit; j += i * i)
-                sieve[j] = false;
-    return sieve;
-}
 } // namespace euler
