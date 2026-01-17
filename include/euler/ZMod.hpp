@@ -20,21 +20,21 @@ class ZMod
     ZMod() = default;
 
     /// Generic constructor to avoid unintentional narrowing conversion bugs!
-    template <integral2 T> constexpr ZMod(T value) : m_value(mod(value, M)) {}
+    template <integral2 T> constexpr ZMod(T value) : value_(mod(value, M)) {}
     /// Convenience constructor for ZMod<N> whenever M divides N.
     template <integral2 auto N>
         requires(N % M == 0)
-    constexpr ZMod(ZMod<N> other) : m_value(mod(other.value(), M))
+    constexpr explicit ZMod(ZMod<N> other) : value_(mod(other.value(), M))
     {
     }
 
-    constexpr explicit operator value_type() const { return m_value; }
+    constexpr explicit operator value_type() const { return value_; }
 
     constexpr ZMod &operator+=(const ZMod &other)
     {
-        m_value += other.m_value;
-        if (m_value >= M)
-            m_value -= M;
+        value_ += other.value_;
+        if (value_ >= M)
+            value_ -= M;
         return *this;
     }
 
@@ -48,7 +48,7 @@ class ZMod
 
     constexpr ZMod &operator-=(const ZMod &other)
     {
-        m_value = m_value < other.m_value ? m_value + (M - other.m_value) : m_value - other.m_value;
+        value_ = value_ < other.value_ ? value_ + (M - other.value_) : value_ - other.value_;
         return *this;
     }
 
@@ -62,13 +62,13 @@ class ZMod
     {
         if constexpr (safe_mul_required)
         {
-            m_value = mulmod(m_value, other.m_value, M);
+            value_ = mulmod(value_, other.value_, M);
         }
         else
         {
-            m_value *= other.m_value;
-            if (m_value >= M)
-                m_value %= M;
+            value_ *= other.value_;
+            if (value_ >= M)
+                value_ %= M;
         }
         return *this;
     }
@@ -81,9 +81,9 @@ class ZMod
 
     constexpr ZMod &operator/=(const ZMod &other)
     {
-        if (m_value % other.m_value == 0)
+        if (value_ % other.value_ == 0)
         {
-            m_value /= other.m_value;
+            value_ /= other.value_;
             return *this;
         }
         return *this *= ~other;
@@ -113,7 +113,7 @@ class ZMod
         return result;
     }
 
-    constexpr ZMod operator-() const { return {true, m_value == 0 ? 0 : M - m_value}; }
+    constexpr ZMod operator-() const { return {true, value_ == 0 ? 0 : M - value_}; }
 
     /// Multiplicative inverse.
     constexpr ZMod operator~() const { return inverse(); }
@@ -123,13 +123,13 @@ class ZMod
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const ZMod &x)
     {
-        return o << x.m_value;
+        return o << x.value_;
     }
 
     /// Returns a mutable reference to the internal value. Handle with care!
-    constexpr value_type &value() { return m_value; }
-    constexpr const value_type &value() const { return m_value; }
-    constexpr value_type balancedValue() const { return m_value <= M / 2 ? m_value : -(M - m_value); }
+    constexpr value_type &value() { return value_; }
+    constexpr const value_type &value() const { return value_; }
+    constexpr value_type balancedValue() const { return value_ <= M / 2 ? value_ : -(M - value_); }
 
     /// Returns the multiplicative inverse of this number.
     constexpr ZMod inverse() const
@@ -137,7 +137,7 @@ class ZMod
         if constexpr (is_field)
             return pow(M - 2);
         else
-            return {true, modInverse(m_value, M)};
+            return {true, modInverse(value_, M)};
     }
 
     /// Returns the modular exponentiation of this number.
@@ -145,9 +145,9 @@ class ZMod
     {
         if constexpr (is_field)
             exponent = mod(exponent, M - 1);
-        if (exponent == 0 || m_value == 1)
+        if (exponent == 0 || value_ == 1)
             return 1;
-        if (m_value == M - 1)
+        if (value_ == M - 1)
             return exponent % 2 == 0 ? 1 : -1;
         ZMod x = 1;
         ZMod y = *this;
@@ -176,7 +176,7 @@ class ZMod
     constexpr std::optional<ZMod> sqrt() const
         requires(is_field)
     {
-        if (m_value == 0 || m_value == 1)
+        if (value_ == 0 || value_ == 1)
             return *this;
         value_type s = 0;
         value_type q = M - 1;
@@ -190,7 +190,7 @@ class ZMod
             // Our modulus is 3 mod 4, there's a fast way to do this!
             ZMod r = pow((M + 1) / 4);
             if (r * r == *this)
-                return r.m_value <= M / 2 ? r : M - r;
+                return r.value_ <= M / 2 ? r : M - r;
             return std::nullopt;
         }
         // Find the first quadratic non-residue z by brute-force search
@@ -210,17 +210,17 @@ class ZMod
             {
                 tt *= tt;
                 ++i;
-                if (i == m.m_value)
+                if (i == m.value_)
                     return std::nullopt;
             }
-            ZMod b = c.pow(ZMod<M - 1>(2).pow((m - i - 1).m_value).value());
+            ZMod b = c.pow(ZMod<M - 1>(2).pow((m - i - 1).value_).value());
             ZMod b2 = b * b;
             r *= b;
             t *= b2;
             c = b2;
             m = i;
         }
-        return r.m_value <= M / 2 ? r : M - r;
+        return r.value_ <= M / 2 ? r : M - r;
     }
 
     /// Calculates factorial of n mod M. Does not use Wilson's theorem.
@@ -264,10 +264,10 @@ class ZMod
     }
 
   private:
-    value_type m_value;
+    value_type value_;
 
     // Shortcut the modulus operation if we know value is between 0 and M-1.
-    constexpr ZMod(bool /*unused*/, const decltype(M) &value) : m_value(value) {}
+    constexpr ZMod(bool /*unused*/, const decltype(M) &value) : value_(value) {}
 };
 
 template <integral2 auto M> constexpr size_t hash_value(const ZMod<M> &n) { return boost::hash_value(n.value()); }

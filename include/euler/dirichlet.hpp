@@ -15,68 +15,127 @@ namespace dirichlet
 namespace detail
 {
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), using parallelism.
-template <typename F, typename G, typename T> void convolveInto_par(F f, G g, std::vector<T> &out)
+template <typename F, typename G, typename T> void convolveTo_par(F &&f, G &&g, std::vector<T> &out)
 {
     if (out.size() <= 1)
         return;
+    auto const get_f = [&](size_t i) {
+        if constexpr (std::invocable<F, size_t>)
+            return f(i);
+        else
+            return f[i];
+    };
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<F, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
     size_t const n = out.size() - 1;
     size_t const s = isqrt(n);
-    size_t const B = (1UZ << 16) / sizeof(T);
+    size_t const B = std::max(1UZ, (1UZ << 16) / sizeof(T));
     for (size_t i = 1; i <= s; ++i)
-        out[i * i] += T(f(i)) * T(g(i));
+        out[i * i] += T(get_f(i)) * T(get_g(i));
     tbb::parallel_for(
         tbb::blocked_range(1UZ, n + 1, B),
         [&](tbb::blocked_range<size_t> r) {
             size_t const max_i = isqrt(r.end() - 1);
             for (size_t i = 1; i <= max_i; ++i)
             {
-                T const a = T(f(i)), b = T(g(i));
+                T const a = T(get_f(i)), b = T(get_g(i));
                 for (size_t j = std::max(i + 1, (r.begin() + i - 1) / i), k = i * j; k < r.end(); ++j, k += i)
-                    out[k] += a * g(j) + b * f(j);
+                    out[k] += a * get_g(j) + b * get_f(j);
             }
         },
         tbb::simple_partitioner{});
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), using parallelism.
-template <typename F, typename G> auto convolve_par(F f, G g, size_t n)
+template <typename F, typename G> auto convolve_par(F &&f, G &&g, size_t n)
 {
     using T = std::remove_cvref_t<std::common_type_t<std::invoke_result_t<F, size_t>, std::invoke_result_t<G, size_t>>>;
     std::vector<T> res(n + 1);
-    convolveInto_par(std::move(f), std::move(g), res);
+    convolveTo_par(std::forward<F>(f), std::forward<G>(g), res);
     return res;
 }
 
-/// Sets f to f / g in the Dirichlet convolution sense.
-template <typename T, typename Fun> void invConvolve_par(std::vector<T> &f, Fun g)
+/// Applies `f *= g` in the Dirichlet convolution sense.
+template <typename T, typename G> void convolveInPlace_par(std::vector<T> &f, G &&g)
 {
     if (f.size() <= 1)
         return;
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<G, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
     size_t const n = f.size() - 1;
-    size_t const B = (1UZ << 16) / sizeof(T);
-    T const c = g(1);
-    if (c != 1)
-        f[1] /= c;
+    size_t const B = std::max(1UZ, (1UZ << 16) / sizeof(T));
+    auto const g1 = get_g(1);
+    for (size_t end = n; end >= 2; end >>= 1)
+    {
+        size_t const start = (end >> 1) + 1;
+        size_t const s = isqrt(end);
+        tbb::parallel_for(
+            tbb::blocked_range(start, end + 1, B),
+            [&](auto r) {
+                if (g1 != 1)
+                    for (size_t i = r.begin(); i < r.end(); ++i)
+                        f[i] *= g1;
+                for (size_t i = r.begin(); i < r.end(); ++i)
+                    f[i] += f[1] * get_g(i);
+                for (size_t i = 2; i <= s; ++i)
+                {
+                    T const a = T(f[i]), b = T(get_g(i));
+                    for (size_t j = std::max(i + 1, (r.begin() + i - 1) / i), k = i * j; k < r.end(); ++j, k += i)
+                        f[k] += a * get_g(j) + b * f[j];
+                }
+            },
+            tbb::simple_partitioner{});
+        for (size_t i = isqrt(start - 1) + 1; i <= s; ++i)
+            f[i * i] += f[i] * get_g(i);
+    }
+    if (g1 != 1)
+        f[1] *= g1;
+}
+
+/// Sets `f /= g` in the Dirichlet convolution sense.
+template <typename T, typename G> void invConvolve_par(std::vector<T> &f, G &&g)
+{
+    if (f.size() <= 1)
+        return;
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<G, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
+    size_t const n = f.size() - 1;
+    size_t const B = std::max(1UZ, (1UZ << 16) / sizeof(T));
+    auto const g1 = get_g(1);
+    if (g1 != 1)
+        f[1] /= g1;
     for (size_t start = 2; start <= n; start <<= 1)
     {
         size_t const end = std::min(n, (start << 1) - 1);
         size_t const s = isqrt(end);
         for (size_t i = isqrt(start - 1) + 1; i <= s; ++i)
-            f[i * i] -= f[i] * g(i);
+            f[i * i] -= f[i] * get_g(i);
         tbb::parallel_for(
             tbb::blocked_range(start, end + 1, B),
             [&](auto r) {
                 for (size_t i = r.begin(); i < r.end(); ++i)
-                    f[i] -= f[1] * g(i);
+                    f[i] -= f[1] * get_g(i);
                 for (size_t i = 2; i <= s; ++i)
                 {
-                    T const a = T(f[i]), b = T(g(i));
+                    T const a = T(f[i]), b = T(get_g(i));
                     for (size_t j = std::max(i + 1, (r.begin() + i - 1) / i), k = i * j; k < r.end(); ++j, k += i)
-                        f[k] -= a * g(j) + b * f[j];
+                        f[k] -= a * get_g(j) + b * f[j];
                 }
-                if (c != 1)
+                if (g1 != 1)
                     for (size_t i = r.begin(); i < r.end(); ++i)
-                        f[i] /= c;
+                        f[i] /= g1;
             },
             tbb::simple_partitioner{});
     }
@@ -84,97 +143,162 @@ template <typename T, typename Fun> void invConvolve_par(std::vector<T> &f, Fun 
 } // namespace detail
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n).
-template <typename F, typename G, typename T> void convolveInto(F f, G g, std::vector<T> &out)
+template <typename F, typename G, typename T> void convolveInto(F &&f, G &&g, std::vector<T> &out)
 {
     if (out.size() <= 1)
         return;
+    auto const get_f = [&](size_t i) {
+        if constexpr (std::invocable<F, size_t>)
+            return f(i);
+        else
+            return f[i];
+    };
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<F, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
     size_t const n = out.size() - 1;
     size_t const s = isqrt(n);
-    size_t const B = (1UZ << 17) / sizeof(T);
+    size_t const B = std::max(1UZ, (1UZ << 17) / sizeof(T));
     for (size_t i = 1; i <= s; ++i)
-        out[i * i] += T(f(i)) * T(g(i));
+        out[i * i] += T(get_f(i)) * T(get_g(i));
     for (size_t start = 1; start <= n; start += B)
     {
         size_t const end = std::min(n, start + B - 1);
         size_t const max_i = isqrt(end);
         for (size_t i = 1; i <= max_i; ++i)
         {
-            T const a = T(f(i)), b = T(g(i));
+            T const a = T(get_f(i)), b = T(get_g(i));
             for (size_t j = std::max(i + 1, (start + i - 1) / i), k = i * j; k <= end; ++j, k += i)
-                out[k] += a * g(j) + b * f(j);
+                out[k] += a * get_g(j) + b * get_f(j);
         }
     }
 }
 
-/// Sets f to f / g in the Dirichlet convolution sense.
-template <typename T, typename Fun> void invConvolve(std::vector<T> &f, Fun g)
+/// Sets `f *= g` in the Dirichlet convolution sense.
+template <typename T, typename G> void convolveInPlace(std::vector<T> &f, G &&g)
 {
     if (f.size() <= 1)
         return;
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<G, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
     size_t const n = f.size() - 1;
-    size_t const B = (1UZ << 17) / sizeof(T);
-    T const c = g(1);
-    if (c != 1)
-        f[1] /= c;
+    size_t const B = std::max(1UZ, (1UZ << 17) / sizeof(T));
+    auto const g1 = get_g(1);
+    for (size_t end = n; end >= 2; end >>= 1)
+    {
+        size_t const start = (end >> 1) + 1;
+        size_t const s = isqrt(end);
+        for (size_t min_i = start; min_i <= end; min_i += B)
+        {
+            size_t const max_i = std::min(end, min_i + B - 1);
+            if (g1 != 1)
+                for (size_t i = min_i; i <= max_i; ++i)
+                    f[i] *= g1;
+            for (size_t i = min_i; i <= max_i; ++i)
+                f[i] += f[1] * get_g(i);
+            for (size_t i = 2; i <= s; ++i)
+            {
+                T const a = T(f[i]), b = T(get_g(i));
+                for (size_t j = std::max(i + 1, (min_i + i - 1) / i), k = i * j; k <= max_i; ++j, k += i)
+                    f[k] += a * get_g(j) + b * f[j];
+            }
+        }
+        for (size_t i = isqrt(start - 1) + 1; i <= s; ++i)
+            f[i * i] += f[i] * get_g(i);
+    }
+    if (g1 != 1)
+        f[1] *= g1;
+}
+
+/// Sets `f /= g` in the Dirichlet convolution sense.
+template <typename T, typename G> void invConvolve(std::vector<T> &f, G &&g)
+{
+    if (f.size() <= 1)
+        return;
+    auto const get_g = [&](size_t i) {
+        if constexpr (std::invocable<G, size_t>)
+            return g(i);
+        else
+            return g[i];
+    };
+    size_t const n = f.size() - 1;
+    size_t const B = std::max(1UZ, (1UZ << 17) / sizeof(T));
+    auto const g1 = get_g(1);
+    if (g1 != 1)
+        f[1] /= g1;
     for (size_t start = 2; start <= n; start <<= 1)
     {
         size_t const end = std::min(n, (start << 1) - 1);
         size_t const s = isqrt(end);
         for (size_t i = isqrt(start - 1) + 1; i <= s; ++i)
-            f[i * i] -= f[i] * g(i);
+            f[i * i] -= f[i] * get_g(i);
         for (size_t min_i = start; min_i <= end; min_i += B)
         {
             size_t const max_i = std::min(end, min_i + B - 1);
             for (size_t i = min_i; i <= max_i; ++i)
-                f[i] -= f[1] * g(i);
+                f[i] -= f[1] * get_g(i);
             for (size_t i = 2; i <= s; ++i)
             {
-                T const a = T(f[i]), b = T(g(i));
+                T const a = T(f[i]), b = T(get_g(i));
                 for (size_t j = std::max(i + 1, (min_i + i - 1) / i), k = i * j; k <= max_i; ++j, k += i)
-                    f[k] -= a * g(j) + b * f[j];
+                    f[k] -= a * get_g(j) + b * f[j];
             }
-            if (c != 1)
+            if (g1 != 1)
                 for (size_t i = min_i; i <= max_i; ++i)
-                    f[i] /= c;
+                    f[i] /= g1;
         }
     }
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n).
 template <execution_policy Exec, typename F, typename G, typename T>
-void convolveInto(Exec && /*exec*/, F f, G g, std::vector<T> &out)
+void convolveInto(Exec && /*exec*/, F &&f, G &&g, std::vector<T> &out)
 {
-    if constexpr (std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_policy> ||
-                  std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_unsequenced_policy>)
-        detail::convolveInto_par(f, g, out);
+    if constexpr (parallel_policy<Exec>)
+        detail::convolveTo_par(std::forward<F>(f), std::forward<G>(g), out);
     else
-        convolve(f, g, out);
+        convolveInto(std::forward<F>(f), std::forward<G>(g), out);
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n).
-template <typename F, typename G> auto convolve(F f, G g, size_t n)
+template <typename F, typename G> auto convolve(F &&f, G &&g, size_t n)
 {
     using T = std::remove_cvref_t<std::common_type_t<std::invoke_result_t<F, size_t>, std::invoke_result_t<G, size_t>>>;
     std::vector<T> res(n + 1);
-    convolveInto(std::move(f), std::move(g), res);
+    convolveInto(std::forward<F>(f), std::forward<G>(g), res);
     return res;
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), with the specified execution policy.
-template <execution_policy Exec, typename F, typename G> auto convolve(Exec && /*exec*/, F f, G g, size_t n)
+template <execution_policy Exec, typename F, typename G> auto convolve(Exec && /*exec*/, F &&f, G &&g, size_t n)
 {
-    if constexpr (std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_policy> ||
-                  std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_unsequenced_policy>)
-        return detail::convolve_par(std::move(f), std::move(g), n);
+    if constexpr (parallel_policy<Exec>)
+        return detail::convolve_par(std::forward<F>(f), std::forward<G>(g), n);
     else
-        return convolve(std::move(f), std::move(g), n);
+        return convolve(std::forward<F>(f), std::forward<G>(g), n);
+}
+
+/// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), with the specified execution policy.
+template <execution_policy Exec, typename T, typename G>
+void convolveInPlace(Exec && /*exec*/, std::vector<T> &f, G &&g)
+{
+    if constexpr (parallel_policy<Exec>)
+        return detail::convolveInPlace_par(f, std::forward<G>(g));
+    else
+        return convolveInPlace(f, std::forward<G>(g));
 }
 
 /// Sets f to f / g in the Dirichlet convolution sense, with the specified execution policy.
 template <execution_policy Exec, typename T, typename Fun> void invConvolve(Exec && /*exec*/, std::vector<T> &f, Fun g)
 {
-    if constexpr (std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_policy> ||
-                  std::same_as<std::remove_cvref_t<Exec>, std::execution::parallel_unsequenced_policy>)
+    if constexpr (parallel_policy<Exec>)
         detail::invConvolve_par(f, std::move(g));
     else
         invConvolve(f, std::move(g));
@@ -444,7 +568,7 @@ template <typename T> class Dirichlet
     template <size_t ParThreshold = 8192, dirichlet_type Dir>
     [[nodiscard]] T productValue(const Dir &other, size_t k) const
     {
-        if constexpr (std::is_same_v<Dir, Dirichlet>)
+        if constexpr (std::is_same_v<std::decay_t<Dir>, Dirichlet>)
             if (this == &other)
                 return squareValue(k);
         u32 const s = isqrt(k);
@@ -547,10 +671,8 @@ template <typename T> class Dirichlet
         if (precomp.empty())
         {
             // Sieve for the up values.
-            auto const old = adjacentDifference(std::execution::par, up_);
-            std::ranges::fill(up_, T(0));
-            dirichlet::convolveInto(
-                std::execution::par, [&](size_t i) -> T { return old[i]; }, [&](size_t i) -> T { return old[i]; }, up_);
+            adjacentDifferenceInPlace(up_);
+            dirichlet::convolveInPlace(std::execution::par, up_, up_);
             partialSumInPlace(std::execution::par, up_);
         }
         else
@@ -596,19 +718,26 @@ template <typename T> class Dirichlet
     }
 
     /// Multiplication.
-    template <dirichlet_type Dir> [[nodiscard]] Dirichlet operator*(const Dir &other) const
+    template <dirichlet_type Dir> Dirichlet &operator*=(const Dir &other)
     {
-        std::vector<T> up = dirichlet::convolve(
-            std::execution::par, [&](size_t i) -> T { return value(i); }, [&](size_t i) -> T { return other.value(i); },
-            up_.size() - 1);
-        partialSumInPlace(std::execution::par, up);
-        std::vector<T> down(down_.size());
-        tbb::parallel_for(1UZ, down_.size(), [&](size_t i) { down[i] = productValue<0>(other, quots_[i]); });
-        return {n_, std::move(up), std::move(down), quots_};
+        if constexpr (std::is_same_v<std::decay_t<Dir>, Dirichlet>)
+            if (this == &other)
+                return squareInPlace();
+        for (u32 start = 1; start < down_.size(); start <<= 1)
+            tbb::parallel_for(start, std::min((u32)down_.size(), start << 1),
+                              [&](u32 i) { down_[i] = productValue<0>(other, quots_[i]); });
+        adjacentDifferenceInPlace(up_);
+        dirichlet::convolveInPlace(std::execution::par, up_, [&](size_t i) { return other.value(i); });
+        partialSumInPlace(std::execution::par, up_);
+        return *this;
     }
 
     /// Multiplication.
-    template <dirichlet_type Dir> Dirichlet &operator*=(const Dir &other) { return *this = *this * other; }
+    template <dirichlet_type Dir> [[nodiscard]] Dirichlet operator*(this Dirichlet self, const Dir &other)
+    {
+        self *= other;
+        return self;
+    }
 
     template <typename Fun, typename SFun>
     [[nodiscard]] friend Dirichlet operator*(const SpecialDirichlet<Fun, SFun> &left, const Dirichlet &right)
@@ -654,10 +783,10 @@ template <typename T> class Dirichlet
         return *this;
     }
 
-    template <dirichlet_type Dir> [[nodiscard]] friend Dirichlet operator/(Dirichlet left, const Dir &right)
+    template <dirichlet_type Dir> [[nodiscard]] Dirichlet operator/(this Dirichlet self, const Dir &other)
     {
-        left /= right;
-        return left;
+        self /= other;
+        return self;
     }
 
     /// Multiplication by a scalar.
@@ -995,7 +1124,7 @@ template <typename T = i8> Dirichlet<T> chi5(size_t n)
 template <typename T = int> Dirichlet<T> inv_zeta_2s(size_t n)
 {
     auto const mu = mobiusSieve(isqrt(n));
-    auto const mertens = partialSum(std::execution::par, mu, T{});
+    auto const mertens = partialSum(mu, T{});
     return {n, [&](size_t k) -> T { return mertens[isqrt(k)]; }};
 }
 
@@ -1029,7 +1158,7 @@ template <typename T = i64> Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
     auto const mu = mobiusSieve(s);
     auto sieve = range(0, s, [&](size_t k) { return pow(T(k), b) * mu[k]; });
     sieve[0] = 0;
-    partialSumInPlace(std::execution::par, sieve);
+    partialSumInPlace(sieve);
     return {n, [&](size_t k) -> T { return sieve[inth_root(k, a)]; }};
 }
 
@@ -1039,7 +1168,7 @@ template <typename T = u64> Dirichlet<T> squarefree(size_t n, double alpha = 0.6
     size_t const s =
         std::min(Dirichlet<T>::pivotMax, std::max(Dirichlet<T>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6))));
     auto const mu = mobiusSieve(isqrt(n));
-    auto const mertens = partialSum(std::execution::par, mu, 0);
+    auto const mertens = partialSum(mu, 0);
     auto const precomp = partialSum(std::execution::par, squarefreeSieve(s), T{});
     Dirichlet<T> res(n);
     std::copy_n(std::execution::par, precomp.begin(), res.up().size(), res.up().begin());
@@ -1049,7 +1178,7 @@ template <typename T = u64> Dirichlet<T> squarefree(size_t n, double alpha = 0.6
             res.down(i) = precomp[k];
         else
         {
-            u32 const c_k = cbrt(k);
+            u32 const c_k = inth_root(k, 3);
             res.down(i) =
                 sum(1, c_k, [&](u32 j) { return T(mu[j]) * (k / ((size_t)j * j)) + mertens[std::sqrt(k / j)]; }) -
                 T(c_k) * mertens[c_k];
@@ -1123,7 +1252,7 @@ template <typename T = int> Dirichlet<T> mobius(size_t n, double alpha = 0.15)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    return unit<T>(n).divide(zeta<T>(), partialSum(std::execution::par, mobiusSieve(s), T{}));
+    return unit<T>(n).divide(zeta<T>(), partialSum(mobiusSieve(s), T{}));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
@@ -1139,7 +1268,7 @@ template <typename T = int> Dirichlet<T> liouville(size_t n, double alpha = 0.15
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
                               std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    return zeta_2s<T>(n).divide(zeta<T>(), partialSum(std::execution::par, liouvilleSieve(s), T{}));
+    return zeta_2s<T>(n).divide(zeta<T>(), partialSum(liouvilleSieve(s), T{}));
 }
 } // namespace dirichlet
 } // namespace euler

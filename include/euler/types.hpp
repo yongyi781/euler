@@ -112,6 +112,16 @@ template <> struct double_integer<uint128_t>
     using type = uint256_t;
 };
 
+template <> struct double_integer<int256_t>
+{
+    using type = int512_t;
+};
+
+template <> struct double_integer<uint256_t>
+{
+    using type = uint512_t;
+};
+
 template <> struct double_integer<cpp_int>
 {
     using type = cpp_int;
@@ -126,6 +136,7 @@ template <typename T> using double_integer_t = double_integer<T>::type;
 
 template <typename T> struct half_integer
 {
+    using type = T;
 };
 
 template <std::signed_integral T> struct half_integer<T>
@@ -136,6 +147,26 @@ template <std::signed_integral T> struct half_integer<T>
 template <std::unsigned_integral T> struct half_integer<T>
 {
     using type = boost::uint_t<CHAR_BIT / 2 * sizeof(T)>::least;
+};
+
+template <> struct half_integer<int256_t>
+{
+    using type = int128_t;
+};
+
+template <> struct half_integer<uint256_t>
+{
+    using type = uint128_t;
+};
+
+template <> struct half_integer<int512_t>
+{
+    using type = int256_t;
+};
+
+template <> struct half_integer<uint512_t>
+{
+    using type = uint256_t;
 };
 
 template <typename T> using half_integer_t = half_integer<T>::type;
@@ -161,6 +192,11 @@ concept is_optional = std::same_as<T, std::optional<typename T::value_type>>;
 
 template <typename T>
 concept execution_policy = std::is_execution_policy_v<std::decay_t<T>>;
+
+template <typename T>
+concept parallel_policy =
+    execution_policy<T> && (std::is_same_v<std::decay_t<T>, std::execution::parallel_policy> ||
+                            std::is_same_v<std::decay_t<T>, std::execution::parallel_unsequenced_policy>);
 } // namespace euler
 
 // Rust-style type abbreviations

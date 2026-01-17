@@ -13,6 +13,10 @@ namespace it
 /// Enumerates the prime factorization of a number.
 template <integral2 T, std::integral S = u32> class factor : public it_base
 {
+  public:
+    using value_type = PrimePower<T>;
+
+  private:
     T n_;
     const SPF<S> *spf_ = nullptr;
 
@@ -38,7 +42,7 @@ template <integral2 T, std::integral S = u32> class factor : public it_base
         for (T start = 2; n != 1 && n >= spf_->size();)
         {
             T p = smallestPrimeFactor(n, start);
-            if (!callbackResult(f, PrimePower<T>{p, removeFactors<true>(n, p)}))
+            if (!callbackResult(f, value_type{p, removeFactors<true>(n, p)}))
                 return result_break;
             if (p == 2)
                 start = 3;
@@ -47,14 +51,12 @@ template <integral2 T, std::integral S = u32> class factor : public it_base
         }
         S x = (S)std::move(n);
         while (x != 1)
-            if (!callbackResult(f, spf_->remove(x)))
+            if (!callbackResult(f, value_type(spf_->remove(x))))
                 return result_break;
         return result_continue;
     }
 
   public:
-    using value_type = PrimePower<T>;
-
     constexpr explicit factor(T n) : n_(std::move(n)) { assert(n_ != 0 && "0 does not have a factorization"); }
     constexpr factor(T n, const SPF<S> &spf) : n_(std::move(n)), spf_(&spf)
     {
@@ -66,7 +68,7 @@ template <integral2 T, std::integral S = u32> class factor : public it_base
         T n = n_;
         if (n < 0)
         {
-            if (!callbackResult(f, PrimePower<T>{T(-1), T(1)}))
+            if (!callbackResult(f, value_type{T(-1), T(1)}))
                 return result_break;
             n = -n;
         }

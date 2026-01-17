@@ -98,23 +98,31 @@ class QD
         /// Enumerates the terms in the square root continued fraction.
         template <typename Fun> it::result_t operator()(Fun f) const
         {
-            using D = double_integer_t<T>;
-            // Idea: each remainder is of the form (x + c√b) / d, starting with x = a*c and d = c². k stores the floor.
-            T const fl = isqrt(c * c * b) * (c > 0 ? 1 : -1);
-            D x = a * c;
-            T d = c * c;
-            T k = floorDiv(a * c + fl, c * c);
-            if (!it::callbackResult(f, k))
+            using DT = double_integer_t<T>;
+            using std::gcd;
+            // Idea: each remainder is of the form (m + √D) / d, starting with m = k*a and d = k*c.
+            T const k(c / gcd(DT(c), b - DT(a) * a));
+            DT const D = DT(k) * k * b;
+            T const root(c > 0 ? isqrt(D) : -1 - isqrt(D - 1));
+            T m(k * a), next_m = 0;
+            T prev_d((D - DT(m) * m) / (k * c)), d(k * c), next_d = 0;
+            T x = floorDiv(k * a + root, k * c);
+            if (!it::callbackResult(f, x))
                 return it::result_break;
-            boost::unordered_flat_set<std::pair<D, T>> seen{{x, d}};
+            boost::unordered_flat_set<std::pair<DT, T>> seen{{m, d}};
             while (true)
             {
-                x = k * d - x;
-                d = T((c * c * b - x * x) / d);
-                if (d == 0 || !seen.emplace(x, d).second)
+                next_m = d * x - m;
+                next_d = prev_d + x * (m - next_m);
+                prev_d = d;
+                d = next_d;
+                m = next_m;
+                if (d == 0 || !seen.emplace(m, d).second)
                     break;
-                k = T(floorDiv(x + fl, d));
-                if (!it::callbackResult(f, k))
+                x = (m + root) / d;
+                if (d < 0 && x * d == m + root)
+                    --x;
+                if (!it::callbackResult(f, x))
                     return it::result_break;
             }
             return it::result_continue;

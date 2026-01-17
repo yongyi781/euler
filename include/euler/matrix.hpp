@@ -11,7 +11,7 @@ template <typename T, size_t M, size_t N = M> class Matrix;
 /// A stack-allocated vector class.
 template <typename T, size_t N> class Vector
 {
-    std::array<T, N> _data{};
+    std::array<T, N> data_{};
 
   public:
     using value_type = T;
@@ -20,107 +20,125 @@ template <typename T, size_t N> class Vector
     static constexpr size_t length = N;
 
     Vector() = default;
-    constexpr explicit Vector(const std::array<T, N> &data) : _data(data) {}
+    constexpr explicit Vector(const std::array<T, N> &data) : data_(data) {}
     template <typename... U>
         requires(sizeof...(U) <= N && (std::convertible_to<U, T> && ...))
-    constexpr explicit(sizeof...(U) <= 1) Vector(U... values) : _data{values...}
+    constexpr explicit(sizeof...(U) <= 1) Vector(U... values) : data_{values...}
     {
     }
 
     template <typename U>
-        requires std::constructible_from<T, const U &>
-    constexpr explicit(!std::convertible_to<const U &, T>) Vector(const Vector<U, N> &other)
+    constexpr explicit(!std::is_convertible_v<U, T>) Vector(const Vector<U, N> &other)
+        requires std::is_constructible_v<T, U> && (!std::is_same_v<T, U>)
     {
         for (size_t i = 0; i < N; ++i)
-            _data[i] = T(other[i]);
+            (*this)[i] = T(other[i]);
     }
 
-    [[nodiscard]] constexpr static Vector zero() { return {}; }
+    [[nodiscard]] constexpr static Vector zero() noexcept { return {}; }
     [[nodiscard]] constexpr static Vector ones()
     {
         Vector res{};
-        std::ranges::fill(res._data, 1);
+        std::ranges::fill(res.data_, 1);
         return res;
     }
 
-    [[nodiscard]] constexpr T &operator[](size_t i) { return _data[i]; }
-    [[nodiscard]] constexpr const T &operator[](size_t i) const { return _data[i]; }
+    [[nodiscard]] constexpr T &operator[](size_t i) noexcept { return data_[i]; }
+    [[nodiscard]] constexpr const T &operator[](size_t i) const noexcept { return data_[i]; }
 
-    constexpr Vector &operator+=(const Vector &other)
+    template <typename U> constexpr Vector &operator+=(const Vector<U, N> &other)
     {
         for (size_t i = 0; i < N; ++i)
-            _data[i] += other._data[i];
+            data_[i] += other[i];
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Vector operator+(Vector left, const Vector &right)
+    template <typename U> [[nodiscard]] constexpr auto operator+(const Vector<U, N> &other) const
     {
-        left += right;
-        return left;
+        using R = std::common_type_t<T, U>;
+        Vector<R, N> res;
+        for (size_t i = 0; i < N; ++i)
+            res[i] = data_[i] + other[i];
+        return res;
     }
 
-    constexpr Vector &operator-=(const Vector &other)
+    template <typename U> constexpr Vector &operator-=(const Vector<U, N> &other)
     {
         for (size_t i = 0; i < N; ++i)
-            _data[i] -= other._data[i];
+            data_[i] -= other[i];
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Vector operator-(Vector left, const Vector &right)
+    template <typename U> [[nodiscard]] constexpr auto operator-(const Vector<U, N> &other) const
     {
-        left -= right;
-        return left;
+        using R = std::common_type_t<T, U>;
+        Vector<R, N> res;
+        for (size_t i = 0; i < N; ++i)
+            res[i] = data_[i] - other[i];
+        return res;
     }
 
-    constexpr Vector &operator*=(T value)
+    template <typename U> constexpr Vector &operator*=(U scalar)
     {
-        for (auto &x : _data)
-            x *= value;
+        for (auto &x : data_)
+            x *= scalar;
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Vector operator*(Vector v, T value)
+    template <typename U> [[nodiscard]] constexpr auto operator*(U scalar) const
     {
-        v *= value;
-        return v;
+        using R = std::common_type_t<T, U>;
+        Vector<R, N> res;
+        for (size_t i = 0; i < N; ++i)
+            res[i] = data_[i] * scalar;
+        return res;
     }
 
-    [[nodiscard]] constexpr friend Vector operator*(T t, Vector v) { return v * t; }
-
-    constexpr Vector &operator/=(T value)
+    template <typename U> [[nodiscard]] constexpr friend auto operator*(U scalar, const Vector &v)
     {
-        for (auto &x : _data)
-            x /= value;
+        return v * scalar;
+    }
+
+    template <typename U> constexpr Vector &operator/=(U scalar)
+    {
+        for (auto &x : data_)
+            x /= scalar;
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Vector operator/(Vector v, T value)
+    template <typename U> [[nodiscard]] constexpr auto operator/(U scalar) const
     {
-        v /= value;
-        return v;
+        using R = std::common_type_t<T, U>;
+        Vector<R, N> res;
+        for (size_t i = 0; i < N; ++i)
+            res[i] = data_[i] / scalar;
+        return res;
     }
 
-    constexpr Vector &operator%=(T value)
+    template <typename U> constexpr Vector &operator%=(U scalar)
     {
-        for (auto &x : _data)
-            x %= value;
+        for (auto &x : data_)
+            x %= scalar;
         return *this;
     }
 
-    [[nodiscard]] constexpr friend Vector operator%(Vector v, T value)
+    template <typename U> [[nodiscard]] constexpr auto operator%(U scalar) const
     {
-        v %= value;
-        return v;
+        using R = std::common_type_t<T, U>;
+        Vector<R, N> res;
+        for (size_t i = 0; i < N; ++i)
+            res[i] = data_[i] % scalar;
+        return res;
     }
 
     [[nodiscard]] constexpr Vector operator-(this Vector v)
     {
         for (size_t i = 0; i < N; ++i)
-            v._data[i] = -v._data[i];
+            v.data_[i] = -v.data_[i];
         return v;
     }
 
-    [[nodiscard]] constexpr Vector operator+() const { return *this; }
+    [[nodiscard]] constexpr Vector operator+() const noexcept { return *this; }
 
     /// Spaceship (3-way comparison) operator
     auto operator<=>(const Vector &other) const = default;
@@ -128,32 +146,32 @@ template <typename T, size_t N> class Vector
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Vector &x)
     {
-        return o << x._data;
+        return o << x.data_;
     }
 
-    [[nodiscard]] constexpr std::array<T, N> &data() { return _data; }
-    [[nodiscard]] constexpr const std::array<T, N> &data() const { return _data; }
+    [[nodiscard]] constexpr std::array<T, N> &data() noexcept { return data_; }
+    [[nodiscard]] constexpr const std::array<T, N> &data() const noexcept { return data_; }
 
-    [[nodiscard]] constexpr iterator begin() noexcept { return _data.begin(); }
-    [[nodiscard]] constexpr const_iterator begin() const noexcept { return _data.begin(); }
-    [[nodiscard]] constexpr iterator end() noexcept { return _data.end(); }
-    [[nodiscard]] constexpr const_iterator end() const noexcept { return _data.end(); }
+    [[nodiscard]] constexpr iterator begin() noexcept { return data_.begin(); }
+    [[nodiscard]] constexpr const_iterator begin() const noexcept { return data_.begin(); }
+    [[nodiscard]] constexpr iterator end() noexcept { return data_.end(); }
+    [[nodiscard]] constexpr const_iterator end() const noexcept { return data_.end(); }
 
     /// Makes a row vector, i.e. a 1 × N matrix.
     [[nodiscard]] constexpr Matrix<T, 1, N> transpose() const
     {
         Matrix<T, 1, N> result{};
         for (size_t i = 0; i < N; ++i)
-            result[0, i] = _data[i];
+            result[0, i] = data_[i];
         return result;
     }
 
     /// Makes a diagonal matrix out of this vectdor.
-    [[nodiscard]] constexpr Matrix<T, N, N> toDiagonal() const
+    [[nodiscard]] constexpr Matrix<T, N, N> toDiagonalMatrix() const
     {
         Matrix<T, N, N> result{};
         for (size_t i = 0; i < N; ++i)
-            result[i, i] = _data[i];
+            result[i, i] = data_[i];
         return result;
     }
 
@@ -162,7 +180,7 @@ template <typename T, size_t N> class Vector
     {
         T result{};
         for (size_t i = 0; i < N; ++i)
-            result += _data[i] * other._data[i];
+            result += data_[i] * other.data_[i];
         return result;
     }
 
@@ -171,8 +189,8 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr U cross(const Vector &other) const
         requires(N == 2)
     {
-        auto &&[a1, a2] = _data;
-        auto &&[b1, b2] = other._data;
+        auto &&[a1, a2] = data_;
+        auto &&[b1, b2] = other.data_;
         return U(a1) * b2 - U(a2) * b1;
     }
 
@@ -180,8 +198,8 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr Vector cross(const Vector &other) const
         requires(N == 3)
     {
-        auto &&[a1, a2, a3] = _data;
-        auto &&[b1, b2, b3] = other._data;
+        auto &&[a1, a2, a3] = data_;
+        auto &&[b1, b2, b3] = other.data_;
         return {a2 * b3 - a3 * b2, a3 * b1 - a1 * b3, a1 * b2 - a2 * b1};
     }
 
@@ -189,7 +207,7 @@ template <typename T, size_t N> class Vector
     [[nodiscard]] constexpr T normSquared() const
     {
         T result{};
-        for (auto const x : _data)
+        for (auto const x : data_)
             result += x * x;
         return result;
     }

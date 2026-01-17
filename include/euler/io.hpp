@@ -324,41 +324,44 @@ inline std::string getFileContents(const std::string &filename)
 /// @param args The arguments to be passed to the function.
 template <typename... Args, std::invocable<Args...> Callable>
     requires(!std::integral<Callable>)
-void printTiming(Callable &&fn, Args &&...args)
+auto printTiming(Callable &&fn, Args &&...args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;
+    std::chrono::high_resolution_clock::duration elapsed;
     auto const t1 = now();
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>)
     {
         std::forward<Callable>(fn)(std::forward<Args>(args)...);
-        auto const elapsed = now() - t1;
+        elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
         std::cout << std::move(ss).str() << '\n';
     }
     else
     {
         auto const result = std::forward<Callable>(fn)(std::forward<Args>(args)...);
-        auto const elapsed = now() - t1;
+        elapsed = now() - t1;
         io::print(elapsed, io::defaultPrintLimit, ss);
         std::cout << std::move(ss).str() << " | " << result << '\n';
     }
+    return elapsed;
 }
 
 /// Measures the execution time of a given function and prints the timing information.
 /// @param repeat The number of times to repeat the function.
 /// @param fn The function to be timed.
 /// @param args The arguments to be passed to the function.
-template <typename... Args, std::invocable<Args...> Callable> void printTiming(size_t repeat, Callable fn, Args... args)
+template <typename... Args, std::invocable<Args...> Callable> auto printTiming(size_t repeat, Callable fn, Args... args)
 {
     setConsoleToUtf8();
     std::ostringstream ss;
+    std::chrono::high_resolution_clock::duration elapsed;
     auto t1 = now();
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>)
     {
         for (size_t i = 0; i < repeat; ++i)
             fn(args...);
-        auto const elapsed = now() - t1;
+        elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
         std::cout << std::move(ss).str() << '\n';
     }
@@ -367,10 +370,11 @@ template <typename... Args, std::invocable<Args...> Callable> void printTiming(s
         auto result = fn(args...);
         for (size_t i = 1; i < repeat; ++i)
             result = fn(args...);
-        auto const elapsed = now() - t1;
+        elapsed = now() - t1;
         io::print(elapsed / (double)repeat, io::defaultPrintLimit, ss) << " (" << repeat << " iterations)";
         std::cout << std::move(ss).str() << " | " << result << '\n';
     }
+    return elapsed / (double)repeat;
 }
 
 /// Returns the string that would be output by `o << x`.

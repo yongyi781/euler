@@ -46,34 +46,35 @@ template <std::ranges::range Range> from_terms(Range &&) -> from_terms<std::view
 
 /// The continued fraction for the square root of a nonnegative integer. Use this instead of
 /// sqrtAsPeriodic() if you call this in a loop, since this one does not allocate.
-template <integral2 T> class sqrt : public cfrac_base
+template <integral2 T> struct sqrt : public cfrac_base
 {
-  public:
     using value_type = T;
 
-    T radicand;
+    T n;
 
     sqrt() = default;
-    constexpr sqrt(T radicand) : radicand(std::move(radicand)) { assert(this->radicand >= 0); }
+    constexpr sqrt(T n) : n(std::move(n)) { assert(this->n >= 0); }
 
     /// Enumerates the terms in the square root continued fraction.
     template <typename Fun> it::result_t operator()(Fun f) const
     {
-        T const fl = isqrt(radicand);
-        T x = 0;
-        T d = 1;
-        // k = floor.
-        T k = fl;
-        if (!it::callbackResult(f, k))
+        T const root = isqrt(n);
+        T m = 0, next_m = 0;
+        T prev_d = n, d = 1, next_d = 0;
+        T x = root;
+        if (!it::callbackResult(f, x))
             return it::result_break;
         while (true)
         {
-            x = d * k - x;
-            d = (radicand - x * x) / d;
+            next_m = d * x - m;
+            next_d = prev_d + x * (m - next_m);
+            prev_d = d;
+            d = next_d;
+            m = next_m;
             if (d == 0)
                 break;
-            k = (fl + x) / d;
-            if (!it::callbackResult(f, k))
+            x = (m + root) / d;
+            if (!it::callbackResult(f, x))
                 return it::result_break;
         }
         return it::result_continue;
@@ -81,6 +82,10 @@ template <integral2 T> class sqrt : public cfrac_base
 };
 
 /// The continued fraction for `(a + √b) / c`. If you want `(a - √b) / c`, negate `a` and `c`.
+/// Requirements:
+/// - `b` is a positive non-square.
+/// - `c` is not zero.
+/// - `a, b, c` must be at most half the width of the type `T`.
 template <integral2 T> class quadratic : public cfrac_base
 {
   public:
@@ -89,27 +94,41 @@ template <integral2 T> class quadratic : public cfrac_base
     T a, b, c;
 
     quadratic() = default;
-    constexpr quadratic(T a, T b, T c) : a(std::move(a)), b(std::move(b)), c(std::move(c)) { assert(this->b >= 0); }
+    constexpr quadratic(T a0, T b0, T c0) : a(std::move(a0)), b(std::move(b0)), c(std::move(c0))
+    {
+        assert(this->b > 1 && "b must be > 1");
+        assert(c != 0 && "c must be nonzero");
+        while (!(a & 1) && !(c & 1) && !(b & 3)) // Cheap normalization
+            a >>= 1, c >>= 1, b >>= 2;
+    }
 
     /// Enumerates the terms in the square root continued fraction.
     template <typename Fun> it::result_t operator()(Fun f) const
     {
-        // Idea: each remainder is of the form (x + c√b) / d, starting with x = a*c and d = c².
-        T const fl = isqrt(c * c * b) * (c > 0 ? 1 : -1);
-        T x = a * c;
-        T d = c * c;
-        // k = floor.
-        T k = floorDiv(a * c + fl, c * c);
-        if (!it::callbackResult(f, k))
+        using DT = double_integer_t<T>;
+        using std::gcd;
+        // Idea: each remainder is of the form (m + √D) / d, starting with m = k*a and d = k*c.
+        T const k(c / gcd(DT(c), b - DT(a) * a));
+        DT const D = DT(k) * k * b;
+        T const root(c > 0 ? isqrt(D) : -1 - isqrt(D - 1));
+        T m(k * a), next_m = 0;
+        T prev_d((D - DT(m) * m) / (k * c)), d(k * c), next_d = 0;
+        T x = floorDiv(k * a + root, k * c);
+        if (!it::callbackResult(f, x))
             return it::result_break;
         while (true)
         {
-            x = k * d - x;
-            d = (c * c * b - x * x) / d;
+            next_m = d * x - m;
+            next_d = prev_d + x * (m - next_m);
+            prev_d = d;
+            d = next_d;
+            m = next_m;
             if (d == 0)
                 break;
-            k = floorDiv(x + fl, d);
-            if (!it::callbackResult(f, k))
+            x = (m + root) / d;
+            if (d < 0 && x * d == m + root)
+                --x;
+            if (!it::callbackResult(f, x))
                 return it::result_break;
         }
         return it::result_continue;
@@ -270,24 +289,27 @@ template <typename T, it::enumerable CFrac> class convergents_t : public it::it_
 
 /// Makes a periodic continued fraction for sqrt(d). This one allocates but should be faster
 /// when constructing convergents.
-template <integral2 T> constexpr periodic<T> sqrtAsPeriodic(const T &d)
+template <integral2 T> constexpr periodic<T> sqrtAsPeriodic(const T &n)
 {
-    assert(d >= 0);
-    std::vector<T> periodicTerms;
-    T a0 = isqrt(d);
-    T a = a0;
-    T b = 0;
-    T c = 1;
-    while (a != 2 * a0)
+    assert(n >= 0);
+    std::vector<T> periodic_terms;
+    T const root = isqrt(n);
+    T m = 0, next_m = 0;
+    T prev_d = n, d = 1, next_d = 0;
+    T x = root;
+    while (x != 2 * root)
     {
-        b = c * a - b;
-        c = (d - b * b) / c;
-        if (c == 0)
+        next_m = d * x - m;
+        next_d = prev_d + x * (m - next_m);
+        prev_d = d;
+        d = next_d;
+        m = next_m;
+        if (d == 0)
             break;
-        a = (a0 + b) / c;
-        periodicTerms.push_back(a);
+        x = (m + root) / d;
+        periodic_terms.push_back(x);
     }
-    return periodic<T>({a0}, std::move(periodicTerms));
+    return periodic<T>({root}, std::move(periodic_terms));
 }
 
 /// Enumerates solutions to the Pell equation x^2 - d*y^2 = 1.

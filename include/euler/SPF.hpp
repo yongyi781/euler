@@ -115,7 +115,7 @@ template <std::integral T = int64_t> class SPF
         {
             int const e = std::countr_zero(std::make_unsigned_t<U>(n));
             n >>= e;
-            return U(1) << e;
+            return T(1) << e;
         }
         T const p = (*this)[n];
         if (n == p)
@@ -385,7 +385,7 @@ template <std::integral T = int64_t> class SPF
                                           {
                                               T x = n;
                                               div(x, p);
-                                              res[n] = max(p, res[x]);
+                                              res[n] = std::max(p, res[x]);
                                           }
                                       }
                                   }
@@ -434,7 +434,7 @@ template <std::integral T = int64_t> class SPF
             if (n % 2 == 0)
             {
                 int const e = std::countr_zero(unsigned_type(n));
-                res[n] = res[n >> e] * ((U(1) << (e + 1)) - 1);
+                res[n] = res[n >> e] * ((T(1) << (e + 1)) - 1);
             }
             else
             {
@@ -465,7 +465,7 @@ template <std::integral T = int64_t> class SPF
             if (n % 2 == 0)
             {
                 int const e = std::countr_zero(unsigned_type(n));
-                res[n] = res[n >> e] * (((U(1) << 2 * (e + 1)) - 1) / 3);
+                res[n] = res[n >> e] * (((T(1) << 2 * (e + 1)) - 1) / 3);
             }
             else
             {

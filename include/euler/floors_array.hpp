@@ -36,7 +36,7 @@ template <typename T = int64_t> class floors_array
     /// The transition point between up and down. What was passed as the s parameter during construction.
     [[nodiscard]] constexpr size_t pivot() const { return up_.size() - 1; }
     /// Gets the value of `n / i` avoiding a division CPU instruction. `i` must be `≤ √n`.
-    [[nodiscard]] size_t quotient(uint32_t i) const noexcept { return quots_[i]; }
+    [[nodiscard]] size_t quotient(u32 i) const noexcept { return quots_[i]; }
 
     /// The up vector, mutable.
     [[nodiscard]] std::vector<T> &up() noexcept { return up_; }
@@ -67,7 +67,7 @@ template <typename T = int64_t> class floors_array
         assert(n_ == other.n());
         for (size_t k = 1; k < up_.size(); ++k)
             up(k) += other.up(k);
-        for (uint32_t i = 1; i < down_.size(); ++i)
+        for (u32 i = 1; i < down_.size(); ++i)
             down(i) += other.down(i);
         return *this;
     }
@@ -84,7 +84,7 @@ template <typename T = int64_t> class floors_array
         assert(n_ == other.n());
         for (size_t k = 1; k < up_.size(); ++k)
             up(k) -= other.up(k);
-        for (uint32_t i = 1; i < down_.size(); ++i)
+        for (u32 i = 1; i < down_.size(); ++i)
             down(i) -= other.down(i);
         return *this;
     }
@@ -100,7 +100,7 @@ template <typename T = int64_t> class floors_array
     {
         for (size_t k = 1; k < up_.size(); ++k)
             up(k) /= value;
-        for (uint32_t i = 1; i < down_.size(); ++i)
+        for (u32 i = 1; i < down_.size(); ++i)
             down(i) /= value;
         return *this;
     }
@@ -178,10 +178,7 @@ template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun 
     u32 const s = isqrt(N);
     res.ascendingMut([&](size_t i, T &value) { value = F(i) - F(1); });
     bool const use_omp = N >= 50'000'000'000UZ;
-    for (u64 p = 2; p <= s; ++p)
-    {
-        if (res.up(p) == res.up(p - 1))
-            continue;
+    it::primes(2, s)([&](u64 p) {
         T const fp = f(p);
         T const sp_prev = res.up(p - 1);
         size_t const pp = p * p;
@@ -205,48 +202,48 @@ template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun 
                 for (; k >= min_k; --k)
                     res.up(k) -= val;
             }
-    }
-
+    });
     return res;
 }
 
 /// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * p` for `k` of the form `⌊limit / i⌋`.
-template <typename T = int64_t> constexpr floors_array<T> primeSumTable(size_t N)
+template <typename T = u64> constexpr floors_array<T> primeSumTable(size_t N)
 {
     return primeSumTable(N, [](size_t n) -> T { return n; }, [](size_t n) -> T { return sumId<T>(n); });
 }
 
 /// Returns a floors array of values `#(1 ≤ p ≤ k, p prime)` for `k` of the form `⌊limit / i⌋`.
-template <typename T = int64_t> constexpr floors_array<T> primePiTable(size_t N)
+template <typename T = u64> constexpr floors_array<T> primePiTable(size_t N)
 {
     return primeSumTable(N, [](size_t) -> T { return 1; }, [](size_t n) -> T { return n; });
 }
 
 /// Calculates `(1 ≤ p ≤ limit, p prime) * f(p)`. Here, `f` must be a completely multiplicative function and `F` must be
 /// the summatory function of `f`.
-template <std::invocable<int64_t> Fun, std::invocable<int64_t> SummatoryFun>
+template <std::invocable<size_t> Fun, std::invocable<size_t> SummatoryFun>
 constexpr auto primeSum(size_t N, Fun f, SummatoryFun F)
 {
     return primeSumTable(N, std::move(f), std::move(F))[N];
 }
 
 /// Calculates `(1 ≤ p ≤ limit, p prime) * p`.
-template <typename T = int64_t> constexpr T primeSum(size_t N)
+template <typename T = u64> constexpr T primeSum(size_t N)
 {
     return primeSum(N, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
 }
 
 /// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.
 /// O(n^(3/4)). Sublinear version of `factorFactorial`.
-inline std::vector<std::pair<int64_t, int64_t>> factorialExponents(int64_t n)
+template <std::integral T> inline std::vector<std::pair<T, T>> factorialExponents(T N)
 {
-    uint32_t const s = isqrt(n);
-    std::vector<std::pair<int64_t, int64_t>> res;
-    it::primes(2, s)([&](auto p) { res.emplace_back(factorialValuation(n, p), 1); });
-    auto const S = primePiTable(n);
-    for (int64_t i = n / (s + 1); i >= 1; --i)
+    T const s = isqrt(N);
+    std::vector<std::pair<T, T>> res;
+    res.reserve(s + N / (s + 1));
+    it::primes(2, s)([&](u64 p) { res.emplace_back(factorialValuation(N, p), 1); });
+    auto const S = primePiTable<T>(N);
+    for (T i = N / (s + 1); i >= 1; --i)
     {
-        int64_t const c = S[n / i] - S[n / (i + 1)];
+        T const c = S.down(i) - (i + 1 < S.down().size() ? S.down(i + 1) : S.up(N / (i + 1)));
         if (c > 0)
             res.emplace_back(i, c);
     }
