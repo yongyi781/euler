@@ -112,7 +112,7 @@ template <integral2 T> class quadratic : public cfrac_base
         DT const D = DT(k) * k * b;
         T const root(c > 0 ? isqrt(D) : -1 - isqrt(D - 1));
         T m(k * a), next_m = 0;
-        T prev_d((D - DT(m) * m) / (k * c)), d(k * c), next_d = 0;
+        T prev_d(k * (b - DT(a) * a) / c), d(k * c), next_d = 0;
         T x = floorDiv(k * a + root, k * c);
         if (!it::callbackResult(f, x))
             return it::result_break;

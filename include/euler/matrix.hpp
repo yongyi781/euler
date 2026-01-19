@@ -3,6 +3,7 @@
 #include "decls.hpp"
 #include "modular_arithmetic.hpp"
 #include <array>
+#include <boost/container_hash/hash.hpp>
 
 namespace euler
 {
@@ -290,11 +291,11 @@ template <std::size_t I, typename T, std::size_t N>
 /// A stack-allocated matrix with compile-time constant size. M rows, N columns.
 template <typename T, size_t M, size_t N> class Matrix
 {
-    std::array<std::array<T, N>, M> _data{};
+    std::array<std::array<T, N>, M> data_{};
 
   public:
     Matrix() = default;
-    constexpr explicit Matrix(const std::array<std::array<T, N>, M> &data) : _data(data) {}
+    constexpr explicit Matrix(const std::array<std::array<T, N>, M> &data) : data_(data) {}
     constexpr explicit Matrix(std::initializer_list<std::initializer_list<T>> values)
     {
         assert(values.size() <= M && "Must have at most M rows");
@@ -302,7 +303,7 @@ template <typename T, size_t M, size_t N> class Matrix
         for (auto &&x : values)
         {
             assert(x.size() <= N && "Must have at most N columns");
-            std::ranges::copy(x, _data[i].begin());
+            std::ranges::copy(x, data_[i].begin());
             ++i;
         }
     }
@@ -312,7 +313,7 @@ template <typename T, size_t M, size_t N> class Matrix
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                _data[i][j] = f(i, j);
+                data_[i][j] = f(i, j);
     }
 
     /// Makes a multiple of the identity matrix.
@@ -320,7 +321,7 @@ template <typename T, size_t M, size_t N> class Matrix
         requires(M == N)
     {
         for (size_t i = 0; i < M; ++i)
-            _data[i][i] = scalar;
+            data_[i][i] = scalar;
     }
 
     [[nodiscard]] constexpr static Matrix zero() { return {}; }
@@ -337,27 +338,27 @@ template <typename T, size_t M, size_t N> class Matrix
     {
         assert(i < M && j < N);
         auto result = identity();
-        result._data[i][j] = value;
+        result.data_[i][j] = value;
         return result;
     }
 
 #ifdef __cpp_multidimensional_subscript
     /// Accesses the (i, j) entry, by reference.
-    [[nodiscard]] constexpr T &operator[](size_t i, size_t j) { return _data[i][j]; }
+    [[nodiscard]] constexpr T &operator[](size_t i, size_t j) { return data_[i][j]; }
     /// Accesses the (i, j) entry, by const reference.
-    [[nodiscard]] constexpr const T &operator[](size_t i, size_t j) const { return _data[i][j]; }
+    [[nodiscard]] constexpr const T &operator[](size_t i, size_t j) const { return data_[i][j]; }
 #endif
 
     /// Accesses the ith row, by reference.
-    [[nodiscard]] constexpr std::array<T, N> &operator[](size_t i) { return _data[i]; }
+    [[nodiscard]] constexpr std::array<T, N> &operator[](size_t i) { return data_[i]; }
     /// Accesses the ith row, by const reference.
-    [[nodiscard]] constexpr const std::array<T, N> &operator[](size_t i) const { return _data[i]; }
+    [[nodiscard]] constexpr const std::array<T, N> &operator[](size_t i) const { return data_[i]; }
 
     constexpr Matrix &operator+=(const Matrix &other)
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                _data[i][j] += other._data[i][j];
+                data_[i][j] += other.data_[i][j];
         return *this;
     }
 
@@ -371,7 +372,7 @@ template <typename T, size_t M, size_t N> class Matrix
     {
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                _data[i][j] -= other._data[i][j];
+                data_[i][j] -= other.data_[i][j];
         return *this;
     }
 
@@ -387,7 +388,7 @@ template <typename T, size_t M, size_t N> class Matrix
         for (size_t i = 0; i < M; ++i)
             for (size_t k = 0; k < N; ++k)
                 for (size_t j = 0; j < P; ++j)
-                    result[i, j] += _data[i][k] * other[k, j];
+                    result[i, j] += data_[i][k] * other[k, j];
         return result;
     }
     template <size_t P> constexpr Matrix<T, M, P> &operator*=(const Matrix<T, N, P> &other)
@@ -400,13 +401,13 @@ template <typename T, size_t M, size_t N> class Matrix
         Vector<T, M> result{};
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                result[i] += _data[i][j] * v[j];
+                result[i] += data_[i][j] * v[j];
         return result;
     }
 
     constexpr Matrix &operator*=(T value)
     {
-        for (auto &&row : _data)
+        for (auto &&row : data_)
             for (auto &&x : row)
                 x *= value;
         return *this;
@@ -422,7 +423,7 @@ template <typename T, size_t M, size_t N> class Matrix
 
     constexpr Matrix &operator/=(T t)
     {
-        for (auto &&row : _data)
+        for (auto &&row : data_)
             for (auto &&x : row)
                 x /= t;
         return *this;
@@ -436,7 +437,7 @@ template <typename T, size_t M, size_t N> class Matrix
 
     constexpr Matrix &operator%=(T t)
     {
-        for (auto &&row : _data)
+        for (auto &&row : data_)
             for (auto &&x : row)
                 x %= t;
         return *this;
@@ -452,7 +453,7 @@ template <typename T, size_t M, size_t N> class Matrix
         Matrix result{};
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                result._data[i][j] = -_data[i][j];
+                result.data_[i][j] = -data_[i][j];
         return result;
     }
 
@@ -460,14 +461,14 @@ template <typename T, size_t M, size_t N> class Matrix
 
     std::strong_ordering operator<=>(const Matrix &other) const = default;
 
-    [[nodiscard]] const std::array<std::array<T, N>, M> &data() const { return _data; }
+    [[nodiscard]] const std::array<std::array<T, N>, M> &data() const { return data_; }
 
     [[nodiscard]] constexpr Matrix<T, N, M> transpose() const
     {
         Matrix<T, N, M> result{};
         for (size_t i = 0; i < M; ++i)
             for (size_t j = 0; j < N; ++j)
-                result[j, i] = _data[i][j];
+                result[j, i] = data_[i][j];
         return result;
     }
 
@@ -493,7 +494,7 @@ template <typename T, size_t M, size_t N> class Matrix
     {
         T result{};
         for (size_t i = 0; i < N; ++i)
-            result += _data[i][i];
+            result += data_[i][i];
         return result;
     }
 
@@ -501,18 +502,63 @@ template <typename T, size_t M, size_t N> class Matrix
         requires(M == N)
     {
         if constexpr (M == 1)
-            return _data[0][0];
+            return data_[0][0];
         else if constexpr (M == 2)
-            return _data[0][0] * _data[1][1] - _data[0][1] * _data[1][0];
+            return data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0];
         else if constexpr (M == 3)
         {
-            return _data[0][0] * (_data[1][1] * _data[2][2] - _data[1][2] * _data[2][1]) -
-                   _data[0][1] * (_data[1][0] * _data[2][2] - _data[1][2] * _data[2][0]) +
-                   _data[0][2] * (_data[1][0] * _data[2][1] - _data[1][1] * _data[2][0]);
+            return data_[0][0] * (data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1]) -
+                   data_[0][1] * (data_[1][0] * data_[2][2] - data_[1][2] * data_[2][0]) +
+                   data_[0][2] * (data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0]);
         }
         else
-            throw std::runtime_error("det for 4x4 or higher is not implemented");
+            static_assert(false, "det for 4x4 or higher is not implemented");
     }
+
+    [[nodiscard]] constexpr Matrix inverse() const
+        requires(M == N)
+    {
+        T const D = det();
+        assert(D != 0 && "Matrix is not invertible.");
+        Matrix res;
+        if constexpr (M == 1)
+            res[0, 0] = 1 / data_[0, 0];
+        else if constexpr (M == 2)
+        {
+            res[0, 0] = data_[1, 1];
+            res[0, 1] = -data_[0, 1];
+            res[1, 0] = -data_[1, 0];
+            res[1, 1] = data_[0, 0];
+        }
+        else if constexpr (M == 3)
+        {
+            auto &&[a, b, c] = (*this)[0];
+            auto &&[d, e, f] = (*this)[1];
+            auto &&[g, h, i] = (*this)[2];
+            res[0, 0] = e * i - f * h;
+            res[1, 0] = f * g - d * i;
+            res[2, 0] = d * h - e * g;
+            res[0, 1] = c * h - b * i;
+            res[1, 1] = a * i - c * g;
+            res[2, 1] = b * g - a * h;
+            res[0, 2] = b * f - c * e;
+            res[1, 2] = c * d - a * f;
+            res[2, 2] = a * e - b * d;
+        }
+        else
+            static_assert(false, "inverse for 4x4 or higher is not implemented");
+        if constexpr (requires(T t) { t / D; })
+            res /= D;
+        else
+        {
+            assert(D == 1 || D == -1 && "Determinant is not invertible.");
+            if (D == -1)
+                res = -res;
+        }
+        return res;
+    }
+
+    [[nodiscard]] constexpr Matrix operator~() const { return inverse(); }
 
     /// Applies a Gauss-Jordan symmetric pivot around `(pi, pj)`.
     void symmetricPivot(size_t pi, size_t pj)
@@ -541,35 +587,44 @@ template <typename T, size_t M, size_t N> class Matrix
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const Matrix &m)
     {
-        int maxWidth = o.width();
-        for (auto &&xs : m._data)
+        int max_width = o.width();
+        for (auto &&xs : m.data_)
             for (auto &&x : xs)
-                maxWidth = std::max(maxWidth, (int)toStringWithFlags(x, o).size());
+                max_width = std::max(max_width, (int)toStringWithFlags(x, o).size());
         std::basic_ostringstream<CharT, Traits> ss;
         ss.flags(o.flags());
         ss.imbue(o.getloc());
         ss.precision(o.precision());
         ss << M << "×" << N << " matrix:\n";
-        for (auto &&xs : m._data)
+        for (auto &&xs : m.data_)
         {
             for (auto &&x : xs)
-                ss << std::setw(maxWidth + 1) << x;
+                ss << std::setw(max_width + 1) << x;
             ss << '\n';
         }
         return o << std::move(ss).str();
+    }
+
+    friend size_t hash_value(const Matrix &m)
+    {
+        size_t seed = 0;
+        for (auto &&xs : m.data_)
+            for (auto &&x : xs)
+                boost::hash_combine(seed, x);
+        return seed;
     }
 };
 
 /// A stack-allocated symmetric matrix with compile-time constant size.
 template <typename T, size_t N> class SymmetricMatrix
 {
-    std::array<T, N *(N + 1) / 2> _data{};
+    std::array<T, N *(N + 1) / 2> data_{};
 
   public:
     static constexpr size_t size = N * (N + 1) / 2;
 
     [[nodiscard]] SymmetricMatrix() = default;
-    [[nodiscard]] constexpr SymmetricMatrix(std::array<T, size> data) : _data(std::move(data)) {}
+    [[nodiscard]] constexpr SymmetricMatrix(std::array<T, size> data) : data_(std::move(data)) {}
 
     /// Makes a multiple of the identity symmetric matrix.
     [[nodiscard]] constexpr SymmetricMatrix(T scalar)
@@ -595,20 +650,20 @@ template <typename T, size_t N> class SymmetricMatrix
     /// Accesses the (i, j) entry, by reference.
     [[nodiscard]] constexpr T &operator[](size_t i, size_t j)
     {
-        return j <= i ? _data[i * (i + 1) / 2 + j] : _data[j * (j + 1) / 2 + i];
+        return j <= i ? data_[i * (i + 1) / 2 + j] : data_[j * (j + 1) / 2 + i];
     }
 
     /// Accesses the (i, j) entry, by const reference.
     [[nodiscard]] constexpr const T &operator[](size_t i, size_t j) const
     {
-        return j <= i ? _data[i * (i + 1) / 2 + j] : _data[j * (j + 1) / 2 + i];
+        return j <= i ? data_[i * (i + 1) / 2 + j] : data_[j * (j + 1) / 2 + i];
     }
 #endif
 
     constexpr SymmetricMatrix &operator+=(const SymmetricMatrix &other)
     {
         for (size_t i = 0; i < size; ++i)
-            _data[i] += other._data[i];
+            data_[i] += other.data_[i];
         return *this;
     }
 
@@ -621,7 +676,7 @@ template <typename T, size_t N> class SymmetricMatrix
     constexpr SymmetricMatrix &operator-=(const SymmetricMatrix &other)
     {
         for (size_t i = 0; i < size; ++i)
-            _data[i] += other._data[i];
+            data_[i] += other.data_[i];
         return *this;
     }
 
@@ -653,7 +708,7 @@ template <typename T, size_t N> class SymmetricMatrix
 
     constexpr SymmetricMatrix &operator*=(T value)
     {
-        for (auto &x : _data)
+        for (auto &x : data_)
             x *= value;
         return *this;
     }
@@ -668,7 +723,7 @@ template <typename T, size_t N> class SymmetricMatrix
 
     constexpr SymmetricMatrix &operator/=(T t)
     {
-        for (auto &x : _data)
+        for (auto &x : data_)
             x /= t;
         return *this;
     }
@@ -681,7 +736,7 @@ template <typename T, size_t N> class SymmetricMatrix
 
     constexpr SymmetricMatrix &operator%=(T t)
     {
-        for (auto &x : _data)
+        for (auto &x : data_)
             x %= t;
         return *this;
     }
@@ -695,7 +750,7 @@ template <typename T, size_t N> class SymmetricMatrix
     {
         SymmetricMatrix result{};
         for (size_t i = 0; i < size; ++i)
-            result._data[i] = -_data[i];
+            result.data_[i] = -data_[i];
         return result;
     }
 
@@ -703,7 +758,7 @@ template <typename T, size_t N> class SymmetricMatrix
 
     std::strong_ordering operator<=>(const SymmetricMatrix &other) const = default;
 
-    [[nodiscard]] std::array<T, size> data() const { return _data; }
+    [[nodiscard]] std::array<T, size> data() const { return data_; }
 
     [[nodiscard]] constexpr SymmetricMatrix transpose() const { return *this; }
 
@@ -722,7 +777,7 @@ template <typename T, size_t N> class SymmetricMatrix
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const SymmetricMatrix &x)
     {
-        return o << x._data;
+        return o << x.data_;
     }
 };
 
