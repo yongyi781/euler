@@ -217,3 +217,8 @@ using u128 = uint128_t;
 using u256 = uint256_t;
 using u512 = uint512_t;
 using u1024 = uint1024_t;
+
+template <typename T, size_t D0, size_t D1> using array2d = std::array<std::array<T, D1>, D0>;
+
+template <typename T, size_t D0, size_t D1, size_t D2>
+using array3d = std::array<std::array<std::array<T, D2>, D1>, D0>;

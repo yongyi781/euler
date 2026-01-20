@@ -160,10 +160,26 @@ inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, const mpz_int &b)
 }
 
 /// Wrapper for `mpz_divexact_ui`.
-inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, uint32_t b)
+inline mpz_int &divexact(mpz_int &dest, const mpz_int &a, u32 b)
 {
     mpz_divexact_ui(dest.backend().data(), a.backend().data(), b);
     return dest;
+}
+
+/// Wrapper for `mpz_divexact`.
+inline mpz_int divexact(const mpz_int &a, const mpz_int &b)
+{
+    mpz_int res;
+    mpz_divexact(res.backend().data(), a.backend().data(), b.backend().data());
+    return res;
+}
+
+/// Wrapper for `mpz_divexact_ui`.
+inline mpz_int divexact(const mpz_int &a, u32 b)
+{
+    mpz_int res;
+    mpz_divexact_ui(res.backend().data(), a.backend().data(), b);
+    return res;
 }
 
 /// Returns the square root of an integer, if it is a square. Otherwise, returns none.
