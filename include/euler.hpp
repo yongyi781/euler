@@ -27,6 +27,7 @@
 #include "euler/math.hpp"
 #include "euler/matrix.hpp"
 #include "euler/memoize.hpp"
+#include "euler/prime_sum_table.hpp"
 #include "euler/triangular_array.hpp"
 #include "euler/triangular_vector.hpp"
 #include "euler/types.hpp"

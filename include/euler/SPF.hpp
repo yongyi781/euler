@@ -394,14 +394,14 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Sieve for Euler's totient function in O(n) time.
-    [[nodiscard]] std::vector<T> totientSieve(T limit) const
+    template <typename U = T> [[nodiscard]] std::vector<U> totientSieve(T limit) const
     {
         assert(limit < size());
-        std::vector<T> res(limit + 1);
+        std::vector<U> res(limit + 1);
         res[1] = 1;
         par_wavefront(T(2), limit, [&](T n) {
             if (n % 2 == 0)
-                res[n] = res[n >> 1] << ((~n & 2) >> 1);
+                res[n] = res[n >> 1] * (T(1) << ((~n & 2) >> 1));
             else
             {
                 T const p = (*this)[n];
@@ -488,10 +488,10 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Sieve for the Möbius function in O(n) time.
-    [[nodiscard]] std::vector<i8> mobiusSieve(T limit) const
+    template <typename U = i8> [[nodiscard]] std::vector<U> mobiusSieve(T limit) const
     {
         assert(limit < size());
-        std::vector<i8> res(limit + 1);
+        std::vector<U> res(limit + 1);
         res[1] = 1;
         par_wavefront(T(2), limit, [&](T n) {
             if (n % 2 == 0)
@@ -513,21 +513,21 @@ template <std::integral T = int64_t> class SPF
     }
 
     /// Sieve for the Liouville λ function in O(n) time.
-    [[nodiscard]] std::vector<i8> liouvilleSieve(T limit) const
+    template <typename U = i8> [[nodiscard]] std::vector<U> liouvilleSieve(T limit) const
     {
-        return sieveCompletelyMultiplicative([](T) -> i8 { return -1; }, limit);
+        return sieveCompletelyMultiplicative([](T) -> U { return -1; }, limit);
     }
 
     /// Sieve for the ω function, the number of distinct prime factors of a number in O(n) time.
-    [[nodiscard]] std::vector<u8> omegaSieve(T limit) const
+    template <typename U = u8> [[nodiscard]] std::vector<U> omegaSieve(T limit) const
     {
-        return sieveAdditive([](T, int) -> u8 { return 1; }, limit);
+        return sieveAdditive([](T, int) -> U { return 1; }, limit);
     }
 
     /// Sieve for the Ω function, the number of prime factors of a number in O(n) time.
-    [[nodiscard]] std::vector<u8> OmegaSieve(T limit) const
+    template <typename U = u8> [[nodiscard]] std::vector<U> OmegaSieve(T limit) const
     {
-        return sieveCompletelyAdditive([](T) -> u8 { return 1; }, limit);
+        return sieveCompletelyAdditive([](T) -> U { return 1; }, limit);
     }
 };
 

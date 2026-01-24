@@ -12,7 +12,13 @@ template <typename T> struct Aff
 
     Aff(T a = 1, T b = 0, T c = 1) : a(a), b(b), c(c) {}
 
-    [[nodiscard]] constexpr T operator()(T x) const { return (a * x + b) / c; }
+    [[nodiscard]] constexpr T operator()(T x) const
+    {
+        auto res = a * x + b;
+        if (c != 1)
+            res /= c;
+        return res;
+    }
 
     constexpr Aff &operator+=(const Aff &o)
     {
@@ -93,6 +99,80 @@ template <typename T> struct Aff
         if (f.c == 1)
             return os << f.a << "*x + " << f.b;
         return os << '(' << f.a << "*x + " << f.b << ")/" << f.c;
+    }
+};
+
+/// Represents an affine linear transformation (a * x + b) / c.
+template <typename T> struct LinAff
+{
+    T a, b;
+
+    LinAff(T a = 1, T b = 0) : a(a), b(b) {}
+
+    [[nodiscard]] constexpr T operator()(T x) const { return a * x + b; }
+
+    constexpr LinAff &operator+=(const LinAff &o)
+    {
+        a += o.a;
+        b += o.b;
+        return *this;
+    }
+    [[nodiscard]] constexpr friend LinAff operator+(LinAff left, const LinAff &right)
+    {
+        left += right;
+        return left;
+    }
+
+    constexpr LinAff &operator-=(const LinAff &o)
+    {
+        a -= o.a;
+        b -= o.b;
+        return *this;
+    }
+    [[nodiscard]] constexpr friend LinAff operator-(LinAff left, const LinAff &right)
+    {
+        left -= right;
+        return left;
+    }
+
+    constexpr LinAff &operator*=(const LinAff &o)
+    {
+        b += a * o.b;
+        a *= o.a;
+        return *this;
+    }
+    [[nodiscard]] constexpr friend LinAff operator*(LinAff left, const LinAff &right)
+    {
+        left *= right;
+        return left;
+    }
+
+    constexpr LinAff &operator*=(T scalar)
+    {
+        a *= scalar;
+        b *= scalar;
+        return *this;
+    }
+    [[nodiscard]] constexpr friend LinAff operator*(LinAff f, T scalar)
+    {
+        f *= scalar;
+        return f;
+    }
+    [[nodiscard]] constexpr friend LinAff operator*(T scalar, LinAff f)
+    {
+        f *= scalar;
+        return f;
+    }
+
+    [[nodiscard]] auto operator<=>(const LinAff &o) const = default;
+
+    /// Returns the matrix representation of this affine linear transformation.
+    [[nodiscard]] constexpr Matrix<T, 2> mat() const { return Matrix<T, 2>{{a, b}, {0, 1}}; }
+
+    template <typename CharT, typename Traits>
+    friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &os, const LinAff &f)
+    {
+        return os << f.a << "*x + " << f.b;
     }
 };
 } // namespace euler

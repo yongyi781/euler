@@ -127,6 +127,7 @@ template <typename T> class FenwickTree
         return i;
     }
 
+    /// Converts this Fenwick tree to a `std::vector` of prefix sums.
     [[nodiscard]] std::vector<T> toPrefixSum() const
     {
         size_t const n = size();
@@ -134,7 +135,7 @@ template <typename T> class FenwickTree
         for (size_t i = 1; i <= n; ++i)
         {
             size_t const j = parent(i);
-            res[i - 1] = data_[i] + (j == 0 ? 0 : res[j - 1]);
+            res[i - 1] = data_[i] + (j == 0 ? T{} : res[j - 1]);
         }
         return res;
     }

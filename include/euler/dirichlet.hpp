@@ -344,7 +344,7 @@ template <typename Fun, typename SFun> class SpecialDirichlet
     {
         using H = half_integer_t<T>;
         using Tp = std::common_type_t<std::invoke_result_t<SFun, T>, std::invoke_result_t<SFun2, T>>;
-        H const s = isqrt(n);
+        H const s = (H)isqrt(n);
         return sumMaybeParallel(H(1), s,
                                 [&](H k) {
                                     T const ndivk = n / k;
@@ -400,21 +400,21 @@ template <typename T> class Dirichlet
   public:
     Dirichlet() = default;
 
-    /// Default max memory usage = 16 GB.
-    static constexpr size_t DefaultMaxMemoryUsage = 1UZ << 34;
+    /// Default max memory usage = 24 GB.
+    static constexpr size_t DefaultMaxMemoryUsage = 3UZ << 33;
     /// Configurable upper bound on the size of the up vector.
-    static inline size_t pivotMax = DefaultMaxMemoryUsage / sizeof(T);
+    static inline size_t pivot_max = DefaultMaxMemoryUsage / sizeof(T);
     /// Configurable exponent on the size of the up vector.
-    static inline double pivotExponent = 2.0 / 3;
+    static inline double pivot_exponent = 2.0 / 3;
     /// Configurable coefficient on the size of the up vector. Ideal is 0.2 for multiplication and 0.5 for division.
-    static inline double pivotCoefficient = 1;
+    static inline double pivot_coefficient = 1;
 
     /// Gives the default size of the up vector for a given value of `n`.
     static size_t defaultPivot(size_t n)
     {
-        size_t const s = pivotCoefficient * std::pow(n / std::max(1.0, log(n)), pivotExponent);
+        size_t const s = pivot_coefficient * std::pow(n / std::max(1.0, log(n)), pivot_exponent);
         // Impose maximum so as to not overwhelm memory.
-        size_t const res = std::max(isqrt(n), std::min(pivotMax, s));
+        size_t const res = std::max(isqrt(n), std::min(pivot_max, s));
         return n / (n / res);
     }
 
@@ -1166,9 +1166,9 @@ template <typename T = i64> Dirichlet<T> inv_zeta_linear(int a, int b, size_t n)
 template <typename T = u64> Dirichlet<T> squarefree(size_t n, double alpha = 0.6)
 {
     size_t const s =
-        std::min(Dirichlet<T>::pivotMax, std::max(Dirichlet<T>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6))));
+        std::min(Dirichlet<T>::pivot_max, std::max(Dirichlet<T>::defaultPivot(n), (size_t)(alpha * std::pow(n, 0.6))));
     auto const mu = mobiusSieve(isqrt(n));
-    auto const mertens = partialSum(mu, 0);
+    auto const M = partialSum(mu, 0);
     auto const precomp = partialSum(std::execution::par, squarefreeSieve(s), T{});
     Dirichlet<T> res(n);
     std::copy_n(std::execution::par, precomp.begin(), res.up().size(), res.up().begin());
@@ -1179,9 +1179,8 @@ template <typename T = u64> Dirichlet<T> squarefree(size_t n, double alpha = 0.6
         else
         {
             u32 const c_k = inth_root(k, 3);
-            res.down(i) =
-                sum(1, c_k, [&](u32 j) { return T(mu[j]) * (k / ((size_t)j * j)) + mertens[std::sqrt(k / j)]; }) -
-                T(c_k) * mertens[c_k];
+            res.down(i) = sum(1, c_k, [&](u32 j) { return T(mu[j]) * (k / ((size_t)j * j)) + M[isqrt(k / j)]; }) -
+                          T(c_k) * M[c_k];
         }
     });
     return res;
@@ -1191,8 +1190,9 @@ template <typename T = u64> Dirichlet<T> squarefree(size_t n, double alpha = 0.6
 template <typename T = u64> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
-                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    auto const precomp = partialSum(std::execution::par, divisorCountSieve(s), T{});
+                              std::min(Dirichlet<T>::pivot_max, (size_t)(alpha * std::pow(n, 2.0 / 3))));
+    auto precomp = SPF{s}.divisorCountSieve<T>(s);
+    partialSumInPlace(precomp);
     Dirichlet<T> S{n};
     std::copy_n(std::execution::par, precomp.begin(), S.up().size(), S.up().begin());
     u32 const max_i = n / precomp.size();
@@ -1214,8 +1214,9 @@ template <typename T = u64> Dirichlet<T> tau(size_t n, double alpha = 0.08)
 template <typename T = u64> Dirichlet<T> sigma(size_t n, double alpha = 0.08)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
-                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    auto const precomp = partialSum(std::execution::par, divisorSumSieve(s), T{});
+                              std::min(Dirichlet<T>::pivot_max, (size_t)(alpha * std::pow(n, 2.0 / 3))));
+    auto precomp = SPF{s}.divisorSumSieve<T>(s);
+    partialSumInPlace(precomp);
     Dirichlet<T> S{n};
     std::copy_n(std::execution::par, precomp.begin(), S.up().size(), S.up().begin());
     u32 const max_i = n / precomp.size();
@@ -1251,24 +1252,30 @@ template <typename T = u64> Dirichlet<T> sigma3(size_t n) { return id3<T>(n).mul
 template <typename T = int> Dirichlet<T> mobius(size_t n, double alpha = 0.15)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
-                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    return unit<T>(n).divide(zeta<T>(), partialSum(mobiusSieve(s), T{}));
+                              std::min(Dirichlet<T>::pivot_max, (size_t)(alpha * std::pow(n, 2.0 / 3))));
+    auto up = SPF{s}.mobiusSieve<T>(s);
+    partialSumInPlace(up);
+    return unit<T>(n).divide(zeta<T>(), std::move(up));
 }
 
 /// ζ(s - 1) / ζ(s). f(n) = φ(n). O(n^(2/3)). Motive = [p] - [1].
 template <typename T = u64> Dirichlet<T> totient(size_t n, double alpha = 0.15)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
-                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    return id<T>(n).divide(zeta<T>(), partialSum(std::execution::par, totientSieve(s), T{}));
+                              std::min(Dirichlet<T>::pivot_max, (size_t)(alpha * std::pow(n, 2.0 / 3))));
+    auto up = SPF{s}.totientSieve<T>(s);
+    partialSumInPlace(up);
+    return id<T>(n).divide(zeta<T>(), std::move(up));
 }
 
 /// ζ(2s) / ζ(s). f(n) = (-1)^(number of primes dividing n). O(n^(2/3)). Motive = [-1].
 template <typename T = int> Dirichlet<T> liouville(size_t n, double alpha = 0.15)
 {
     size_t const s = std::max(Dirichlet<T>::defaultPivot(n),
-                              std::min(Dirichlet<T>::pivotMax, (size_t)(alpha * std::pow(n, 2.0 / 3))));
-    return zeta_2s<T>(n).divide(zeta<T>(), partialSum(liouvilleSieve(s), T{}));
+                              std::min(Dirichlet<T>::pivot_max, (size_t)(alpha * std::pow(n, 2.0 / 3))));
+    auto up = SPF{s}.liouvilleSieve<T>(s);
+    partialSumInPlace(up);
+    return zeta_2s<T>(n).divide(zeta<T>(), std::move(up));
 }
 } // namespace dirichlet
 } // namespace euler

@@ -220,6 +220,22 @@ auto psumStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::
         std::plus{});
 }
 
+/// Useful for sums with harmonic work.
+template <typename T, std::predicate<T> Pred, typename Fun = std::identity>
+auto psumStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
+{
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, T>>;
+    return tbb::parallel_reduce(
+        tbb::blocked_range<int>(0, stride), Tp{},
+        [&](tbb::blocked_range<int> r, Tp acc) {
+            for (int lane = r.begin(); lane < r.end(); ++lane)
+                for (T i = T(begin + lane); pred(i); i += stride)
+                    acc += f(i);
+            return acc;
+        },
+        std::plus{});
+}
+
 /// Multiplies a function over a range of numbers using TBB.
 template <integral2 T, integral2 U, typename Fun = std::identity> auto pproduct(T begin, U end, Fun f = {})
 {

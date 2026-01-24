@@ -2,9 +2,6 @@
 
 #include "decls.hpp"
 #include "it/primes.hpp"
-#include "libdivide.h"
-#include "prime.hpp"
-#include <ranges>
 
 namespace euler
 {
@@ -33,7 +30,7 @@ template <typename T = int64_t> class floors_array
 
     /// The number that this array was designed for, i.e. the top index.
     [[nodiscard]] constexpr size_t n() const { return n_; }
-    /// The transition point between up and down. What was passed as the s parameter during construction.
+    /// The transition point between up and down.
     [[nodiscard]] constexpr size_t pivot() const { return up_.size() - 1; }
     /// Gets the value of `n / i` avoiding a division CPU instruction. `i` must be `≤ √n`.
     [[nodiscard]] size_t quotient(u32 i) const noexcept { return quots_[i]; }
@@ -168,69 +165,6 @@ template <typename T = int64_t> class floors_array
         return o << "{\n  n: " << S.n_ << "\n  up: " << S.up_ << "\n  down: " << S.down_ << "\n}";
     }
 };
-
-/// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * f(p)` for `k` of the form `⌊limit / i⌋`. Here, `f` must be
-/// a completely multiplicative function and `F` must be the summatory function of `f`.
-template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun f, SummatoryFun F)
-{
-    using T = std::invoke_result_t<SummatoryFun, size_t>;
-    floors_array<T> res(N);
-    u32 const s = isqrt(N);
-    res.ascendingMut([&](size_t i, T &value) { value = F(i) - F(1); });
-    bool const use_omp = N >= 50'000'000'000UZ;
-    it::primes(2, s)([&](u64 p) {
-        T const fp = f(p);
-        T const sp_prev = res.up(p - 1);
-        size_t const pp = p * p;
-        size_t const mid_i = (res.down().size() - 1) / p;
-        size_t const max_i = std::min(res.down().size() - 1, N / pp);
-        for (size_t i = 1; i <= mid_i; ++i)
-            res.down(i) -= fp * (res.down(i * p) - sp_prev);
-        libdivide::divider const fastp(p);
-        if (use_omp)
-#pragma omp parallel for schedule(static) if (max_i > mid_i + 2048)
-            for (size_t i = mid_i + 1; i <= max_i; ++i)
-                res.down(i) -= fp * (res.up(res.quotient(i) / fastp) - sp_prev);
-        else
-            for (size_t i = mid_i + 1; i <= max_i; ++i)
-                res.down(i) -= fp * (res.up(res.quotient(i) / fastp) - sp_prev);
-        if (pp < res.up().size())
-            for (size_t k = res.up().size() - 1, q = k / fastp; k >= pp; --q)
-            {
-                T const val = fp * (res.up(q) - sp_prev);
-                size_t const min_k = std::max(pp, q * p);
-                for (; k >= min_k; --k)
-                    res.up(k) -= val;
-            }
-    });
-    return res;
-}
-
-/// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * p` for `k` of the form `⌊limit / i⌋`.
-template <typename T = u64> constexpr floors_array<T> primeSumTable(size_t N)
-{
-    return primeSumTable(N, [](size_t n) -> T { return n; }, [](size_t n) -> T { return sumId<T>(n); });
-}
-
-/// Returns a floors array of values `#(1 ≤ p ≤ k, p prime)` for `k` of the form `⌊limit / i⌋`.
-template <typename T = u64> constexpr floors_array<T> primePiTable(size_t N)
-{
-    return primeSumTable(N, [](size_t) -> T { return 1; }, [](size_t n) -> T { return n; });
-}
-
-/// Calculates `(1 ≤ p ≤ limit, p prime) * f(p)`. Here, `f` must be a completely multiplicative function and `F` must be
-/// the summatory function of `f`.
-template <std::invocable<size_t> Fun, std::invocable<size_t> SummatoryFun>
-constexpr auto primeSum(size_t N, Fun f, SummatoryFun F)
-{
-    return primeSumTable(N, std::move(f), std::move(F))[N];
-}
-
-/// Calculates `(1 ≤ p ≤ limit, p prime) * p`.
-template <typename T = u64> constexpr T primeSum(size_t N)
-{
-    return primeSum(N, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
-}
 
 /// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.
 /// O(n^(3/4)). Sublinear version of `factorFactorial`.
