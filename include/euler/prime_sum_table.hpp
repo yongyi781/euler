@@ -2,13 +2,14 @@
 
 #include "FenwickTree.hpp"
 #include "floors_array.hpp"
+#include "it/primes.hpp"
 #include "libdivide.h"
 
 namespace euler
 {
 /// Returns a floors array of values `(1 ≤ p ≤ k, p prime) * f(p)` for `k` of the form `⌊limit / i⌋`. Here, `f` must be
 /// a completely multiplicative function and `F` must be the summatory function of `f`.
-template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun f, SummatoryFun F, double alpha = 0.25)
+template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun f, SummatoryFun F, double alpha = 0.2)
 {
     using T = std::remove_cvref_t<
         std::common_type_t<std::invoke_result_t<Fun, size_t>, std::invoke_result_t<SummatoryFun, size_t>>>;
@@ -27,6 +28,19 @@ template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun 
     size_t mid_p = isqrt(fen_sz);
     if (mid_p % 2 == 0)
         --mid_p;
+
+    std::vector<T> Sv(fen_sz / 2 + 1);
+    size_t i_frozen = 0;
+    T running_prime_sum{};
+
+    auto const freeze_step = [&] {
+        if (is_prime[i_frozen])
+        {
+            size_t const num = 2 * i_frozen + 1;
+            running_prime_sum += (num == 1) ? T{} : (num == 3 ? f2 + f(3) : f(num));
+        }
+        Sv[i_frozen] = running_prime_sum;
+    };
 
     auto const update_step = [&](size_t p, auto &&sum) {
         T const fp = T(f(p));
@@ -49,7 +63,10 @@ template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun 
     {
         if (!is_prime[p / 2])
             continue;
-        update_step(p, [&](size_t k) { return S.sum(idx(k)); });
+        size_t const max_frozen = std::min(Sv.size(), idx(p * p));
+        for (; i_frozen < max_frozen; ++i_frozen)
+            freeze_step();
+        update_step(p, [&](size_t k) { return k < i_frozen ? Sv[idx(k)] : S.sum(idx(k)); });
         for (size_t k = p * p; k <= fen_sz; k += 2 * p)
             if (is_prime[k / 2])
             {
@@ -57,7 +74,8 @@ template <typename Fun, typename SummatoryFun> auto primeSumTable(size_t N, Fun 
                 S.add(idx(k), -T(f(k)));
             }
     }
-    auto const Sv = S.toPrefixSum();
+    for (; i_frozen < Sv.size(); ++i_frozen)
+        freeze_step();
     for (size_t p = mid_p + 2; p <= s_N; p += 2)
     {
         if (!is_prime[p / 2])
@@ -97,5 +115,23 @@ constexpr auto primeSum(size_t N, Fun f, SummatoryFun F)
 template <typename T = u64> constexpr T primeSum(size_t N)
 {
     return primeSum(N, [](size_t n) -> T { return n; }, [](auto &&n) -> T { return sumId<T>(n); });
+}
+
+/// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.
+/// O(n^(3/4)). Sublinear version of `factorFactorial`.
+template <std::integral T> inline std::vector<std::pair<T, T>> factorialExponents(T N)
+{
+    T const s = isqrt(N);
+    std::vector<std::pair<T, T>> res;
+    res.reserve(s + N / (s + 1));
+    it::primes(2, s)([&](u64 p) { res.emplace_back(factorialValuation(N, p), 1); });
+    auto const S = primePiTable<T>(N);
+    for (T i = N / (s + 1); i >= 1; --i)
+    {
+        T const c = S.down(i) - (i + 1 < S.down().size() ? S.down(i + 1) : S.up(N / (i + 1)));
+        if (c > 0)
+            res.emplace_back(i, c);
+    }
+    return res;
 }
 } // namespace euler

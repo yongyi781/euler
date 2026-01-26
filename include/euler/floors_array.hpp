@@ -1,7 +1,7 @@
 #pragma once
 
 #include "decls.hpp"
-#include "it/primes.hpp"
+#include "it/base.hpp"
 
 namespace euler
 {
@@ -108,6 +108,17 @@ template <typename T = int64_t> class floors_array
         return left;
     }
 
+    /// Takes a partial sum in place. Useful function to call when building this array from individual values.
+    floors_array &accumulate()
+    {
+        for (size_t i = 1; i < up_.size(); ++i)
+            up(i) += up(i - 1);
+        down_.back() += up_.back();
+        for (u32 i = down_.size() - 2; i != 0; --i)
+            down(i) += down(i + 1);
+        return *this;
+    }
+
     /// Enumerates keys of this floors array in ascending order. Breaks if `f` returns `it::result_break`.
     template <std::invocable<size_t> Fun> constexpr it::result_t ascending(Fun f) const
     {
@@ -165,22 +176,4 @@ template <typename T = int64_t> class floors_array
         return o << "{\n  n: " << S.n_ << "\n  up: " << S.up_ << "\n  down: " << S.down_ << "\n}";
     }
 };
-
-/// Returns a list of pairs `(exp, c)` indicating that `c` primes have exponent `exp` in the factorization of `n!`.
-/// O(n^(3/4)). Sublinear version of `factorFactorial`.
-template <std::integral T> inline std::vector<std::pair<T, T>> factorialExponents(T N)
-{
-    T const s = isqrt(N);
-    std::vector<std::pair<T, T>> res;
-    res.reserve(s + N / (s + 1));
-    it::primes(2, s)([&](u64 p) { res.emplace_back(factorialValuation(N, p), 1); });
-    auto const S = primePiTable<T>(N);
-    for (T i = N / (s + 1); i >= 1; --i)
-    {
-        T const c = S.down(i) - (i + 1 < S.down().size() ? S.down(i + 1) : S.up(N / (i + 1)));
-        if (c > 0)
-            res.emplace_back(i, c);
-    }
-    return res;
-}
 } // namespace euler

@@ -203,7 +203,7 @@ template <typename T, typename U, typename Fun = std::identity> auto psum(T begi
         std::plus{});
 }
 
-/// Useful for sums with harmonic work.
+/// Strided parallel sum.
 template <typename T, typename U, typename Fun = std::identity>
 auto psumStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
 {
@@ -220,7 +220,7 @@ auto psumStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::
         std::plus{});
 }
 
-/// Useful for sums with harmonic work.
+/// Strided parallel sum with a predicate.
 template <typename T, std::predicate<T> Pred, typename Fun = std::identity>
 auto psumStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
 {
@@ -234,6 +234,27 @@ auto psumStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_are
             return acc;
         },
         std::plus{});
+}
+
+/// Strided parallel for.
+template <typename T, typename U, typename Fun = std::identity>
+void pforStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
+{
+    using V = std::common_type_t<T, U>;
+    return tbb::parallel_for(0, stride, [&](int lane) {
+        for (V i = V(begin + lane); i <= V(end); i += stride)
+            f(i);
+    });
+}
+
+/// Strided parallel for with a predicate.
+template <typename T, std::predicate<T> Pred, typename Fun = std::identity>
+void pforStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
+{
+    return tbb::parallel_for(0, stride, [&](int lane) {
+        for (T i = T(begin + lane); pred(i); i += stride)
+            f(i);
+    });
 }
 
 /// Multiplies a function over a range of numbers using TBB.
@@ -673,18 +694,32 @@ template <typename T, std::invocable<T> Fun> period_result findPeriod(Fun f, T a
 template <typename Fun, integral2 Z> auto sumPeriodic(Fun fn, Z preperiod, Z period, Z start, Z stop)
 {
     using T = decltype(auto(fn(Z(0))));
-    T total = sum(start, std::min(stop, preperiod - 1), [&](auto &&i) -> decltype(auto) { return fn(i); });
+    T total = sum(start, std::min(stop, Z(preperiod - 1)), [&](auto &&i) -> decltype(auto) { return fn(i); });
     T mid = 0;
     start = std::max(preperiod, start);
     Z const l = (stop - start + 1) % period + start - 1;
-    for (Z i = start; i <= std::min(stop, start + period - 1); ++i)
+    for (Z i = start; i <= std::min(stop, Z(start + period - 1)); ++i)
     {
         auto y = fn(i);
         mid += y;
         if (i <= l)
             total += y;
     }
-    return total + (stop - start + 1) / period * mid;
+    return T(total + (stop - start + 1) / period * mid);
+}
+
+/// Computes `a_0 + ... + a_n` given a prefix sum vector for `a` of length at least `preperiod + period`.
+template <std::ranges::random_access_range Range, integral2 T>
+std::ranges::range_value_t<Range> sumPeriodic(Range &&prefix_sum, u64 preperiod, u64 period, const T &n)
+{
+    using R = std::ranges::range_value_t<Range>;
+    assert(period > 0 && "Period must be non-zero");
+    assert(std::ranges::size(prefix_sum) >= preperiod + period && "Prefix sum vector too short");
+    if (n < std::ranges::size(prefix_sum))
+        return prefix_sum[(size_t)n];
+    R const period_sum = prefix_sum[preperiod + period - 1] - (preperiod == 0 ? R{} : prefix_sum[preperiod - 1]);
+    u64 const rem = (u64)((n - preperiod) % period + preperiod);
+    return R((n - rem) / period) * period_sum + prefix_sum[rem];
 }
 
 /// Convenience function that returns v, sorted and with duplicates removed.
