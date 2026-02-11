@@ -85,24 +85,32 @@ template <integral2 T, integral2 U, integral2 V> constexpr auto addmod(const T &
     return res;
 }
 
-/// Non-overflowing modular integer multiplication.
+/// Non-overflowing modular integer multiplication. Assumes `a` and `b` are non-negative.
 template <integral2 T, integral2 U, integral2 V> constexpr auto mulmod(const T &a, const U &b, const V &m)
 {
     using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
     using Td = double_integer_t<Tp>;
     if constexpr (std::same_as<Tp, Td>)
     {
-        return a * b % m;
+        Tp res = a * b;
+        if (res >= m)
+            res %= m;
+        return res;
     }
-    else if constexpr (requires(Td result) { __builtin_mul_overflow(a, b, &result); })
+    else if constexpr (requires(Td res) { __builtin_mul_overflow(a, b, &res); })
     {
-        Td result{};
-        __builtin_mul_overflow(a, b, &result);
-        return Tp(result % m);
+        Td res{};
+        __builtin_mul_overflow(a, b, &res);
+        if (res >= m)
+            res %= m;
+        return Tp(res);
     }
     else
     {
-        return Tp(Td(a) * Td(b) % m);
+        Td res = Td(a) * Td(b);
+        if (res >= m)
+            res %= m;
+        return Tp(res);
     }
 }
 

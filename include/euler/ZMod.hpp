@@ -79,6 +79,7 @@ class ZMod
         return left;
     }
 
+    /// Division by -1, 1, 2, 3, 4, 6 are fast. Others divisors use pow or modInverse.
     constexpr ZMod &operator/=(const ZMod &other)
     {
         if (value_ % other.value_ == 0)
@@ -89,6 +90,7 @@ class ZMod
         return *this *= ~other;
     }
 
+    /// Division by -1, 1, 2, 3, 4, 6 are fast. Others divisors use pow or modInverse.
     [[nodiscard]] constexpr friend ZMod operator/(ZMod left, const ZMod &right)
     {
         left /= right;
@@ -115,7 +117,7 @@ class ZMod
 
     constexpr ZMod operator-() const { return {true, value_ == 0 ? 0 : M - value_}; }
 
-    /// Multiplicative inverse.
+    /// Multiplicative inverse. Inverses of -1, 1, 2, 3, 4, 6 are fast, the rest are slow.
     constexpr ZMod operator~() const { return inverse(); }
 
     std::strong_ordering operator<=>(const ZMod &other) const = default;
@@ -131,9 +133,28 @@ class ZMod
     constexpr const value_type &value() const { return value_; }
     constexpr value_type balancedValue() const { return value_ <= M / 2 ? value_ : -(M - value_); }
 
-    /// Returns the multiplicative inverse of this number.
+    /// Returns the multiplicative inverse of this number. Inverses of -1, 1, 2, 3, 4, 6 are fast, the rest are slow.
     constexpr ZMod inverse() const
     {
+        if (value_ == 0)
+            return 0;
+        if (value_ == 1)
+            return 1;
+        if (value_ == M - 1)
+            return M - 1;
+        if constexpr (M % 2 != 0)
+        {
+            if (value_ == 2)
+                return {true, (M + 1) / 2};
+            if (value_ == 4)
+                return {true, M % 4 == 1 ? M - (M - 1) / 4 : (M + 1) / 4};
+        }
+        if constexpr (M % 3 != 0)
+            if (value_ == 3)
+                return {true, M % 3 == 1 ? M - (M - 1) / 3 : (M + 1) / 3};
+        if constexpr (M % 2 != 0 && M % 3 != 0)
+            if (value_ == 6)
+                return {true, M % 6 == 1 ? M - (M - 1) / 6 : (M + 1) / 6};
         if constexpr (is_field)
             return pow(M - 2);
         else
