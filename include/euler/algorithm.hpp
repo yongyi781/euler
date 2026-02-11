@@ -241,7 +241,7 @@ template <typename T, typename U, typename Fun = std::identity>
 void pforStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
 {
     using V = std::common_type_t<T, U>;
-    return tbb::parallel_for(0, stride, [&](int lane) {
+    tbb::parallel_for(0, stride, [&](int lane) {
         for (V i = V(begin + lane); i <= V(end); i += stride)
             f(i);
     });
@@ -251,7 +251,7 @@ void pforStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::
 template <typename T, std::predicate<T> Pred, typename Fun = std::identity>
 void pforStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
 {
-    return tbb::parallel_for(0, stride, [&](int lane) {
+    tbb::parallel_for(0, stride, [&](int lane) {
         for (T i = T(begin + lane); pred(i); i += stride)
             f(i);
     });
@@ -892,5 +892,19 @@ template <execution_policy Exec, std::ranges::range Range> void batchInvert(Exec
         tbb::parallel_for(tbb::blocked_range(r.begin(), r.end()), [&](auto s) { batchInvert(s); });
     else
         batchInvert(r);
+}
+
+// Merges runs and adds counts. Precondition: sorted by key.
+template <typename K, integral2 V> void mergeRuns(std::vector<std::pair<K, V>> &v)
+{
+    if (v.empty())
+        return;
+    size_t w = 0;
+    for (size_t r = 1; r < v.size(); ++r)
+        if (v[w].first == v[r].first)
+            v[w].second += v[r].second;
+        else
+            v[++w] = v[r];
+    v.resize(w + 1);
 }
 } // namespace euler

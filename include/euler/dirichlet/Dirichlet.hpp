@@ -81,7 +81,7 @@ template <typename T> class Dirichlet
         return value(j) * other.up(k) + up_[k] * other.value(j);
     }
 
-    /// One step of the divison algorithm by ζ(s). Internal use only.
+    /// One step of the divison algorithm by `other`. Internal use only.
     template <dirichlet_type Dir> void divideStep(const Dir &other, u32 i)
     {
         libdivide::divider<size_t> const fast_i(i);
@@ -579,11 +579,24 @@ auto productValue(Fun1 f, SummatoryFun1 F, Fun2 g, SummatoryFun2 G, T n)
 }
 
 /// Computes `∑ (ab ≤ n), f(a) * g(b)` in O(√n), given only their summatory functions. Convenience function.
-template <typename SummatoryFun1, typename SummatoryFun2, integral2 T>
-auto productValue(SummatoryFun1 F, SummatoryFun2 G, T n)
+template <typename SFun1, typename SFun2, integral2 T> auto productValue(SFun1 F, SFun2 G, T n)
 {
     return SpecialDirichlet{[&](auto &&k) { return F(k) - F(k - 1); }, F}.productValue(
         SpecialDirichlet{[&](auto &&k) { return G(k) - G(k - 1); }, G}, n);
+}
+
+/// Computes `∑ (ab ≤ n), f(a) * g(b)` in O(√n), given only their summatory functions. Convenience function.
+template <typename T, typename SFun, integral2 U> auto productValue(const Dirichlet<T> &D, SFun G, U n)
+{
+    using H = half_integer_t<U>;
+    using Tp = std::common_type_t<T, std::invoke_result_t<SFun, U>>;
+    H const s_n = (H)isqrt(n);
+    return sumMaybeParallel(H(1), s_n,
+                            [&](H k) {
+                                U const n_k = n / k;
+                                return Tp(D.value(k)) * Tp(G(n_k)) + Tp(G(k) - G(k - 1)) * Tp(D[n_k]);
+                            }) -
+           Tp(D[s_n]) * Tp(G(s_n));
 }
 
 /// Computes `∑ (p^e * b ≤ n), f(e) * G(b)`.

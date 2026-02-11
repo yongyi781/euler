@@ -7,8 +7,9 @@ namespace euler::dirichlet
 namespace detail
 {
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), using parallelism.
-template <typename F, typename G, typename T> void convolveTo_par(F &&f, G &&g, std::vector<T> &out)
+template <typename F, typename G, std::ranges::random_access_range O> void convolveTo_par(F &&f, G &&g, O &&out)
 {
+    using T = std::ranges::range_value_t<O>;
     if (out.size() <= 1)
         return;
     auto const get_f = [&](size_t i) {
@@ -52,8 +53,9 @@ template <typename F, typename G> auto convolve_par(F &&f, G &&g, size_t n)
 }
 
 /// Applies `f *= g` in the Dirichlet convolution sense.
-template <typename T, typename G> void convolveInPlace_par(std::vector<T> &f, G &&g)
+template <std::ranges::random_access_range F, typename G> void convolveInPlace_par(F &&f, G &&g)
 {
+    using T = std::ranges::range_value_t<F>;
     if (f.size() <= 1)
         return;
     auto const get_g = [&](size_t i) {
@@ -68,10 +70,10 @@ template <typename T, typename G> void convolveInPlace_par(std::vector<T> &f, G 
     for (size_t end = n; end >= 2; end >>= 1)
     {
         size_t const start = (end >> 1) + 1;
-        size_t const s = isqrt(end);
         tbb::parallel_for(
             tbb::blocked_range(start, end + 1, B),
             [&](auto r) {
+                size_t const s = isqrt(r.end() - 1);
                 if (g1 != 1)
                     for (size_t i = r.begin(); i < r.end(); ++i)
                         f[i] *= g1;
@@ -85,7 +87,7 @@ template <typename T, typename G> void convolveInPlace_par(std::vector<T> &f, G 
                 }
             },
             tbb::simple_partitioner{});
-        for (size_t i = isqrt(start - 1) + 1; i <= s; ++i)
+        for (size_t i = isqrt(start - 1) + 1; i * i <= end; ++i)
             f[i * i] += f[i] * get_g(i);
     }
     if (g1 != 1)
@@ -93,8 +95,9 @@ template <typename T, typename G> void convolveInPlace_par(std::vector<T> &f, G 
 }
 
 /// Sets `f /= g` in the Dirichlet convolution sense.
-template <typename T, typename G> void invConvolve_par(std::vector<T> &f, G &&g)
+template <std::ranges::random_access_range F, typename G> void invConvolve_par(F &&f, G &&g)
 {
+    using T = std::ranges::range_value_t<F>;
     if (f.size() <= 1)
         return;
     auto const get_g = [&](size_t i) {
@@ -135,8 +138,9 @@ template <typename T, typename G> void invConvolve_par(std::vector<T> &f, G &&g)
 } // namespace detail
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n).
-template <typename F, typename G, typename T> void convolveInto(F &&f, G &&g, std::vector<T> &out)
+template <typename F, typename G, std::ranges::random_access_range O> void convolveInto(F &&f, G &&g, O &&out)
 {
+    using T = std::ranges::range_value_t<O>;
     if (out.size() <= 1)
         return;
     auto const get_f = [&](size_t i) {
@@ -170,8 +174,9 @@ template <typename F, typename G, typename T> void convolveInto(F &&f, G &&g, st
 }
 
 /// Sets `f *= g` in the Dirichlet convolution sense.
-template <typename T, typename G> void convolveInPlace(std::vector<T> &f, G &&g)
+template <std::ranges::random_access_range F, typename G> void convolveInPlace(F &&f, G &&g)
 {
+    using T = std::ranges::range_value_t<F>;
     if (f.size() <= 1)
         return;
     auto const get_g = [&](size_t i) {
@@ -210,8 +215,9 @@ template <typename T, typename G> void convolveInPlace(std::vector<T> &f, G &&g)
 }
 
 /// Sets `f /= g` in the Dirichlet convolution sense.
-template <typename T, typename G> void invConvolve(std::vector<T> &f, G &&g)
+template <std::ranges::random_access_range F, typename G> void invConvolve(F &&f, G &&g)
 {
+    using T = std::ranges::range_value_t<F>;
     if (f.size() <= 1)
         return;
     auto const get_g = [&](size_t i) {
@@ -250,8 +256,8 @@ template <typename T, typename G> void invConvolve(std::vector<T> &f, G &&g)
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n).
-template <execution_policy Exec, typename F, typename G, typename T>
-void convolveInto(Exec && /*exec*/, F &&f, G &&g, std::vector<T> &out)
+template <execution_policy Exec, typename F, typename G, std::ranges::random_access_range O>
+void convolveInto(Exec && /*exec*/, F &&f, G &&g, O &&out)
 {
     if constexpr (parallel_policy<Exec>)
         detail::convolveTo_par(std::forward<F>(f), std::forward<G>(g), out);
@@ -278,8 +284,8 @@ template <execution_policy Exec, typename F, typename G> auto convolve(Exec && /
 }
 
 /// Computes a sieve for the function `k ↦ ∑ (a*b = k) f(a) * g(b)` in O(n log n), with the specified execution policy.
-template <execution_policy Exec, typename T, typename G>
-void convolveInPlace(Exec && /*exec*/, std::vector<T> &f, G &&g)
+template <execution_policy Exec, std::ranges::random_access_range F, typename G>
+void convolveInPlace(Exec && /*exec*/, F &&f, G &&g)
 {
     if constexpr (parallel_policy<Exec>)
         return detail::convolveInPlace_par(f, std::forward<G>(g));
@@ -288,7 +294,8 @@ void convolveInPlace(Exec && /*exec*/, std::vector<T> &f, G &&g)
 }
 
 /// Sets f to f / g in the Dirichlet convolution sense, with the specified execution policy.
-template <execution_policy Exec, typename T, typename Fun> void invConvolve(Exec && /*exec*/, std::vector<T> &f, Fun g)
+template <execution_policy Exec, std::ranges::random_access_range F, typename Fun>
+void invConvolve(Exec && /*exec*/, F &&f, Fun g)
 {
     if constexpr (parallel_policy<Exec>)
         detail::invConvolve_par(f, std::move(g));
