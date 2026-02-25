@@ -816,7 +816,7 @@ std::ranges::range_value_t<Range> sumPeriodic(Range &&prefix_sum, u64 preperiod,
         return prefix_sum[(size_t)n];
     R const period_sum = prefix_sum[preperiod + period - 1] - (preperiod == 0 ? R{} : prefix_sum[preperiod - 1]);
     u64 const rem = (u64)((n - preperiod) % period + preperiod);
-    return R((n - rem) / period) * period_sum + prefix_sum[rem];
+    return R(T((n - rem) / period)) * period_sum + prefix_sum[rem];
 }
 
 /// Convenience function that returns v, sorted and with duplicates removed.

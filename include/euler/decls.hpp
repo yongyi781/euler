@@ -13,24 +13,17 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
         return identity;
     if (exponent == 1)
         return base;
-    if constexpr ((integral2<T> || std::floating_point<T>) && std::is_same_v<BinaryOp, std::multiplies<>> &&
-                  std::numeric_limits<T>::is_signed)
-        if (base == -identity)
-            return exponent % 2 == 0 ? identity : -identity;
-    if constexpr (std::numeric_limits<U>::is_signed)
+    if constexpr (std::is_same_v<std::remove_cvref_t<BinaryOp>, std::multiplies<>>)
     {
-        if constexpr (boost::multiprecision::number_category<T>::value != boost::multiprecision::number_kind_unknown)
-        {
+        if constexpr ((integral2<T> || std::floating_point<T>) && requires { -identity; })
+            if (base == -identity)
+                return exponent % 2 == 0 ? identity : -identity;
+        if constexpr (std::numeric_limits<U>::is_signed && requires { T(1) / std::move(base); })
             if (exponent < 0)
             {
                 base = T(1) / std::move(base);
                 exponent = -std::move(exponent);
             }
-        }
-        else
-        {
-            assert(exponent >= 0);
-        }
     }
 
     T x = std::move(identity);

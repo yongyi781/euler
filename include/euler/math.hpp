@@ -222,10 +222,11 @@ template <integral2 A, integral2 B, integral2 M, integral2 N> constexpr auto crt
         return R{};
     auto [g, s, _] = xgcd(m, n);
     T const l = m / g * n;
-    T const diff = b + l - a; // To make it positive.
+    T diff = b + l - a; // To make it positive.
     if (diff % g != 0)
         return R{};
-    return R{mod(a + mulmod(mulmod(diff / g, s + l, l), m, l), l), l};
+    diff /= g;
+    return R{mod(a + mulmod(mulmod(diff, T(s + l), l), m, l), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:
