@@ -252,7 +252,7 @@ inline void testIt()
     pass("it::range");
 }
 
-inline void testModmul()
+inline void testMulmod()
 {
     static constexpr int m = 1'000'000'007;
     testWithRandomInputs(
@@ -312,7 +312,7 @@ inline void testModUnsignedModulus()
 int main()
 {
     testModUnsignedModulus();
-    testModmul();
+    testMulmod();
     testZMod();
     testIt();
     testIsSquare();

@@ -62,7 +62,10 @@ template <typename T> struct counting_iterator
         value -= i;
         return *this;
     }
-    constexpr difference_type operator-(const counting_iterator &other) const { return value - other.value; }
+    constexpr difference_type operator-(const counting_iterator &other) const
+    {
+        return (difference_type)(value - other.value);
+    }
 
     constexpr counting_iterator operator-(const difference_type other) const { return value - other; }
     friend constexpr counting_iterator operator-(const difference_type value, const counting_iterator &other)

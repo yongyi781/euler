@@ -368,16 +368,6 @@ template <typename T> auto performanceTest2()
     return num;
 }
 
-inline auto performanceTest3()
-{
-    constexpr int N = 10'000'000;
-    mt19937_64 rng;
-    vector<int256_t> v(N);
-
-    generate_n(execution::par, v.begin(), N, [&] { return rng(); });
-    return v[100];
-}
-
 inline auto performanceTest4()
 {
     constexpr int64_t N = 100'000'000;
@@ -443,40 +433,12 @@ inline auto spfTest2()
     return v[17051];
 }
 
-inline auto powmTest1()
-{
-    int4096_t const base = 2;
-    int4096_t const exponent = ((int4096_t)1) << 4095;
-    int4096_t const modulus = (int64_t)1e18;
-    auto result = boost::multiprecision::powm(base, exponent, modulus);
-    return result;
-}
-
-inline auto powmTest2()
-{
-    int128_t const base = 2;
-    int4096_t const exponent = ((int4096_t)1) << 4095;
-    // cout << exponent << endl;
-    int64_t const modulus = 1e18;
-    auto result = powm(base, exponent, modulus);
-    return result;
-}
-
 inline void factorTest()
 {
     cout << "Doing the factor test\n";
     SPF const spfs{10000000};
     for (int i = 1; i < 10000000; ++i)
         factor(i, spfs);
-}
-
-inline void digitsTest()
-{
-    int256_t const n("1234567");
-    auto s = to_string(n);
-    vector<int> digits(s.size());
-    std::ranges::transform(s, digits.begin(), [](char c) { return (int)c - '0'; });
-    std::ranges::reverse(digits);
 }
 
 int main()
@@ -491,8 +453,5 @@ int main()
     compareFastDiv();
     printTiming(spfTest);
     printTiming(spfTest2);
-    printTiming(powmTest1);
-    printTiming(powmTest2);
     printTiming(factorTest);
-    printTiming(digitsTest);
 }

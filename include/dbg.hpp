@@ -131,9 +131,9 @@ template <typename T> void prettyPrint(const T &t) { std::cerr << std::forward<d
 
 template <> inline void prettyPrint(const bool &t) { std::cerr << std::boolalpha << t; }
 
-template <> inline void prettyPrint(const u8 &t) { std::cerr << (int)t; }
+template <> inline void prettyPrint(const uint8_t &t) { std::cerr << (int)t; }
 
-template <> inline void prettyPrint(const i8 &t) { std::cerr << (int)t; }
+template <> inline void prettyPrint(const int8_t &t) { std::cerr << (int)t; }
 
 template <typename T> void prettyPrint(const boost::rational<T> &t)
 {

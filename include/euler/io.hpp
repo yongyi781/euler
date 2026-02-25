@@ -12,7 +12,7 @@ std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> 
 {
     boost::multiprecision::int128_t a;
     is >> a;
-    x = (i128)a;
+    x = (__int128)a;
     return is;
 }
 
@@ -21,7 +21,7 @@ std::basic_istream<CharT, Traits> &operator>>(std::basic_istream<CharT, Traits> 
 {
     boost::multiprecision::int128_t a;
     is >> a;
-    x = (u128)a;
+    x = (unsigned __int128)a;
     return is;
 }
 #endif

@@ -60,23 +60,17 @@ template <typename T> consteval T fromString(const char *str)
 
 inline namespace literals
 {
-consteval int8_t operator""_i8(unsigned long long n) { return n; }
-consteval int16_t operator""_i16(unsigned long long n) { return n; }
-consteval int32_t operator""_i32(unsigned long long n) { return n; }
-consteval int64_t operator""_i64(unsigned long long n) { return n; }
-consteval int128_t operator""_i128(const char *str) { return fromString<int128_t>(str); }
-consteval int256_t operator""_i256(const char *str) { return fromString<int256_t>(str); }
-consteval int512_t operator""_i512(const char *str) { return fromString<int512_t>(str); }
-consteval int1024_t operator""_i1024(const char *str) { return fromString<int1024_t>(str); }
+consteval i8 operator""_i8(unsigned long long n) { return n; }
+consteval i16 operator""_i16(unsigned long long n) { return n; }
+consteval i32 operator""_i32(unsigned long long n) { return n; }
+consteval i64 operator""_i64(unsigned long long n) { return n; }
+consteval i128 operator""_i128(const char *str) { return fromString<i128>(str); }
 
-consteval uint8_t operator""_u8(unsigned long long n) { return n; }
-consteval uint16_t operator""_u16(unsigned long long n) { return n; }
-consteval uint32_t operator""_u32(unsigned long long n) { return n; }
-consteval uint64_t operator""_u64(unsigned long long n) { return n; }
-consteval uint128_t operator""_u128(const char *str) { return fromString<uint128_t>(str); }
-consteval uint256_t operator""_u256(const char *str) { return fromString<uint256_t>(str); }
-consteval uint512_t operator""_u512(const char *str) { return fromString<uint512_t>(str); }
-consteval uint1024_t operator""_u1024(const char *str) { return fromString<uint1024_t>(str); }
+consteval u8 operator""_u8(unsigned long long n) { return n; }
+consteval u16 operator""_u16(unsigned long long n) { return n; }
+consteval u32 operator""_u32(unsigned long long n) { return n; }
+consteval u64 operator""_u64(unsigned long long n) { return n; }
+consteval u128 operator""_u128(const char *str) { return fromString<u128>(str); }
 
 inline cpp_int operator""_cppi(const char *str) { return cpp_int{str}; }
 inline mpz_int operator""_Z(const char *str) { return mpz_int{str}; }

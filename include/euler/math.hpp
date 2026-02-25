@@ -51,14 +51,14 @@ inline constexpr std::array<int64_t, 21> factorialsTo20{1,
                                                         2432902008176640000};
 
 /// Calculates ⌊a / b⌋, and works for negative values too.
-template <integral2 Ta, integral2 Tb> constexpr auto floorDiv(const Ta &a, const Tb &b)
+template <typename T, typename U> constexpr std::common_type_t<T, U> floorDiv(const T &a, const U &b)
 {
-    auto const d = boost::multiprecision::detail::evaluate_if_expression(a / b);
+    auto const d = a / b;
     return d * b == a ? d : d - ((a < 0) ^ (b < 0));
 }
 
 /// Calculates ⌈a / b⌉, and works for negative values too.
-template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const Tb &b)
+template <typename T, typename U> constexpr std::common_type_t<T, U> ceilDiv(const T &a, const U &b)
 {
     return floorDiv(a + b - (b > 0 ? 1 : -1), b);
 }
@@ -67,14 +67,14 @@ template <integral2 Ta, integral2 Tb> constexpr auto ceilDiv(const Ta &a, const 
 template <typename T> constexpr auto sign(const T &x) { return x > 0 ? 1 : x < 0 ? -1 : 0; }
 
 /// Returns whether n is a square.
-template <integral2 T> constexpr bool isSquare(const T &n)
+template <typename T> constexpr bool isSquare(const T &n)
 {
     T a = isqrt(n);
     return a * a == n;
 }
 
 /// Returns whether the rational number r is a square.
-template <integral2 T> constexpr bool isSquare(const boost::rational<T> &r)
+template <typename T> constexpr bool isSquare(const boost::rational<T> &r)
 {
     return isSquare(r.numerator()) && isSquare(r.denominator());
 }
@@ -214,17 +214,18 @@ template <typename T> std::vector<T> binomialVec(size_t n, size_t limit)
 /// * `lcm(m, n)` must be less than the maximum integer size.
 /// There is a solution iff `gcd(m, n) | b - a`. If an invalid input is provided or there is no solution, returns
 /// (0, 0).
-template <integral2 Ta, integral2 Tb, integral2 Tm, integral2 Tn> constexpr auto crtlcm(Ta a, Tb b, Tm m, Tn n)
+template <integral2 A, integral2 B, integral2 M, integral2 N> constexpr auto crtlcm(A a, B b, M m, N n)
 {
-    using T = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b * m * n)));
+    using T = std::common_type_t<A, B, M, N>;
+    using R = std::pair<T, T>;
     if (m <= 0 || n <= 0)
-        return std::pair<T, T>{};
+        return R{};
     auto [g, s, _] = xgcd(m, n);
     T const l = m / g * n;
     T const diff = b + l - a; // To make it positive.
     if (diff % g != 0)
-        return std::pair<T, T>{};
-    return std::pair<T, T>{mod(a + mulmod(mulmod(diff / g, s + l, l), m, l), l), l};
+        return R{};
+    return R{mod(a + mulmod(mulmod(diff / g, s + l, l), m, l), l), l};
 }
 
 /// Returns a solution to two or more simultaneous congruences along with the lcm of the moduli. Requirements:

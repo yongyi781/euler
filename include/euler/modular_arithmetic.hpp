@@ -21,12 +21,12 @@ template <typename T> struct euclidean_result_t
 };
 
 /// Runs the extended Euclidean algorithm. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
-template <integral2 T, integral2 U> constexpr auto xgcd(T m, U n)
+template <integral2 T, integral2 U> constexpr euclidean_result_t<std::common_type_t<T, U>> xgcd(T m, U n)
 {
-    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(m - n)));
+    using R = std::common_type_t<T, U>;
     using std::swap;
 
-    Tp g0 = std::move(m), g1 = std::move(n), s0 = 1, s1 = 0, t0 = 0, t1 = 1, q, g2, s2, t2;
+    R g0 = std::move(m), g1 = std::move(n), s0 = 1, s1 = 0, t0 = 0, t1 = 1, q, g2, s2, t2;
     while (g1 != 0)
     {
         q = g0 / g1;
@@ -40,14 +40,14 @@ template <integral2 T, integral2 U> constexpr auto xgcd(T m, U n)
         swap(s1, s2);
         swap(t1, t2);
     }
-    if constexpr (boost::multiprecision::is_signed_number<Tp>::value)
+    if constexpr (std::numeric_limits<R>::is_signed)
         if (g0 < 0)
         {
             g0 = -g0;
             s0 = -s0;
             t0 = -t0;
         }
-    return euclidean_result_t<Tp>{std::move(g0), std::move(s0), std::move(t0)};
+    return euclidean_result_t<R>{std::move(g0), std::move(s0), std::move(t0)};
 }
 
 /// Extended Euclidean algorithm for `mpz_int`. Returns the triple `(g, x, y)` such that `g = gcd(a, b) = xm + yn`.
@@ -61,56 +61,87 @@ inline euclidean_result_t<mpz_int> xgcd(const mpz_int &m, const mpz_int &n)
 
 /// Returns the remainder of `a` when divided by `modulus`, in the range [0, modulus).
 /// Precondition: `modulus > 0`.
-template <integral2 T, integral2 U> constexpr auto mod(const T &a, const U &modulus)
+template <integral2 T, integral2 U> constexpr T mod(const T &a, const U &modulus)
 {
-    if constexpr (boost::multiprecision::is_unsigned_number<T>::value)
+    if constexpr (std::numeric_limits<T>::is_signed)
     {
-        return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
+        if (a >= 0)
+            return T(a < modulus ? a : a % modulus);
+        return T(modulus - 1 - (-a - 1) % modulus);
     }
     else
     {
-        if (a >= 0)
-            return a < modulus ? boost::multiprecision::detail::evaluate_if_expression(a) : a % modulus;
-        return boost::multiprecision::detail::evaluate_if_expression(modulus - 1 - (-a - 1) % modulus);
+        return T(a < modulus ? a : a % modulus);
     }
 }
 
 /// Modular addition. Requires `0 ≤ a, b < m`.
-template <integral2 T, integral2 U, integral2 V> constexpr auto addmod(const T &a, const U &b, const V &m)
+template <integral2 T, integral2 U, integral2 V>
+constexpr std::common_type_t<T, U> addmod(const T &a, const U &b, const V &m)
 {
-    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a + b)));
-    Tp res = a + b;
+    using R = std::common_type_t<T, U>;
+    R res(a + b);
     if (res >= m)
         res -= m;
     return res;
 }
 
-/// Non-overflowing modular integer multiplication. Assumes `a` and `b` are non-negative.
-template <integral2 T, integral2 U, integral2 V> constexpr auto mulmod(const T &a, const U &b, const V &m)
+/// Non-overflowing modular integer multiplication.
+template <integral2 T, integral2 U, integral2 V>
+constexpr std::common_type_t<T, U> mulmod(const T &a, const U &b, const V &m)
 {
-    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a * b % m)));
-    using Td = double_integer_t<Tp>;
-    if constexpr (std::same_as<Tp, Td>)
+    using R = std::common_type_t<T, U>;
+    using DT = double_integer_t<T>;
+
+    if constexpr (std::same_as<R, DT>)
     {
-        Tp res = a * b;
-        if (res >= m)
-            res %= m;
+        R res = a * b;
+        if constexpr (std::is_signed_v<R>)
+        {
+            if (res >= m || -res >= m)
+                res %= m;
+        }
+        else
+        {
+            if (res >= m)
+                res %= m;
+        }
         return res;
     }
-    else if constexpr (requires(Td res) { __builtin_mul_overflow(a, b, &res); })
+    else if constexpr (requires(DT res) { __builtin_mul_overflow(a, b, &res); })
     {
-        Td res{};
+        DT res{};
         __builtin_mul_overflow(a, b, &res);
         if (res >= m)
             res %= m;
-        return Tp(res);
+        if constexpr (std::is_signed_v<R>)
+        {
+            if (res >= m || -res >= m)
+                res %= m;
+        }
+        else
+        {
+            if (res >= m)
+                res %= m;
+        }
+        return R(res);
     }
     else
     {
-        Td res = Td(a) * Td(b);
+        DT res = DT(a) * DT(b);
         if (res >= m)
             res %= m;
-        return Tp(res);
+        if constexpr (std::is_signed_v<R>)
+        {
+            if (res >= m || -res >= m)
+                res %= m;
+        }
+        else
+        {
+            if (res >= m)
+                res %= m;
+        }
+        return R(res);
     }
 }
 
@@ -151,13 +182,14 @@ template <integral2 TMod> struct mod_multiplies_safe
 };
 
 /// Computes `a^-1 mod m`.
-template <integral2 T, integral2 U> constexpr auto modInverse(T a, U m)
+template <integral2 T, integral2 U> constexpr std::common_type_t<T, U> modInverse(T a, U m)
 {
-    using Tp = decltype(auto(boost::multiprecision::detail::evaluate_if_expression(a % m)));
+    using R = std::common_type_t<T, U>;
+
     auto const [g, s, _] = xgcd(mod(a, m), m);
     if (g != 1)
-        return Tp{};
-    return s + m < m ? s + m : s;
+        return {};
+    return R(s + m < m ? s + m : s);
 }
 
 /// Specialization of `modInverse` for `mpz_int`.
@@ -177,7 +209,7 @@ constexpr auto powm(T base, E exponent, M modulus, T identity = T(1))
     if constexpr (integral2<T>)
     {
         bool neg = false;
-        if constexpr (boost::multiprecision::is_signed_number<E>::value)
+        if constexpr (std::numeric_limits<E>::is_signed)
         {
             neg = exponent < 0;
             if (neg)
@@ -307,22 +339,29 @@ template <integral2 T, integral2 U> constexpr auto sqrtModp(T n, U p)
 template <std::unsigned_integral T> constexpr T bitInverse(T n)
 {
     assert(n % 2 == 1);
-    T x = (3 * n) ^ 2;
-    T y = 1 - n * x;
-    x *= 1 + y;
-    y *= y;
-    x *= 1 + y;
-    y *= y;
-    x *= 1 + y;
+    T x = static_cast<T>((3U * n) ^ 2);
+    T y = static_cast<T>(1U - 1U * n * x);
+    x = static_cast<T>(1U * x * (1U + y));
+
+    if constexpr (sizeof(T) > 1)
+    {
+        y = static_cast<T>(1U * y * y);
+        x = static_cast<T>(1U * x * (1U + y));
+    }
+    if constexpr (sizeof(T) > 2)
+    {
+        y = static_cast<T>(1U * y * y);
+        x = static_cast<T>(1U * x * (1U + y));
+    }
     if constexpr (sizeof(T) > 4)
     {
-        y *= y;
-        x *= 1 + y;
+        y = static_cast<T>(1U * y * y);
+        x = static_cast<T>(1U * x * (1U + y));
     }
     if constexpr (sizeof(T) > 8)
     {
-        y *= y;
-        x *= 1 + y;
+        y = static_cast<T>(1U * y * y);
+        x = static_cast<T>(1U * x * (1U + y));
     }
     return x;
 }

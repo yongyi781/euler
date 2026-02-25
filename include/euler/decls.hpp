@@ -14,10 +14,10 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
     if (exponent == 1)
         return base;
     if constexpr ((integral2<T> || std::floating_point<T>) && std::is_same_v<BinaryOp, std::multiplies<>> &&
-                  boost::multiprecision::is_signed_number<T>::value)
+                  std::numeric_limits<T>::is_signed)
         if (base == -identity)
             return exponent % 2 == 0 ? identity : -identity;
-    if constexpr (boost::multiprecision::is_signed_number<U>::value)
+    if constexpr (std::numeric_limits<U>::is_signed)
     {
         if constexpr (boost::multiprecision::number_category<T>::value != boost::multiprecision::number_kind_unknown)
         {
@@ -76,16 +76,17 @@ template <integral2 T, integral2 U, integral2 V> constexpr bool mulLeq(T a, U b,
     }
     else
     {
-        return a * b <= c;
+        using D = double_integer_t<std::common_type_t<T, U>>;
+        return D(a) * D(b) <= D(c);
     }
 }
 
 /// Computes the integral square root of a number.
-template <integral2 T> constexpr auto isqrt(const T &x)
+template <typename T> constexpr auto isqrt(const T &x)
 {
-    if constexpr (!std::integral<T>)
+    if constexpr (!std::integral<T> && requires { boost::multiprecision::sqrt(x); })
     {
-        return sqrt(x);
+        return boost::multiprecision::sqrt(x);
     }
     else
     {
@@ -107,7 +108,7 @@ template <integral2 T> constexpr auto isqrt(const T &x)
 }
 
 /// Computes the integral nth root of a number.
-template <integral2 T> constexpr T inth_root(const T &x, int n)
+template <typename T> constexpr T inth_root(const T &x, int n)
 {
     if (n == 1)
         return x;
@@ -122,7 +123,7 @@ template <integral2 T> constexpr T inth_root(const T &x, int n)
 }
 
 /// Finds the largest `e` such that `b^e ≤ n`.
-template <integral2 T, integral2 U> constexpr int floor_log(T n, U b)
+template <typename T, typename U> constexpr int floor_log(T n, U b)
 {
     if (n < b)
         return 0;
@@ -153,18 +154,23 @@ constexpr bool invokeTrueIfVoid(Callable &&f, Args &&...args) noexcept(std::is_n
 /// Converts any integral type to a string in the specified base.
 template <integral2 T> constexpr std::string to_string(T n, int base = 10, bool lowercase = false)
 {
-    bool const neg = n < 0;
-    if (neg)
-        n = -n;
+    bool neg = false;
+    if constexpr (std::is_signed_v<T>)
+    {
+        neg = n < 0;
+        if (neg)
+            n = -n;
+    }
     std::string_view const digits =
         lowercase ? R"(0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ~!@#$%^&*()[]{}-+=;:'",./<>?\)"
                   : R"(0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz~!@#$%^&*()[]{}-+=;:'",./<>?\)";
     assert((size_t)base <= digits.size());
     std::string s(1 + std::max(0, floor_log(n, base) + neg), '0');
-    if (neg)
-        s[0] = '-';
+    if constexpr (std::is_signed_v<T>)
+        if (neg)
+            s[0] = '-';
     auto it = s.rbegin();
-    while (n)
+    while (n != 0)
     {
         *it++ = digits[(int)(n % base)];
         n /= base;
@@ -207,7 +213,7 @@ inline void setConsoleToUtf8()
 } // namespace euler
 
 template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, i128 x)
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, euler::i128 x)
 {
     auto const f = o.flags();
     int base = 10;
@@ -219,7 +225,7 @@ std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> 
 }
 
 template <typename CharT, typename Traits>
-std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, u128 x)
+std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, euler::u128 x)
 {
     auto const f = o.flags();
     int base = 10;

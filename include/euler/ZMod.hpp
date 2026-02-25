@@ -30,6 +30,8 @@ class ZMod
 
     constexpr explicit operator value_type() const { return value_; }
 
+    std::strong_ordering operator<=>(const ZMod &other) const = default;
+
     constexpr ZMod &operator+=(const ZMod &other)
     {
         value_ += other.value_;
@@ -43,8 +45,6 @@ class ZMod
         left += right;
         return left;
     }
-
-    // constexpr friend ZMod operator+(const integral2 auto &left, const ZMod &right) { return ZMod{left} + right; }
 
     constexpr ZMod &operator-=(const ZMod &other)
     {
@@ -120,7 +120,39 @@ class ZMod
     /// Multiplicative inverse. Inverses of -1, 1, 2, 3, 4, 6 are fast, the rest are slow.
     constexpr ZMod operator~() const { return inverse(); }
 
-    std::strong_ordering operator<=>(const ZMod &other) const = default;
+    template <integral2 T> ZMod &operator<<=(T k)
+    {
+        if (k < 64)
+            *this *= 1_u64 << (int)k;
+        else
+            *this *= ZMod(2).pow(k);
+        return *this;
+    }
+
+    template <integral2 T> ZMod operator<<(this ZMod x, T k)
+    {
+        x <<= k;
+        return x;
+    }
+
+    template <integral2 T> ZMod &operator>>=(T k)
+    {
+        if (k == 1)
+            *this /= 2;
+        else if (k == 2)
+            *this /= 4;
+        else if (k == 3)
+            *this /= 8;
+        else
+            *this /= ZMod(2).pow(k);
+        return *this;
+    }
+
+    template <integral2 T> ZMod operator>>(this ZMod x, T k)
+    {
+        x >>= k;
+        return x;
+    }
 
     template <typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits> &operator<<(std::basic_ostream<CharT, Traits> &o, const ZMod &x)
@@ -172,7 +204,7 @@ class ZMod
             return exponent % 2 == 0 ? 1 : -1;
         ZMod x = 1;
         ZMod y = *this;
-        if constexpr (boost::multiprecision::is_signed_number<E>::value)
+        if constexpr (std::numeric_limits<E>::is_signed)
             if (exponent < 0)
             {
                 y = ~y;

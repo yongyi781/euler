@@ -108,11 +108,11 @@ template <integral2 T> class quadratic : public cfrac_base
         using DT = double_integer_t<T>;
         using std::gcd;
         // Idea: each remainder is of the form (m + √D) / d, starting with m = k*a and d = k*c.
-        T const k(c / gcd(DT(c), b - DT(a) * a));
+        T const k(c / gcd(c, b - a * a));
         DT const D = DT(k) * k * b;
         T const root(c > 0 ? isqrt(D) : -1 - isqrt(D - 1));
         T m(k * a), next_m = 0;
-        T prev_d(k * (b - DT(a) * a) / c), d(k * c), next_d = 0;
+        T prev_d(k * (b - a * a) / c), d(k * c), next_d = 0;
         T x = floorDiv(k * a + root, k * c);
         if (!it::callbackResult(f, x))
             return it::result_break;

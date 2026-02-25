@@ -195,10 +195,10 @@ template <typename T, typename U, typename Fun = std::identity> auto psum(T begi
     using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
     return tbb::parallel_reduce(
         tbb::blocked_range<V>(begin, end + 1), Tp{},
-        [&](tbb::blocked_range<V> r, Tp running_total) {
-            for (auto i = r.begin(); i < r.end(); ++i)
-                running_total += f(i);
-            return running_total;
+        [&](tbb::blocked_range<V> r, Tp acc) {
+            for (V i = r.begin(); i < r.end(); ++i)
+                acc += f(i);
+            return acc;
         },
         std::plus{});
 }
@@ -236,6 +236,95 @@ auto psumStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_are
         std::plus{});
 }
 
+/// Sums a function over a range of numbers using TBB, in reverse order. This is helpful if the largest work is in the
+/// front.
+template <typename T, typename U, typename Fun = std::identity> auto psumRev(T begin, U end, Fun f = {})
+{
+    using V = std::common_type_t<T, U>;
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, std::common_type_t<T, U>>>;
+    V const count = end - begin + 1;
+    return tbb::parallel_reduce(
+        tbb::blocked_range<V>(0, count), Tp{},
+        [&](tbb::blocked_range<V> r, Tp acc) {
+            for (V i = r.begin(); i < r.end(); ++i)
+                acc += f(end - i);
+            return acc;
+        },
+        std::plus{});
+}
+
+/// Parallel sum with geometric splitting. Perfect if the work at x is proportional to 1/x.
+template <typename T, typename U, typename Fun = std::identity>
+auto psumGeo(T begin, U end, Fun f = {}, int num_chunks = 4096)
+{
+    using V = std::common_type_t<T, U>;
+    using Tp = std::remove_cvref_t<std::invoke_result_t<Fun, V>>;
+    double const ratio = (double)(end + 1) / (double)begin;
+    return tbb::parallel_reduce(
+        tbb::blocked_range(0, num_chunks), Tp{},
+        [&](auto range, Tp acc) {
+            V const r_begin = range.begin() == 0 ? begin : begin * std::pow(ratio, (double)range.begin() / num_chunks);
+            V const r_end =
+                range.end() == num_chunks ? (end + 1) : begin * std::pow(ratio, (double)range.end() / num_chunks);
+            for (V i = r_begin; i < r_end; ++i)
+                acc += f(i);
+            return acc;
+        },
+        std::plus{});
+}
+
+/// Parallel sum with load-balanced chunking for work proportional to x^alpha.
+/// @param alpha The exponent of the work cost.
+///              Use 0.0 for constant work (linear chunks).
+///              Use -1.0 for inverse work (geometric chunks).
+///              Use 1.0 for linear work (sqrt chunks), etc.
+template <typename T, typename U, typename Fun = std::identity>
+auto psumPower(T begin, U end, double alpha, Fun f = {}, int num_chunks = 4096)
+{
+    using V = std::common_type_t<T, U>;
+    using Tp = std::invoke_result_t<Fun, V>;
+
+    if (V(begin) > V(end))
+        return Tp{};
+
+    // Case: Work is 1/x -> Geometric Partitioning (Logarithmic)
+    if (std::abs(alpha - (-1.0)) < 1e-6)
+        return psumGeo(begin, end, std::move(f), num_chunks);
+
+    // Case: Work is x^a -> Power Law Partitioning
+    double const p = alpha + 1.0;
+    double const L_p = std::pow((double)begin, p);
+    double const R_p = std::pow((double)(end + 1), p);
+    double const diff_p = R_p - L_p;
+    double const inv_p = 1.0 / p;
+
+    return tbb::parallel_reduce(
+        tbb::blocked_range<int>(0, num_chunks), Tp{},
+        [&](tbb::blocked_range<int> const &range, Tp acc) {
+            auto get_boundary = [&](int i) -> V {
+                if (i == 0)
+                    return begin;
+                if (i == num_chunks)
+                    return end + 1;
+                // Linear interpolation in p-space, then mapped back
+                double const val_p = L_p + diff_p * ((double)i / num_chunks);
+                return (V)std::pow(val_p, inv_p);
+            };
+
+            V const r_begin = get_boundary(range.begin());
+            V const r_end = get_boundary(range.end());
+
+            // Safety for small ranges where boundaries might collapse
+            if (r_begin >= r_end)
+                return acc;
+
+            for (V i = r_begin; i < r_end; ++i)
+                acc += f(i);
+            return acc;
+        },
+        std::plus<Tp>{});
+}
+
 /// Strided parallel for.
 template <typename T, typename U, typename Fun = std::identity>
 void pforStrided(T begin, U end, Fun f = {}, int stride = tbb::this_task_arena::max_concurrency())
@@ -255,6 +344,14 @@ void pforStrided(T begin, Pred pred, Fun f = {}, int stride = tbb::this_task_are
         for (T i = T(begin + lane); pred(i); i += stride)
             f(i);
     });
+}
+
+/// Parallel for in reverse order. This is helpful if the largest work is in the front.
+template <typename T, typename U, typename Fun = std::identity> void pforRev(T begin, U end, Fun f = {})
+{
+    using V = std::common_type_t<T, U>;
+    V const count = end - begin + 1;
+    return tbb::parallel_for(V(0), count, [&](V i) { f(end - i); });
 }
 
 /// Multiplies a function over a range of numbers using TBB.
@@ -876,7 +973,8 @@ template <std::ranges::range Range> void batchInvert(Range &&r)
     std::vector<T> prefix(n);
     std::exclusive_scan(r.begin(), r.end(), prefix.begin(), T(1), std::multiplies{});
     auto inv = T(1) / (*(r.end() - 1) * prefix.back());
-    auto it = r.end(), jt = prefix.end() - 1;
+    auto it = r.end();
+    auto jt = prefix.end() - 1;
     for (; it-- != r.begin(); --jt)
     {
         auto const x = *it;
@@ -895,7 +993,7 @@ template <execution_policy Exec, std::ranges::range Range> void batchInvert(Exec
 }
 
 // Merges runs and adds counts. Precondition: sorted by key.
-template <typename K, integral2 V> void mergeRuns(std::vector<std::pair<K, V>> &v)
+template <std::ranges::random_access_range Range> void mergeRuns(Range &&v)
 {
     if (v.empty())
         return;

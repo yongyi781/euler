@@ -86,8 +86,9 @@ template <integral2 T> constexpr bool checkSmallFactors(const T &n)
 /// Deterministic Miller test.
 template <integral2 T> constexpr bool miller(const T &n, std::initializer_list<u64> witnesses)
 {
+    using std::countr_zero;
     T const m = n - 1;
-    size_t const k = boost::multiprecision::lsb(m);
+    size_t const k = countr_zero(std::make_unsigned_t<T>(m));
     T const q = m >> k;
 
     T y;
@@ -122,8 +123,9 @@ template <integral2 T> constexpr bool miller(const T &n, std::initializer_list<u
 /// Probabilistic Miller-Rabin test.
 template <integral2 T> bool millerRabin(const T &n, size_t trials)
 {
+    using std::countr_zero;
     T const m = n - 1;
-    size_t const k = boost::multiprecision::lsb(m);
+    size_t const k = countr_zero(std::make_unsigned_t<T>(m));
     T const q = m >> k;
 
     static std::mt19937_64 gen;
@@ -161,7 +163,7 @@ template <integral2 T> constexpr bool isPrime(const T &n, size_t trials = 8)
 {
     if (n < 2)
         return false;
-    if (boost::multiprecision::bit_test(n, 0) == 0)
+    if ((n & 1) == 0)
         return n == 2; // n is even
     if (n <= 227)
         return euler::detail::isSmallPrime((size_t)n);
