@@ -15,7 +15,7 @@ constexpr T pow(T base, U exponent, T identity, BinaryOp op)
         return base;
     if constexpr (std::is_same_v<std::remove_cvref_t<BinaryOp>, std::multiplies<>>)
     {
-        if constexpr ((integral2<T> || std::floating_point<T>) && requires { -identity; })
+        if constexpr ((integral2<T> || std::floating_point<T>) && std::numeric_limits<T>::is_signed)
             if (base == -identity)
                 return exponent % 2 == 0 ? identity : -identity;
         if constexpr (std::numeric_limits<U>::is_signed && requires { T(1) / std::move(base); })
